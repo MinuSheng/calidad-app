@@ -121,7 +121,7 @@
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* MENÚ LATERAL DESPLEGABLE (CORREGIDO A LA DERECHA) */
+        /* MENÚ LATERAL DESPLEGABLE */
         .hamburger-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--info); padding: 0 0 0 10px; touch-action: manipulation; }
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999998; display: none; backdrop-filter: blur(2px); transition: opacity 0.3s; }
         .sidebar { position: fixed; top: 0; right: -320px; width: 280px; max-width: 85%; height: 100%; background: var(--card-bg); z-index: 999999; box-shadow: -2px 0 10px rgba(0,0,0,0.2); transition: right 0.3s ease; display: flex; flex-direction: column; }
@@ -507,28 +507,26 @@
         toggleSidebar();
         Swal.fire({
             title: 'Acerca del Sistema',
-            html: `
-                <div style="text-align:left; font-size:0.9rem;">
-                    <div style="background:var(--input-bg); padding:10px; border-radius:8px; margin-bottom:15px; border-left:4px solid var(--info);">
-                        <b>👨‍💻 DESARROLLADOR:</b> Ssnaydher López M.<br>
-                        <b>🛠️ SUB DESARROLLADOR:</b> Juan Rostrán P.
-                    </div>
-                    <b>Versión 1.1 (Mega Update)</b>
-                    <ul style="margin-top:5px; margin-bottom:15px; color:var(--text-color);">
-                        <li>Sistema 2 en 1: Pestañas de Yogurt y Cestas integradas.</li>
-                        <li>Teclado numérico al mantener pulsado un defecto (+15, +20).</li>
-                        <li>Menú Desplegable con Modo Oscuro y Backups Locales.</li>
-                        <li>Generador de Excel Oficial de Cestas (NI-ACF-018) automatizado.</li>
-                    </ul>
-                </div>
-            `,
+            html: '<div style="text-align:left; font-size:0.9rem;">' +
+                  '<div style="background:var(--input-bg); padding:10px; border-radius:8px; margin-bottom:15px; border-left:4px solid var(--info);">' +
+                  '<b>👨‍💻 DESARROLLADOR:</b> Ssnaydher López M.<br>' +
+                  '<b>🛠️ SUB DESARROLLADOR:</b> Juan Rostrán P.' +
+                  '</div>' +
+                  '<b>Versión 1.1.1 (Estable)</b>' +
+                  '<ul style="margin-top:5px; margin-bottom:15px; color:var(--text-color);">' +
+                  '<li>Conexión segura restaurada (AllOrigins).</li>' +
+                  '<li>Sistema 2 en 1: Pestañas de Yogurt y Cestas integradas.</li>' +
+                  '<li>Teclado numérico al mantener pulsado un defecto.</li>' +
+                  '<li>Menú Desplegable con Modo Oscuro y Backups Locales.</li>' +
+                  '</ul>' +
+                  '</div>',
             confirmButtonText: 'Cerrar',
             confirmButtonColor: '#0d6efd'
         });
     }
 
     // =========================================================
-    // GESTIÓN DE TURNOS PASADOS (BACKUPS LOCALES - SOLO YOGURT POR AHORA)
+    // GESTIÓN DE TURNOS PASADOS (BACKUPS LOCALES)
     // =========================================================
     function guardarTurnoPasado() {
         if(registros.length === 0) return;
@@ -569,11 +567,13 @@
         }
         
         var htmlBotones = '<div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">';
-        turnosGuardados.slice().reverse().forEach(function(t) {
-            htmlBotones += `<button class="btn-action" style="background-color:#6c757d; font-size:0.9rem; padding:12px;" onclick="mostrarDetalleTurnoPasado(${t.id})">
-                📅 ${t.fecha} - Turno ${t.turno} | ${t.verificador} <br><span style="font-weight:normal; font-size:0.8rem;">(Total: ${t.totalPack} packs)</span>
-            </button>`;
-        });
+        var arrayReverso = turnosGuardados.slice().reverse();
+        for(var j=0; j<arrayReverso.length; j++) {
+            var t = arrayReverso[j];
+            htmlBotones += '<button class="btn-action" style="background-color:#6c757d; font-size:0.9rem; padding:12px;" onclick="mostrarDetalleTurnoPasado(' + t.id + ')">' +
+                '📅 ' + t.fecha + ' - Turno ' + t.turno + ' | ' + t.verificador + ' <br><span style="font-weight:normal; font-size:0.8rem;">(Total: ' + t.totalPack + ' packs)</span>' +
+            '</button>';
+        }
         htmlBotones += '</div>';
         
         Swal.fire({
@@ -586,7 +586,10 @@
 
     function mostrarDetalleTurnoPasado(id) {
         var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
-        var turno = turnosGuardados.find(t => t.id === id);
+        var turno = null;
+        for(var k=0; k<turnosGuardados.length; k++) {
+            if(turnosGuardados[k].id === id) { turno = turnosGuardados[k]; break; }
+        }
         if(!turno) return;
         
         var mHtml = '<div style="max-height:350px; overflow-y:auto;"><table class="swal-table" style="width:100%"><thead><tr><th>Hora</th><th>Lote</th><th>Pack</th><th>Mal</th><th>Sob</th><th>Baj</th></tr></thead><tbody>';
@@ -606,57 +609,74 @@
         mHtml += '</tbody></table></div>';
 
         Swal.fire({
-            title: `Respaldo Turno ${turno.turno} (${turno.fecha})`,
+            title: 'Respaldo Turno ' + turno.turno + ' (' + turno.fecha + ')',
             html: mHtml,
             confirmButtonText: 'Volver',
             showDenyButton: true,
             denyButtonText: '🗑️ Borrar Respaldo',
             denyButtonColor: '#dc3545'
-        }).then((result) => {
+        }).then(function(result) {
             if (result.isDenied) {
-                var nuevos = turnosGuardados.filter(t => t.id !== id);
+                var nuevos = [];
+                for(var w=0; w<turnosGuardados.length; w++) {
+                    if(turnosGuardados[w].id !== id) nuevos.push(turnosGuardados[w]);
+                }
                 localStorage.setItem('lala_turnos_pasados', JSON.stringify(nuevos));
-                Swal.fire('Eliminado', 'El respaldo fue borrado.', 'success').then(() => verTurnosPasados());
+                Swal.fire('Eliminado', 'El respaldo fue borrado.', 'success').then(function() { verTurnosPasados(); });
             } else if (result.isConfirmed || result.isDismissed) { verTurnosPasados(); }
         });
     }
 
     // =========================================================
-    // SISTEMA MAESTRO Y BÓVEDA DE SEGURIDAD
+    // SISTEMA MAESTRO Y BÓVEDA DE SEGURIDAD (ALLORIGINS RESTAURADO)
     // =========================================================
     function verificarInterruptorMaestro() {
         if (!navigator.onLine) {
             bloquearAppTotalmente("Es obligatorio tener conexión a Internet para verificar la licencia.");
             return;
         }
-        var urlMaestra = "https://gist.githubusercontent.com/MinuSheng/e622273f39f5baa114ee41981311b1d6/raw/estado.js?t=" + new Date().getTime();
-        fetch(urlMaestra)
-            .then(function(respuesta) {
-                if (!respuesta.ok) throw new Error("Error en red");
-                return respuesta.text();
-            })
-            .then(function(texto) {
-                if (texto.toUpperCase().includes("ACTIVO")) {
-                    document.getElementById('loading-overlay').style.display = 'none';
-                    chequearSeguridadMensual();
-                } else { bloquearAppTotalmente("La licencia de esta aplicación ha sido revocada o suspendida por el administrador."); }
-            })
-            .catch(function(error) { bloquearAppTotalmente("Error de conexión: No se pudo verificar la licencia maestra."); });
+
+        var timeoutConexion = setTimeout(function() {
+            bloquearAppTotalmente("Tiempo de espera agotado. Revise su conexión a internet y vuelva a intentarlo.");
+        }, 12000);
+
+        window.procesarRespuestaMaestra = function(data) {
+            clearTimeout(timeoutConexion);
+            if (data && data.contents && data.contents.toUpperCase().includes("ACTIVO")) {
+                document.getElementById('loading-overlay').style.display = 'none';
+                chequearSeguridadMensual();
+            } else {
+                bloquearAppTotalmente("La licencia de esta aplicación ha sido revocada o suspendida por el administrador.");
+            }
+        };
+
+        var enlaceGitHub = "https://gist.githubusercontent.com/MinuSheng/e622273f39f5baa114ee41981311b1d6/raw/estado.js";
+        var scriptUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(enlaceGitHub + "?t=" + new Date().getTime()) + "&callback=procesarRespuestaMaestra";
+        
+        var script = document.createElement("script");
+        script.src = scriptUrl;
+        script.onerror = function() {
+            clearTimeout(timeoutConexion);
+            bloquearAppTotalmente("Error de red o bloqueo del navegador. No se pudo verificar la licencia.");
+        };
+        document.head.appendChild(script);
     }
 
     function bloquearAppTotalmente(mensaje) {
         var loader = document.getElementById('loader-spinner');
         if(loader) loader.style.display = 'none';
         var texto = document.getElementById('loading-text');
-        texto.innerHTML = `<div style="text-align: center; width: 100%;">
-            <div style="font-size: 1.4rem; color: #dc3545; font-weight: bold; margin-bottom: 15px;">🛑 ACCESO BLOQUEADO 🛑</div>
-            <div style="font-size: 0.95rem; color: #adb5bd; font-weight: normal; line-height: 1.5; padding: 0 10px;">${mensaje}</div>
-        </div>`;
+        texto.innerHTML = '<div style="text-align: center; width: 100%;">' +
+            '<div style="font-size: 1.4rem; color: #dc3545; font-weight: bold; margin-bottom: 15px;">🛑 ACCESO BLOQUEADO 🛑</div>' +
+            '<div style="font-size: 0.95rem; color: #adb5bd; font-weight: normal; line-height: 1.5; padding: 0 10px;">' + mensaje + '</div>' +
+        '</div>';
         document.getElementById('security-overlay').style.display = 'none';
         var mainContainer = document.getElementById('main-app-container');
         if(mainContainer) mainContainer.style.display = 'none';
     }
 
+
+    // --- LÓGICA DE SEGURIDAD MENSUAL CON DEVICE ID Y ALGORITMO HASH ---
     function obtenerOcrearDeviceID() {
         var did = localStorage.getItem('lala_device_id');
         if (!did) { did = Math.random().toString(36).substring(2, 6).toUpperCase(); localStorage.setItem('lala_device_id', did); }
@@ -684,7 +704,7 @@
         
         if (input === expectedKey) {
             localStorage.setItem('lala_seguridad', JSON.stringify({ mes: mes, anio: anio, unlocked: true }));
-            Swal.fire('Acceso Concedido', 'Licencia validada correctamente para este dispositivo.', 'success').then(() => {
+            Swal.fire('Acceso Concedido', 'Licencia validada correctamente.', 'success').then(function() {
                 document.getElementById('security-overlay').style.display = 'none'; iniciarAplicacionNormal();
             });
         } else {
@@ -699,7 +719,6 @@
     var contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 };
     var registros = []; var ultimoBloqueProcesado = ""; var turnoActivo = ""; var modoLavadoActivo = false;
 
-    // --- NUEVA LÓGICA LONG PRESS (MANTENER PRESIONADO PARA AÑADIR VARIOS) ---
     var pressTimer;
     var isLongPress = false;
     
@@ -708,16 +727,14 @@
         isLongPress = false;
         pressTimer = setTimeout(function() {
             isLongPress = true;
-            if(navigator.vibrate) navigator.vibrate([30, 30, 30]); // Vibra para avisar que se activó
+            if(navigator.vibrate) navigator.vibrate([30, 30, 30]);
             abrirInputNumerico(tipo);
-        }, 550); // 550 milisegundos para detectar "mantener presionado"
+        }, 550);
     }
 
     function btnUp(tipo) {
         clearTimeout(pressTimer);
-        if(!isLongPress) {
-            increment(tipo); // Si soltó rápido, solo suma 1
-        }
+        if(!isLongPress) { increment(tipo); }
     }
 
     function btnLeave() { clearTimeout(pressTimer); }
@@ -731,30 +748,26 @@
 
     function abrirInputNumerico(tipo) {
         Swal.fire({
-            title: `Añadir ${obtenerNombreDefecto(tipo)}`,
+            title: 'Añadir ' + obtenerNombreDefecto(tipo),
             text: "Ingresa la cantidad exacta a sumar:",
             input: 'number',
-            inputAttributes: {
-                pattern: '[0-9]*', // Fuerza el teclado numérico en celulares
-                inputmode: 'numeric'
-            },
+            inputAttributes: { pattern: '[0-9]*', inputmode: 'numeric' },
             showCancelButton: true,
             confirmButtonText: 'Sumar',
             cancelButtonText: 'Cancelar',
-            inputValidator: (value) => {
+            inputValidator: function(value) {
                 if (!value || isNaN(value) || Number(value) <= 0) return 'Debes ingresar un número válido mayor a 0';
             }
-        }).then((result) => {
+        }).then(function(result) {
             if (result.isConfirmed) {
                 var cantidad = parseInt(result.value);
                 contadoresActuales[tipo] += cantidad;
                 actualizarPantallaContadores();
                 guardarEnMemoria();
-                Swal.fire({ icon: 'success', title: `+${cantidad} Añadidos`, showConfirmButton: false, timer: 1000 });
+                Swal.fire({ icon: 'success', title: '+' + cantidad + ' Añadidos', showConfirmButton: false, timer: 1000 });
             }
         });
     }
-    // -----------------------------------------------------------
 
     try {
         if(localStorage.getItem('lala_contadores')) contadoresActuales = JSON.parse(localStorage.getItem('lala_contadores'));
@@ -948,7 +961,6 @@
         ultimoBloqueProcesado = horaCorte; contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 };
         ordenarRegistrosCronologicamente(); guardarEnMemoria(); actualizarPantallaContadores(); renderizarTabla();
         
-        // Evita el Swal si el usuario no está en la pestaña de Yogurt para no molestar
         if(document.getElementById('tab-yogurt').classList.contains('active')) {
             Swal.fire({ title: 'Corte Yogurt (' + horaCorte + ')', text: 'Datos guardados de forma automática.', icon: 'success', timer: 3000, toast: true, position: 'top-end' });
         }
@@ -980,7 +992,14 @@
 
     function abrirVentanaEdicionManualFila(index) {
         var r = registros[index];
-        Swal.fire({ title: 'Modificar Datos Manualmente', html: `<div style="text-align:left; font-size:0.9rem;"> <label><b>Hora (HH:MM):</b></label> <input id="edit-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="${r.hora}"> <label><b>Lote Operador:</b></label> <input id="edit-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="${r.lote}"> <label><b>Mal Sellado:</b></label> <input id="edit-mal" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="${r.malSellado}"> <label><b>Sobrellenado:</b></label> <input id="edit-sobre" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="${r.sobrellenado}"> <label><b>Volumen Bajo:</b></label> <input id="edit-bajo" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="${r.volumenBajo}"> </div>`, showCancelButton: true, confirmButtonText: 'Guardar Cambios'
+        var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
+            '<label><b>Hora (HH:MM):</b></label><input id="edit-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
+            '<label><b>Lote Operador:</b></label><input id="edit-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
+            '<label><b>Mal Sellado:</b></label><input id="edit-mal" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.malSellado + '">' +
+            '<label><b>Sobrellenado:</b></label><input id="edit-sobre" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.sobrellenado + '">' +
+            '<label><b>Volumen Bajo:</b></label><input id="edit-bajo" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.volumenBajo + '">' +
+        '</div>';
+        Swal.fire({ title: 'Modificar Datos Manualmente', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar Cambios'
         }).then(function(res) {
             if(res.isConfirmed) {
                 registros[index].hora = document.getElementById('edit-hora').value; registros[index].lote = document.getElementById('edit-lote').value; registros[index].malSellado = parseInt(document.getElementById('edit-mal').value) || 0; registros[index].sobrellenado = parseInt(document.getElementById('edit-sobre').value) || 0; registros[index].volumenBajo = parseInt(document.getElementById('edit-bajo').value) || 0;
@@ -1023,8 +1042,7 @@
             var sLlenado = reg.almuerzo ? "COMIDA" : reg.sobrellenado.toLocaleString();
             var vBajo = reg.almuerzo ? "COMIDA" : reg.volumenBajo.toLocaleString();
 
-            tr.innerHTML = 
-                '<td style="font-weight:bold; cursor:pointer;" onclick="alternarAlmuerzoFila(' + i + ')">' + reg.hora + (reg.almuerzo ? ' 🥪' : '') + '</td>' +
+            tr.innerHTML = '<td style="font-weight:bold; cursor:pointer;" onclick="alternarAlmuerzoFila(' + i + ')">' + reg.hora + (reg.almuerzo ? ' 🥪' : '') + '</td>' +
                 '<td style="cursor:pointer;" onclick="abrirMenuOpcionesFila(' + i + ')">' + reg.lote + '</td>' +
                 '<td style="background:#fff3cd; font-weight:bold; color:#664d03; cursor:pointer;" onclick="cambiarProductionPackFila(' + i + ')">' + txtPack + '</td>' +
                 '<td style="cursor:pointer;" onclick="abrirMenuOpcionesFila(' + i + ')">' + mSellado + '</td>' +
@@ -1064,22 +1082,23 @@
                 exportData.push({ "fecha": fechaVal, "producto": prodVal, "lote": loteVal, "hora": r.hora, "pack": pVal, "ms": r.almuerzo ? "COMIDA" : r.malSellado, "sob": r.almuerzo ? "—" : r.sobrellenado, "vb": r.almuerzo ? "COMIDA" : r.volumenBajo, "turno": turnoActivo || "C", "verificador": nombreVerificador });
             }
         }
-        var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "text/plain;charset=utf-8" }); var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "datos.txt"; a.click(); URL.revokeObjectURL(a.href);
+        var jsonString = JSON.stringify(exportData, null, 2);
+        var blob = new Blob([jsonString], { type: "text/plain;charset=utf-8" }); var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "datos.txt"; a.click(); URL.revokeObjectURL(a.href);
         Swal.fire('¡Archivo descargado!', 'Archivo básico TXT listo.', 'success');
     }
 
     async function descargarExcelDirecto() {
         if(registros.length === 0) return Swal.fire('Historial Vacío', 'No hay registros para exportar.', 'info');
-        Swal.fire({ title: 'Generando Reporte...', text: 'Descargando y preparando el formato de Excel Oficial.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({ title: 'Generando Reporte...', text: 'Descargando y preparando el formato de Excel Oficial.', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
         try {
-            const respuesta = await fetch('./plantilla.xlsx');
+            var respuesta = await fetch('./plantilla.xlsx');
             if (!respuesta.ok) throw new Error("No se encontró el archivo 'plantilla.xlsx' en el servidor.");
-            const arrayBuffer = await respuesta.arrayBuffer();
-            const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.worksheets[0]; 
+            var arrayBuffer = await respuesta.arrayBuffer();
+            var workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(arrayBuffer);
+            var worksheet = workbook.worksheets[0]; 
 
-            let filaActual = 3; 
+            var filaActual = 3; 
             var dateObj = new Date();
             if (turnoActivo === "C" && dateObj.getHours() < 10) { dateObj.setDate(dateObj.getDate() - 1); }
             var dd = String(dateObj.getDate()).padStart(2, '0'); var mm = String(dateObj.getMonth() + 1).padStart(2, '0'); var yy = String(dateObj.getFullYear()).slice(-2);
@@ -1108,7 +1127,7 @@
                 if (r.tipoEspecial) {
                     filaExcel.getCell(1).value = fechaCelda; filaExcel.getCell(2).value = "";  filaExcel.getCell(3).value = r.lote; filaExcel.getCell(4).value = r.hora; filaExcel.getCell(5).value = r.textoEspecial; 
                     worksheet.mergeCells(filaActual, 5, filaActual, 8);
-                    for(let c=1; c<=11; c++) { let cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; }
+                    for(var c=1; c<=11; c++) { var cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; }
                     filaExcel.getCell(4).font = boldFont;
                     if (r.textoEspecial.toUpperCase().includes("LAVADO")) { filaExcel.getCell(5).font = { name: 'Aptos Narrow', size: 12, bold: true, color: { argb: 'FF842029' } }; } else { filaExcel.getCell(5).font = boldFont; }
                 } else {
@@ -1121,10 +1140,10 @@
                     filaExcel.getCell(6).value = r.almuerzo ? "COMIDA" : Math.round(Number(r.malSellado)); filaExcel.getCell(7).value = r.almuerzo ? "—" : Math.round(Number(r.sobrellenado)); filaExcel.getCell(8).value = r.almuerzo ? "COMIDA" : Math.round(Number(r.volumenBajo)); 
                     filaExcel.getCell(9).value = "-"; filaExcel.getCell(10).value = nombreVerificador; filaExcel.getCell(11).value = turnoActivo || "A"; 
 
-                    for(let c=1; c<=11; c++) {
-                        let cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.numFmt = '0';
-                        if([4, 5, 6, 7, 8].includes(c)) cell.font = boldFont;
-                        if(r.almuerzo) { cell.font = { name: 'Aptos Narrow', size: 12, italic: true, bold: [4,5,6,7,8].includes(c), color: { argb: 'FF000000' } }; }
+                    for(var k=1; k<=11; k++) {
+                        var cell2 = filaExcel.getCell(k); cell2.border = borderThin; cell2.font = baseFont; cell2.alignment = { vertical: 'middle', horizontal: 'center' }; cell2.numFmt = '0';
+                        if([4, 5, 6, 7, 8].includes(k)) cell2.font = boldFont;
+                        if(r.almuerzo) { cell2.font = { name: 'Aptos Narrow', size: 12, italic: true, bold: [4,5,6,7,8].includes(k), color: { argb: 'FF000000' } }; }
                     }
                     if(prodCelda !== "") filaExcel.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
                 }
@@ -1132,23 +1151,23 @@
             }
 
             filaActual++; 
-            let fTotales1 = worksheet.getRow(filaActual);
+            var fTotales1 = worksheet.getRow(filaActual);
             fTotales1.getCell(1).value = "-"; fTotales1.getCell(2).value = "-"; fTotales1.getCell(3).value = "-"; fTotales1.getCell(4).value = "-"; fTotales1.getCell(5).value = "PRODUCCION"; fTotales1.getCell(6).value = "DEFECTOS"; worksheet.mergeCells(filaActual, 6, filaActual, 8); fTotales1.getCell(9).value = "-"; fTotales1.getCell(10).value = nombreVerificador; fTotales1.getCell(11).value = turnoActivo || "A";
-            for(let c=1; c<=11; c++) { let cell = fTotales1.getCell(c); cell.font = boldFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.border = borderThin; }
+            for(var x=1; x<=11; x++) { var cell3 = fTotales1.getCell(x); cell3.font = boldFont; cell3.alignment = { vertical: 'middle', horizontal: 'center' }; cell3.border = borderThin; }
             fTotales1.commit(); filaActual++;
 
-            let fTotales2 = worksheet.getRow(filaActual);
+            var fTotales2 = worksheet.getRow(filaActual);
             fTotales2.getCell(1).value = "-"; fTotales2.getCell(2).value = "-"; fTotales2.getCell(3).value = "-"; fTotales2.getCell(4).value = "-"; fTotales2.getCell(5).value = totalPack; fTotales2.getCell(6).value = totalMal; fTotales2.getCell(7).value = totalSobre; fTotales2.getCell(8).value = totalBajo; fTotales2.getCell(9).value = "-"; fTotales2.getCell(10).value = nombreVerificador; fTotales2.getCell(11).value = turnoActivo || "A";
-            for(let c=1; c<=11; c++) { let cell = fTotales2.getCell(c); cell.font = boldFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; cell.border = borderThin; cell.numFmt = '0'; }
+            for(var y=1; y<=11; y++) { var cell4 = fTotales2.getCell(y); cell4.font = boldFont; cell4.alignment = { vertical: 'middle', horizontal: 'center' }; cell4.border = borderThin; cell4.numFmt = '0'; }
             fTotales2.commit();
 
-            const bufferSalida = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `Reporte_${fechaStr}_Turno${turnoActivo || 'A'}_${nombreVerificador}.xlsx`; a.click(); URL.revokeObjectURL(a.href);
+            var bufferSalida = await workbook.xlsx.writeBuffer();
+            var blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = 'Reporte_' + fechaStr + '_Turno' + (turnoActivo || 'A') + '_' + nombreVerificador + '.xlsx'; a.click(); URL.revokeObjectURL(a.href);
             Swal.fire({ title: '¡Excel Generado!', text: 'El reporte está listo.', icon: 'success' });
 
         } catch (error) {
-            console.error(error); Swal.fire({ title: 'Error al crear Excel', text: 'Asegúrate de haber subido el archivo "plantilla.xlsx" a GitHub en la misma carpeta que tu index.html.', icon: 'error' });
+            console.error(error); Swal.fire({ title: 'Error al crear Excel', text: 'Asegúrate de haber subido el archivo "plantilla.xlsx" a GitHub en la misma carpeta que tu index.html. Detalle técnico: ' + error.message, icon: 'error' });
         }
     }
 
@@ -1165,26 +1184,24 @@
     }
 
     function verDetalleMerma() {
-        var mDirectas = registros.filter(function(r){ return r.tipoEspecial === 'MERMA_DIRECTA'; });
-        if(mDirectas.length === 0) { return Swal.fire('Mermas', 'No se han descartado baldes de merma en este turno.', 'info'); }
-        var mHtml = '<ul>'; mDirectas.forEach(function(m){ mHtml += '<li style="text-align:left; font-size:0.9rem; margin-bottom:4px;"><b>' + m.hora + '</b> - Lote ' + m.lote + ': 1 Balde Descartado</li>'; }); mHtml += '</ul>';
-        Swal.fire({ title: 'Detalle de Mermas', html: mHtml, icon: 'info' });
+        var mDirectas = registros.filter(function(r) { return r.tipoEspecial === 'MERMA_DIRECTA'; });
+        if(mDirectas.length === 0) { return Swal.fire('Mermas', 'No se han descartado baldes de merma en este turno de forma directa.', 'info'); }
+        var mHtml = '<ul>'; for(var i=0; i<mDirectas.length; i++){ mHtml += '<li style="text-align:left; font-size:0.9rem; margin-bottom:4px;"><b>' + mDirectas[i].hora + '</b> - Lote ' + mDirectas[i].lote + ': 1 Balde Descartado</li>'; } mHtml += '</ul>';
+        Swal.fire({ title: 'Detalle de Mermas (Baldes)', html: mHtml, icon: 'info' });
     }
 
     function limpiarTodoHistorialManual() {
         Swal.fire({
-            title: '¿Cerrar Turno por Completo?', text: "Se guardará un respaldo y se limpiará la pantalla.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar y guardar', cancelButtonText: 'Cancelar'
+            title: '¿Cerrar Turno por Completo?', text: "Se guardará un respaldo de este turno y se reiniciará la memoria local.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar y guardar', cancelButtonText: 'Cancelar'
         }).then(function(res) {
             if (res.isConfirmed) {
                 guardarTurnoPasado();
                 var idSafe = localStorage.getItem('lala_device_id'); var passSafe = localStorage.getItem('lala_seguridad'); var tpSafe = localStorage.getItem('lala_turnos_pasados'); var dmSafe = localStorage.getItem('lala_dark_mode'); var cestasContSafe = localStorage.getItem('lala_cont_cestas'); var cestasRegSafe = localStorage.getItem('lala_reg_cestas'); var cestasCorteSafe = localStorage.getItem('lala_corte_cestas');
-                
                 try { localStorage.clear(); } catch(e){}
-                
                 if(idSafe) localStorage.setItem('lala_device_id', idSafe); if(passSafe) localStorage.setItem('lala_seguridad', passSafe); if(tpSafe) localStorage.setItem('lala_turnos_pasados', tpSafe); if(dmSafe) localStorage.setItem('lala_dark_mode', dmSafe); if(cestasContSafe) localStorage.setItem('lala_cont_cestas', cestasContSafe); if(cestasRegSafe) localStorage.setItem('lala_reg_cestas', cestasRegSafe); if(cestasCorteSafe) localStorage.setItem('lala_corte_cestas', cestasCorteSafe);
                 
                 contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 }; registros = []; ultimoBloqueProcesado = ""; turnoActivo = ""; modoLavadoActivo = false; document.getElementById('producto').value = 'Durazno'; document.getElementById('lote').value = '0406'; cargarConfiguracionPrevia();
-                Swal.fire('Turno Finalizado', 'Historial guardado en el Menú.', 'success');
+                Swal.fire('Turno Finalizado', 'Historial guardado en el Menú y base de datos limpia.', 'success');
             }
         });
     }
@@ -1196,7 +1213,7 @@
     var contadoresCestas = { bloques: 0, sueltas: 0, sucias: 0, quebradas: 0 };
     var registrosCestas = [];
     var ultimoCorteCestas = "";
-    var historialAccionesCestas = []; // Para el botón deshacer
+    var historialAccionesCestas = []; 
 
     try {
         if(localStorage.getItem('lala_cont_cestas')) contadoresCestas = JSON.parse(localStorage.getItem('lala_cont_cestas'));
@@ -1218,7 +1235,6 @@
             ultimoCorteCestas = String(ahora.getHours()).padStart(2, '0') + ":00"; 
             guardarCestas();
         }
-        
         historialAccionesCestas.push(tipo);
         contadoresCestas[tipo] += valor;
         if (navigator.vibrate) navigator.vibrate(20);
@@ -1240,15 +1256,16 @@
     function actualizarPantallaCestas() {
         var revisadas = (contadoresCestas.bloques) + contadoresCestas.sueltas;
         var rechazadas = contadoresCestas.sucias + contadoresCestas.quebradas;
-        document.getElementById('lbl-cestas-rev').innerText = revisadas;
-        document.getElementById('lbl-cestas-rech').innerText = rechazadas;
+        var lblRev = document.getElementById('lbl-cestas-rev');
+        var lblRech = document.getElementById('lbl-cestas-rech');
+        if(lblRev) lblRev.innerText = revisadas;
+        if(lblRech) lblRech.innerText = rechazadas;
     }
 
     function ejecutarCorteCestas(horaCorte) {
         var revisadas = (contadoresCestas.bloques) + contadoresCestas.sueltas;
         var rechazadas = contadoresCestas.sucias + contadoresCestas.quebradas;
         var obs = document.getElementById('obs-cestas').value || "-";
-        
         var nuevoItem = registrosCestas.length + 1;
 
         registrosCestas.push({
@@ -1277,7 +1294,7 @@
     function confirmarCorteCestasManual() {
         if(turnoActivo === "") return Swal.fire('Atención', 'Inicia el turno primero.', 'warning');
         var ahora = new Date(); var horaSugerida = String(ahora.getHours()).padStart(2, '0') + ":00";
-        Swal.fire({ title: 'Corte de Cestas Manual', text: 'Se registrarán los datos actuales. La hora del reporte oficial siempre se redondea a la hora en punto para coincidir con la plantilla (ej. 14:00).', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, Cortar'
+        Swal.fire({ title: 'Corte de Cestas Manual', text: 'Se registrarán los datos actuales.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, Cortar'
         }).then(function(res) { if(res.isConfirmed) { ejecutarCorteCestas(horaSugerida); } });
     }
 
@@ -1289,11 +1306,13 @@
             var r = registrosCestas[i];
             tRev += r.revisadas; tRech += r.rechazadas; tSuc += r.sucias; tQue += r.quebradas;
             var tr = document.createElement('tr');
-            tr.innerHTML = `<td>${r.hora}</td><td>${r.revisadas}</td><td style="color:#dc3545; font-weight:bold;">${r.rechazadas}</td><td>${r.sucias}</td><td>${r.quebradas}</td>`;
+            tr.innerHTML = '<td>' + r.hora + '</td><td>' + r.revisadas + '</td><td style="color:#dc3545; font-weight:bold;">' + r.rechazadas + '</td><td>' + r.sucias + '</td><td>' + r.quebradas + '</td>';
             tbody.appendChild(tr);
         }
-        document.getElementById('tot-ces-rev').innerText = tRev; document.getElementById('tot-ces-rech').innerText = tRech;
-        document.getElementById('tot-ces-suc').innerText = tSuc; document.getElementById('tot-ces-que').innerText = tQue;
+        var trv = document.getElementById('tot-ces-rev'); if(trv) trv.innerText = tRev;
+        var trc = document.getElementById('tot-ces-rech'); if(trc) trc.innerText = tRech;
+        var tsu = document.getElementById('tot-ces-suc'); if(tsu) tsu.innerText = tSuc;
+        var tqu = document.getElementById('tot-ces-que'); if(tqu) tqu.innerText = tQue;
     }
 
     function limpiarHistorialCestas() {
@@ -1308,24 +1327,23 @@
 
     async function descargarExcelCestas() {
         if(registrosCestas.length === 0) return Swal.fire('Vacío', 'No hay registros de cestas.', 'info');
-        Swal.fire({ title: 'Generando Reporte...', text: 'Preparando formato NI-ACF-018.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({ title: 'Generando Reporte...', text: 'Preparando formato NI-ACF-018.', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
         try {
-            const respuesta = await fetch('./plantilla_cestas.xlsx');
+            var respuesta = await fetch('./plantilla_cestas.xlsx');
             if (!respuesta.ok) throw new Error("No se encontró 'plantilla_cestas.xlsx'");
-            const arrayBuffer = await respuesta.arrayBuffer();
-            const workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(arrayBuffer);
-            const worksheet = workbook.worksheets[0]; 
+            var arrayBuffer = await respuesta.arrayBuffer();
+            var workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(arrayBuffer);
+            var worksheet = workbook.worksheets[0]; 
 
             var dateObj = new Date(); if (turnoActivo === "C" && dateObj.getHours() < 10) dateObj.setDate(dateObj.getDate() - 1);
             var dd = String(dateObj.getDate()).padStart(2, '0'); var mm = String(dateObj.getMonth() + 1).padStart(2, '0'); var yy = String(dateObj.getFullYear()).slice(-2);
             var fechaStr = dd + "-" + mm + "-" + yy;
             var nombreVerificador = document.getElementById('verificador').value || "Sin Nombre";
 
-            var filaInicio = 9; // En base al formato CSV provisto
+            var filaInicio = 9; 
             var baseFont = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
             
-            // Llenar Fecha (Asumiendo que va en la celda F6 por el formato)
             worksheet.getCell('F6').value = "FECHA: " + fechaStr;
 
             var tRev = 0, tRech = 0, tSuc = 0, tQue = 0;
@@ -1336,7 +1354,7 @@
                 
                 var filaExcel = worksheet.getRow(filaInicio);
                 filaExcel.getCell(1).value = r.item;
-                filaExcel.getCell(2).value = r.hora; // "Hora de verficación"
+                filaExcel.getCell(2).value = r.hora; 
                 filaExcel.getCell(3).value = "Embalaje";
                 filaExcel.getCell(4).value = r.revisadas;
                 filaExcel.getCell(5).value = r.rechazadas;
@@ -1345,7 +1363,7 @@
                 filaExcel.getCell(8).value = r.obs;
                 filaExcel.getCell(9).value = nombreVerificador;
                 
-                for(let c=1; c<=9; c++) { 
+                for(var c=1; c<=9; c++) { 
                     filaExcel.getCell(c).font = baseFont;
                     filaExcel.getCell(c).alignment = { vertical: 'middle', horizontal: 'center' };
                 }
@@ -1353,20 +1371,19 @@
                 filaInicio++;
             }
 
-            // Totales (Asumiendo que van al final)
             var filaTotales = worksheet.getRow(filaInicio);
             filaTotales.getCell(2).value = "TOTALES";
             filaTotales.getCell(4).value = tRev;
             filaTotales.getCell(5).value = tRech;
             filaTotales.getCell(6).value = tSuc;
             filaTotales.getCell(7).value = tQue;
-            for(let c=1; c<=9; c++) { filaTotales.getCell(c).font = { name: 'Arial', size: 10, bold: true }; }
+            for(var z=1; z<=9; z++) { filaTotales.getCell(z).font = { name: 'Arial', size: 10, bold: true }; }
             filaTotales.commit();
 
-            const bufferSalida = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            var bufferSalida = await workbook.xlsx.writeBuffer();
+            var blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             var a = document.createElement("a"); a.href = URL.createObjectURL(blob); 
-            a.download = `Cestas_${fechaStr}_Turno${turnoActivo || 'A'}_${nombreVerificador}.xlsx`; 
+            a.download = 'Cestas_' + fechaStr + '_Turno' + (turnoActivo || 'A') + '_' + nombreVerificador + '.xlsx'; 
             a.click(); URL.revokeObjectURL(a.href);
             Swal.fire({ title: '¡Excel Generado!', text: 'El reporte de cestas está listo.', icon: 'success' });
 
@@ -1377,10 +1394,25 @@
 
 
     // === INICIALIZACIÓN COMPARTIDA ===
+    function iniciarAplicacionNormal() {
+        try {
+            document.getElementById('main-app-container').style.display = 'block';
+            initDarkMode();
+            cargarConfiguracionPrevia();
+            setInterval(ejecutarRelojYAlertas, 1000);
+        } catch (err) {
+            alert("Error iniciando la app: " + err.message);
+        }
+    }
+
     window.onload = function() {
-        verificarInterruptorMaestro();
-        actualizarPantallaCestas();
-        renderizarTablaCestas();
+        try {
+            verificarInterruptorMaestro();
+            actualizarPantallaCestas();
+            renderizarTablaCestas();
+        } catch (err) {
+            alert("Error fatal en el inicio: " + err.message);
+        }
     };
 
 </script>
