@@ -234,6 +234,19 @@
         .op-login-input:focus { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.6); }
         .op-login-btn { width: 100%; padding: 15px; margin-top: 4px; border: none; border-radius: 12px; background: linear-gradient(135deg, #6c8ee8, #8b7cf6); color: white; font-size: 1rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; box-shadow: 0 8px 20px rgba(108,142,232,0.4); transition: transform 0.15s ease-out; }
         .op-login-btn:active { transform: scale(0.97); }
+
+        /* Diseño oscuro para pantallas no-operativas basadas en .security-box
+           (Gestionar Licencia) — antes se quedaban con fondo claro fijo y el
+           texto se volvía invisible por las reglas globales de modo oscuro. */
+        body.dark-mode .security-box { background: #24252b; box-shadow: 13px 13px 20px #1a1b1f, -13px -13px 20px #2e2f37; }
+        body.dark-mode .security-box h2 { color: #f0f0f3; }
+        body.dark-mode .security-box p { color: #b8b9c2; }
+        body.dark-mode .device-id-box { background: #24252b; box-shadow: inset 8px 8px 15px #1a1b1f, inset -8px -8px 15px #2e2f37; }
+        body.dark-mode .device-id-box span { color: #9a9ba3; }
+        body.dark-mode .device-id-box strong { color: #7c93e8; }
+        body.dark-mode .security-box input { background: #24252b; color: #e6e6ea; box-shadow: inset 8px 8px 15px #1a1b1f, inset -8px -8px 15px #2e2f37; }
+        body.dark-mode .security-box .btn-action { background: #24252b; color: #7c93e8; box-shadow: 8px 8px 15px #1a1b1f, -8px -8px 15px #2e2f37; }
+        body.dark-mode .security-box .btn-action:active { box-shadow: inset 8px 8px 15px #1a1b1f, inset -8px -8px 15px #2e2f37; }
         
         #loading-overlay { background: #000000; z-index: 9999999; display: flex; }
         .loader { border: 5px solid #121212; border-top: 5px solid #0d6efd; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
@@ -1013,21 +1026,18 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.0.0 (Actual) - Nube, Login y Rediseño</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.0.0 (Actual) - Nueva Base y Mejoras</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
-                      '<li>Respaldo automático en la nube (Firebase/Firestore): cada turno cerrado, y sus correcciones posteriores, se sincronizan solos.</li>' +
-                      '<li>Sistema de Login por operario (usuario y contraseña), independiente de la clave mensual del dispositivo.</li>' +
-                      '<li>Nuevo Panel Admin para ver los últimos turnos guardados en la nube desde cualquier dispositivo.</li>' +
-                      '<li>Menú reorganizado: apartados nuevos de "Perfil" (tus datos y gestión de licencia/sesión) y "Ajustes" (respaldo físico y modo simulación).</li>' +
-                      '<li>Modo Emergencia (+24 horas) ahora sí caduca solo, con temporizador visible en vivo.</li>' +
-                      '<li>Rediseño completo del Modo Oscuro: paleta más suave pensada para turnos largos frente a la pantalla.</li>' +
-                      '<li>Nueva pantalla de Login con imagen de fondo e identidad de marca.</li>' +
-                      '<li>Corregido: la merma en litros ya no se calculaba bien (ahora es baldes × 20 litros, sin la estimación por defectos).</li>' +
-                      '<li>Editor de "Cambio de Sabor" ahora permite corregir la hora, no solo el texto.</li>' +
-                      '<li>Corregido: la fecha del reporte (Excel, Cestas y Captura) ya sigue siempre la fecha real de inicio de turno, no la del momento de generarlo — soluciona el desfase del Turno C.</li>' +
-                      '<li>Nuevos turnos A+ (domingos, 12 horas) y A+B (doble turno, 16 horas).</li>' +
-                      '<li>Quitado el "Resumen Rápido", reemplazado por la Captura de Reporte.</li>' +
-                      '<li>Modo Simulación ya no arriesga sobrescribir datos reales ni sube información falsa a la nube.</li>' +
+                      '<li>Se migró a un nuevo sistema de respaldo automático, más seguro y confiable.</li>' +
+                      '<li>Ahora cada quien inicia sesión con su propio usuario y contraseña.</li>' +
+                      '<li>Menú reorganizado: nuevos apartados de "Perfil" y "Ajustes".</li>' +
+                      '<li>Rediseño del Modo Oscuro, pensado para ser más cómodo en turnos largos.</li>' +
+                      '<li>Nueva pantalla de inicio de sesión.</li>' +
+                      '<li>Corregido el cálculo de la merma en litros.</li>' +
+                      '<li>Ahora se puede corregir la hora de un cambio de sabor, no solo el texto.</li>' +
+                      '<li>Corregida la fecha de los reportes del Turno C.</li>' +
+                      '<li>Nuevos turnos A+ y A+B disponibles.</li>' +
+                      '<li>Modo Simulación mejorado para evitar confusiones con datos reales.</li>' +
                   '</ul>' +
                   '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v2.8.0 - Paros y Reportes Inteligentes</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
