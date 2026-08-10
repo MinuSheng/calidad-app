@@ -301,13 +301,35 @@
     </div>
     <div class="op-login-card">
         <h2>Iniciar Sesión</h2>
-        <p class="op-login-warning">
-            ⚠️ El nombre de tu perfil aparecerá tal cual en todos los reportes oficiales (Excel, capturas y WhatsApp). No uses apodos ni palabras genéricas como "Operador" o "Verificador".
-        </p>
         <div id="operario-login-error" class="op-login-error"></div>
         <input type="email" id="operario-email" class="op-login-input" placeholder="Correo" autocomplete="username">
         <input type="password" id="operario-password" class="op-login-input" placeholder="Contraseña" autocomplete="current-password">
         <button class="op-login-btn" onclick="iniciarSesionOperarioUI()">Iniciar Sesión</button>
+    </div>
+</div>
+
+<div id="perfil-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ecf0f3; z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
+    <div class="security-box">
+        <h2>👤 Mi Perfil</h2>
+        <div class="device-id-box">
+            <span>Nombre</span>
+            <strong id="perfil-nombre" style="font-size: 1.1rem;">—</strong>
+        </div>
+        <div class="device-id-box">
+            <span>Correo</span>
+            <strong id="perfil-correo" style="font-size: 0.9rem;">—</strong>
+        </div>
+        <div class="device-id-box">
+            <span>ID de Dispositivo</span>
+            <strong id="perfil-device-id">—</strong>
+        </div>
+        <div class="device-id-box">
+            <span>Licencia Mensual</span>
+            <strong id="perfil-licencia" style="font-size: 1rem;">—</strong>
+        </div>
+        <button class="btn-action" onclick="cerrarPerfil(); mostrarPantallaSeguridad(true);">🔑 Gestionar Licencia</button>
+        <button class="btn-action" style="background-color: #dc3545; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil(); cerrarSesionOperarioUI();">🚪 Cerrar Sesión</button>
+        <button class="btn-action" style="background-color: #6c757d; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil()">Cerrar</button>
     </div>
 </div>
 
@@ -3122,25 +3144,19 @@
         try { if(localStorage.getItem('lala_seguridad')) sInfo = JSON.parse(localStorage.getItem('lala_seguridad')); } catch(e){}
         var hoy = new Date(); var mesActual = hoy.getMonth() + 1; var anioActual = hoy.getFullYear();
         var licenciaOk = (sInfo.mes === mesActual && sInfo.anio === anioActual && sInfo.unlocked === true);
-        var licenciaTexto = licenciaOk ? '✅ Vigente este mes' : '⚠️ No vigente este mes';
 
-        var html = '<div style="text-align:left; font-size:0.95rem; line-height:1.8;">' +
-            '<p><b>Nombre:</b> ' + nombre + '</p>' +
-            '<p><b>Correo:</b> ' + correo + '</p>' +
-            '<p><b>ID de Dispositivo:</b> ' + deviceId + '</p>' +
-            '<p><b>Licencia mensual:</b> ' + licenciaTexto + '</p>' +
-            '<p style="font-size:0.8rem; color:#6c757d;">Por seguridad, la app nunca guarda tu clave mensual en texto — solo si está vigente o no.</p>' +
-            '</div>';
+        document.getElementById('perfil-nombre').innerText = nombre;
+        document.getElementById('perfil-correo').innerText = correo;
+        document.getElementById('perfil-device-id').innerText = deviceId;
+        var licEl = document.getElementById('perfil-licencia');
+        licEl.innerText = licenciaOk ? '✅ Vigente este mes' : '⚠️ No vigente este mes';
+        licEl.style.color = licenciaOk ? '#198754' : '#dc3545';
 
-        Swal.fire({
-            title: '👤 Mi Perfil', html: html,
-            showDenyButton: true, showCancelButton: true,
-            confirmButtonText: '🔑 Gestionar Licencia', denyButtonText: '🚪 Cerrar Sesión', cancelButtonText: 'Cerrar',
-            denyButtonColor: '#dc3545'
-        }).then(function(res) {
-            if (res.isConfirmed) { mostrarPantallaSeguridad(true); }
-            else if (res.isDenied) { cerrarSesionOperarioUI(); }
-        });
+        document.getElementById('perfil-overlay').style.display = 'flex';
+    }
+
+    function cerrarPerfil() {
+        document.getElementById('perfil-overlay').style.display = 'none';
     }
 
     function abrirAjustes() {
