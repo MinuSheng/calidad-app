@@ -213,7 +213,7 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999998; display: none;
             flex-direction: column; justify-content: center; align-items: center;
             padding: 30px 20px; box-sizing: border-box; text-align: center; overflow-y: auto;
-            background-image: linear-gradient(180deg, rgba(10,15,25,0.35) 0%, rgba(8,12,20,0.55) 45%, rgba(5,8,14,0.92) 100%), url('https://images.pexels.com/photos/2889347/pexels-photo-2889347.jpeg?auto=compress&cs=tinysrgb&w=1600');
+            background-image: linear-gradient(180deg, rgba(10,15,25,0.35) 0%, rgba(8,12,20,0.55) 45%, rgba(5,8,14,0.92) 100%), url('https://images.pexels.com/photos/25858432/pexels-photo-25858432.jpeg?auto=compress&cs=tinysrgb&w=1600');
             background-size: cover; background-position: center; background-repeat: no-repeat;
         }
         .op-login-brand { color: #ffffff; margin-bottom: 26px; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
@@ -304,7 +304,7 @@
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <span>Menú Principal</span>
+        <span id="sidebar-header-nombre">Menú Principal</span>
         <button class="sidebar-close" onclick="toggleSidebar()">✖</button>
     </div>
     <div class="sidebar-content">
@@ -314,26 +314,17 @@
         <div class="sidebar-item" onclick="toggleSidebar(); verTurnosPasados()">
             🗄️ Historial Turnos Pasados
         </div>
-        <div class="sidebar-item" onclick="toggleSidebar(); mostrarPantallaSeguridad(true)">
-            🔑 Gestionar Licencia
-        </div>
-        <div class="sidebar-item" onclick="toggleSidebar(); cerrarSesionOperarioUI()">
-            🚪 Cerrar Sesión (<span id="nombre-operario-menu">Operario</span>)
-        </div>
         <div class="sidebar-item" id="menu-panel-admin" style="display:none; color: #6f42c1; border-color: #6f42c1;" onclick="toggleSidebar(); abrirPanelAdmin()">
             📊 Panel Admin
         </div>
-        
-        <!-- MENÚ DE RESPALDO FÍSICO -->
+
         <div style="margin-top: 15px; border-top: 2px dashed var(--border-color); padding-top: 15px;">
-            <div style="font-size: 0.8rem; font-weight:bold; color: #6c757d; margin-bottom: 12px; text-transform: uppercase; text-align: center;">Respaldo Físico Intocable</div>
-            <div class="sidebar-item" style="color: #198754; border-color: #198754;" onclick="toggleSidebar(); exportarRespaldoLocal()">
-                💾 Guardar datos en memoria
+            <div class="sidebar-item" onclick="toggleSidebar(); abrirPerfil()">
+                👤 Perfil
             </div>
-            <div class="sidebar-item" style="color: #0d6efd; border-color: #0d6efd;" onclick="document.getElementById('file-import').click()">
-                📂 Restaurar desde memoria
+            <div class="sidebar-item" onclick="toggleSidebar(); abrirAjustes()">
+                ⚙️ Ajustes
             </div>
-            <input type="file" id="file-import" style="display:none" onchange="importarRespaldoLocal(event)" accept=".txt,.json">
         </div>
 
         <div style="margin-top: 15px; border-top: 2px dashed var(--border-color); padding-top: 15px;">
@@ -343,8 +334,9 @@
             <div class="sidebar-item" onclick="toggleSidebar(); verHistorialVersiones()">
                 📜 Historial de Versiones
             </div>
-            <button class="btn-test-data" style="margin-top:10px; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); box-shadow:none;" onclick="inyectarTurnoSimuladoDePrueba(); toggleSidebar();">🧪 MODO SIMULACIÓN</button>
         </div>
+
+        <input type="file" id="file-import" style="display:none" onchange="importarRespaldoLocal(event)" accept=".txt,.json">
     </div>
 </div>
 
@@ -512,7 +504,6 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <h2 style="margin: 0; border: none;">📋 Historial Oficial</h2>
                 <div class="btn-group-actions">
-                    <button class="btn-action btn-preview" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="verVistazoRapidoDatos()">Resumen Rápido 📋</button>
                     <!-- BOTÓN CAPTURA DE REPORTE -->
                     <button class="btn-action btn-photo" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="descargarImagenReporte()">Captura Reporte 📸</button>
                     <button class="btn-action btn-excel" style="width: auto; padding: 6px 12px; font-size: 0.8rem; background-color: #198754;" onclick="descargarExcelDirecto()">Descargar Excel Oficial 📊</button>
@@ -1022,11 +1013,26 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v2.8.0 (Actual) - Paros y Reportes Inteligentes</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.0.0 (Actual) - Nube, Login y Rediseño</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Respaldo automático en la nube (Firebase/Firestore): cada turno cerrado, y sus correcciones posteriores, se sincronizan solos.</li>' +
+                      '<li>Sistema de Login por operario (usuario y contraseña), independiente de la clave mensual del dispositivo.</li>' +
+                      '<li>Nuevo Panel Admin para ver los últimos turnos guardados en la nube desde cualquier dispositivo.</li>' +
+                      '<li>Menú reorganizado: apartados nuevos de "Perfil" (tus datos y gestión de licencia/sesión) y "Ajustes" (respaldo físico y modo simulación).</li>' +
+                      '<li>Modo Emergencia (+24 horas) ahora sí caduca solo, con temporizador visible en vivo.</li>' +
+                      '<li>Rediseño completo del Modo Oscuro: paleta más suave pensada para turnos largos frente a la pantalla.</li>' +
+                      '<li>Nueva pantalla de Login con imagen de fondo e identidad de marca.</li>' +
+                      '<li>Corregido: la merma en litros ya no se calculaba bien (ahora es baldes × 20 litros, sin la estimación por defectos).</li>' +
+                      '<li>Editor de "Cambio de Sabor" ahora permite corregir la hora, no solo el texto.</li>' +
+                      '<li>Corregido: la fecha del reporte (Excel, Cestas y Captura) ya sigue siempre la fecha real de inicio de turno, no la del momento de generarlo — soluciona el desfase del Turno C.</li>' +
+                      '<li>Nuevos turnos A+ (domingos, 12 horas) y A+B (doble turno, 16 horas).</li>' +
+                      '<li>Quitado el "Resumen Rápido", reemplazado por la Captura de Reporte.</li>' +
+                      '<li>Modo Simulación ya no arriesga sobrescribir datos reales ni sube información falsa a la nube.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v2.8.0 - Paros y Reportes Inteligentes</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Se integró un catálogo inteligente para el registro rápido de errores por máquina.</li>' +
                       '<li>Reportes de WhatsApp automáticos con detección de sabores y compatibilidad total con dispositivos iOS.</li>' +
-                      '<li>Mejora visual en los menús de selección y corrección en la captura del Production Pack.</li>' +
                   '</ul>' +
                   '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v2.7.2</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);"><li>Mejora visual en los menús de selección y creación de nueva Bitácora para registro de paros de máquina.</li></ul>' +
@@ -1790,13 +1796,18 @@
         if(contadoresActuales[tipo] > 0) { contadoresActuales[tipo]--; actualizarPantallaContadores(); guardarEnMemoria(); }
     }
 
+    var modoSimulacionActivo = false;
+
     function inyectarTurnoSimuladoDePrueba() {
         if(typeof Swal === 'undefined') return alert("Error: SweetAlert no cargó.");
+        var advertenciaExtra = (registros.length > 0 && !modoSimulacionActivo) ? ' Tienes datos reales sin guardar en pantalla — se van a sobreescribir con datos falsos.' : '';
         Swal.fire({
-            title: '¿Generar datos de prueba?', text: "Cargará simulaciones en ambos sistemas (Yogurt y Cestas).", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, simular', cancelButtonText: 'Cancelar'
+            title: '¿Generar datos de prueba?', text: "Cargará simulaciones en ambos sistemas (Yogurt y Cestas)." + advertenciaExtra, icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, simular', cancelButtonText: 'Cancelar'
         }).then(function(result) {
             if(result.isConfirmed) {
-                turnoActivo = "A"; sincronizarDropdownPorValor('dd-turno', "A"); document.getElementById('verificador').value = "Snayder";
+                modoSimulacionActivo = true;
+                mostrarBannerSimulacion();
+                turnoActivo = "A"; sincronizarDropdownPorValor('dd-turno', "A");
                 registros = [
                     { hora: "07:12", producto: "Fresa Mora", etiqueta: "LALA", lote: "0607", pack: "—", malSellado: 0, sobrellenado: 0, volumenBajo: 0, almuerzo: false },
                     { hora: "07:30", producto: "Fresa Mora", etiqueta: "LALA", lote: "0607", pack: "—", malSellado: 3, sobrellenado: 7, volumenBajo: 6, almuerzo: false },
@@ -1813,9 +1824,39 @@
                 ];
                 ultimoCorteCestas = "08:00"; guardarCestas(); renderizarTablaCestas();
 
-                Swal.fire('¡Simulación Cargada!', 'Ambas tablas tienen datos de prueba.', 'success');
+                Swal.fire('¡Simulación Cargada!', 'Ambas tablas tienen datos de prueba. Para salir, usa "Completar Turno" — te va a preguntar si quieres salir sin guardar nada.', 'success');
             }
         });
+    }
+
+    function mostrarBannerSimulacion() {
+        if (document.getElementById('banner-simulacion')) return;
+        var banner = document.createElement('div');
+        banner.id = 'banner-simulacion';
+        banner.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:#6f42c1; color:white; text-align:center; font-weight:bold; font-size:0.8rem; padding:6px; z-index:99999998; box-sizing:border-box;';
+        banner.innerText = '🧪 MODO SIMULACIÓN — estos datos son de prueba y no se guardan';
+        document.body.appendChild(banner);
+    }
+
+    function salirModoSimulacion() {
+        modoSimulacionActivo = false;
+        var banner = document.getElementById('banner-simulacion'); if (banner) banner.remove();
+
+        contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 }; registros = []; ultimoBloqueProcesado = ""; turnoActivo = ""; modoLavadoActivo = false; alertaCestasMostrada = false;
+        document.getElementById('producto').value = '';
+        document.getElementById('lbl-producto').innerText = '-- Seleccione Sabor --';
+        document.getElementById('lote').value = '';
+        sincronizarDropdownPorValor('dd-etiqueta', '');
+        document.getElementById('producto-custom').value = '';
+        document.getElementById('producto-custom').style.display = 'none';
+        fechaInicioTurno = null;
+        guardarEnMemoria();
+
+        registrosCestas = []; contadoresCestas = { bloques: 0, sueltas: 0, sucias: 0, quebradas: 0 }; ultimoCorteCestas = "";
+        guardarCestas();
+        actualizarPantallaCestas(); renderizarTablaCestas(); renderizarTabla();
+
+        Swal.fire('Simulación Cerrada', 'Se limpiaron los datos de prueba. No se guardó nada en tu historial ni en la nube.', 'success');
     }
 
     function inicializarNuevoTurnoOficial() {
@@ -2509,18 +2550,6 @@
         });
     }
 
-    function verVistazoRapidoDatos() {
-        if(registros.length === 0) return Swal.fire('Historial Vacío', 'No hay registros en este turno.', 'info');
-        var mHtml = '<div style="max-height:350px; overflow-y:auto;"><table class="swal-table"><thead><tr><th>Hora</th><th>Lote</th><th>Pack</th><th>Mal</th><th>Sob</th><th>Baj</th></tr></thead><tbody>';
-        for(var i=0; i<registros.length; i++){
-            var r = registros[i];
-            if(r.tipoEspecial) { var icon = r.tipoEspecial === 'MERMA_DIRECTA' ? '🪣' : '🧼'; mHtml += '<tr style="background:var(--input-bg); font-style:italic;"><td style="font-weight:bold;">'+r.hora+'</td><td colspan="5">'+icon+' '+r.textoEspecial+'</td></tr>'; }
-            else { var pValue = (r.pack === "-" || r.pack === "—" || r.pack === "") ? "—" : r.pack; var ms = r.almuerzo ? "COMIDA" : r.malSellado; var sl = r.almuerzo ? "COMIDA" : r.sobrellenado; var vb = r.almuerzo ? "COMIDA" : r.volumenBajo; mHtml += '<tr><td>'+r.hora+'</td><td>'+r.lote+'</td><td>'+pValue+'</td><td>'+ms+'</td><td>'+sl+'</td><td>'+vb+'</td></tr>'; }
-        }
-        mHtml += '</tbody></table></div>';
-        Swal.fire({ title: 'Resumen de Datos Registrados', html: mHtml, confirmButtonText: 'Entendido' });
-    }
-
     function verDetalleMerma() {
         var mDirectas = registros.filter(function(r) { return r.tipoEspecial === 'MERMA_DIRECTA'; });
         if(mDirectas.length === 0) { return Swal.fire('Mermas', 'No se han descartado baldes de merma en este turno de forma directa.', 'info'); }
@@ -2529,6 +2558,15 @@
     }
 
     function limpiarTodoHistorialManual() {
+        if (modoSimulacionActivo) {
+            Swal.fire({
+                title: '¿Salir del Modo Simulación?',
+                text: 'Estos son datos de prueba — no se guardará nada en tu historial ni en la nube. Solo se limpiará la pantalla.',
+                icon: 'info', showCancelButton: true, confirmButtonText: 'Sí, salir sin guardar', cancelButtonText: 'Seguir probando'
+            }).then(function(res) { if (res.isConfirmed) { salirModoSimulacion(); } });
+            return;
+        }
+
         if(editandoRespaldoId) {
             guardarEdicionRespaldo();
             return;
@@ -3013,7 +3051,7 @@
         }
 
         document.getElementById('operator-login-overlay').style.display = 'none';
-        document.getElementById('nombre-operario-menu').innerText = user.displayName;
+        document.getElementById('sidebar-header-nombre').innerText = user.displayName;
         document.getElementById('menu-panel-admin').style.display = window.esAdminActual && window.esAdminActual() ? 'block' : 'none';
 
         mostrarAppPrincipal();
@@ -3063,6 +3101,45 @@
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudieron cargar los turnos: ' + err.message, 'error');
         });
+    }
+
+    function abrirPerfil() {
+        var user = (window.obtenerUsuarioActual) ? window.obtenerUsuarioActual() : null;
+        var nombre = user && user.displayName ? user.displayName : '—';
+        var correo = user && user.email ? user.email : '—';
+        var deviceId = obtenerOcrearDeviceID();
+        var sInfo = {};
+        try { if(localStorage.getItem('lala_seguridad')) sInfo = JSON.parse(localStorage.getItem('lala_seguridad')); } catch(e){}
+        var hoy = new Date(); var mesActual = hoy.getMonth() + 1; var anioActual = hoy.getFullYear();
+        var licenciaOk = (sInfo.mes === mesActual && sInfo.anio === anioActual && sInfo.unlocked === true);
+        var licenciaTexto = licenciaOk ? '✅ Vigente este mes' : '⚠️ No vigente este mes';
+
+        var html = '<div style="text-align:left; font-size:0.95rem; line-height:1.8;">' +
+            '<p><b>Nombre:</b> ' + nombre + '</p>' +
+            '<p><b>Correo:</b> ' + correo + '</p>' +
+            '<p><b>ID de Dispositivo:</b> ' + deviceId + '</p>' +
+            '<p><b>Licencia mensual:</b> ' + licenciaTexto + '</p>' +
+            '<p style="font-size:0.8rem; color:#6c757d;">Por seguridad, la app nunca guarda tu clave mensual en texto — solo si está vigente o no.</p>' +
+            '</div>';
+
+        Swal.fire({
+            title: '👤 Mi Perfil', html: html,
+            showDenyButton: true, showCancelButton: true,
+            confirmButtonText: '🔑 Gestionar Licencia', denyButtonText: '🚪 Cerrar Sesión', cancelButtonText: 'Cerrar',
+            denyButtonColor: '#dc3545'
+        }).then(function(res) {
+            if (res.isConfirmed) { mostrarPantallaSeguridad(true); }
+            else if (res.isDenied) { cerrarSesionOperarioUI(); }
+        });
+    }
+
+    function abrirAjustes() {
+        var html = `<div style="text-align:left; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-action" style="background-color:#198754; color:white; width:100%;" onclick="Swal.close(); exportarRespaldoLocal();">💾 Guardar datos en memoria</button>
+            <button class="btn-action" style="background-color:#0d6efd; color:white; width:100%;" onclick="Swal.close(); document.getElementById('file-import').click();">📂 Restaurar desde memoria</button>
+            <button class="btn-action" style="background-color:#6c757d; color:white; width:100%;" onclick="Swal.close(); inyectarTurnoSimuladoDePrueba();">🧪 Modo Simulación</button>
+        </div>`;
+        Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
     function mostrarAppPrincipal() {
@@ -3206,6 +3283,10 @@
 
     window.esAdminActual = function() {
         return !!(auth.currentUser && ADMIN_EMAIL !== "PEGAR_AQUI_TU_CORREO_ADMIN" && auth.currentUser.email === ADMIN_EMAIL);
+    };
+
+    window.obtenerUsuarioActual = function() {
+        return auth.currentUser;
     };
 
     // 6. PANEL ADMIN: trae los últimos turnos guardados en la nube (requiere
