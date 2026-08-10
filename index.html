@@ -308,7 +308,7 @@
     </div>
 </div>
 
-<div id="perfil-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ecf0f3; z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
+<div id="perfil-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
     <div class="security-box">
         <h2>👤 Mi Perfil</h2>
         <div class="device-id-box">
@@ -330,6 +330,17 @@
         <button class="btn-action" onclick="cerrarPerfil(); mostrarPantallaSeguridad(true);">🔑 Gestionar Licencia</button>
         <button class="btn-action" style="background-color: #dc3545; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil(); cerrarSesionOperarioUI();">🚪 Cerrar Sesión</button>
         <button class="btn-action" style="background-color: #6c757d; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil()">Cerrar</button>
+    </div>
+</div>
+
+<div id="nombre-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
+    <div class="security-box">
+        <h2>👤 Un Último Paso</h2>
+        <p>⚠️ Este nombre aparecerá tal cual en todos los reportes oficiales. Escribe tu nombre completo real, no un apodo.</p>
+        <div id="nombre-operario-error" style="color: #dc3545; font-size: 0.85rem; font-weight: bold; min-height: 20px; margin-bottom: 10px; transition: 0.3s;"></div>
+        <input type="text" id="nombre-operario-input" placeholder="TU NOMBRE COMPLETO" autocomplete="off" style="text-transform: none; letter-spacing: normal;">
+        <button class="btn-action" onclick="guardarNombreOperarioUI()">Guardar</button>
+        <button class="btn-action" style="background-color: #6c757d; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarSesionOperarioUI()">↩️ Volver (Cerrar Sesión)</button>
     </div>
 </div>
 
@@ -3058,30 +3069,16 @@
     function manejarEstadoAuthOperario(user) {
         if (!user) {
             document.getElementById('operator-login-overlay').style.display = 'flex';
+            document.getElementById('nombre-overlay').style.display = 'none';
             return;
         }
         if (!user.displayName) {
             document.getElementById('operator-login-overlay').style.display = 'none';
-            Swal.fire({
-                title: 'Un último paso',
-                html: '<p style="color:#dc3545; font-weight:bold; font-size:0.9rem;">⚠️ Este nombre aparecerá tal cual en todos los reportes oficiales. Escribe tu nombre completo real, no un apodo.</p>',
-                input: 'text',
-                inputPlaceholder: 'Tu nombre completo',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                confirmButtonText: 'Guardar',
-                inputValidator: function(value) { if (!value || value.trim().length < 3) return 'Escribe tu nombre completo.'; }
-            }).then(function(res) {
-                if (res.isConfirmed) {
-                    window.actualizarNombreOperario(res.value.trim()).then(function() {
-                        user.displayName = res.value.trim();
-                        manejarEstadoAuthOperario(user);
-                    });
-                }
-            });
+            document.getElementById('nombre-overlay').style.display = 'flex';
             return;
         }
 
+        document.getElementById('nombre-overlay').style.display = 'none';
         document.getElementById('operator-login-overlay').style.display = 'none';
         document.getElementById('sidebar-header-nombre').innerText = user.displayName;
         document.getElementById('menu-panel-admin').style.display = window.esAdminActual && window.esAdminActual() ? 'block' : 'none';
@@ -3105,6 +3102,19 @@
         if (!email || !pass) { errDiv.innerText = 'Ingresa tu correo y contraseña.'; return; }
         window.iniciarSesionOperario(email, pass).catch(function(err) {
             errDiv.innerText = 'Correo o contraseña incorrectos.';
+        });
+    }
+
+    function guardarNombreOperarioUI() {
+        var nombre = document.getElementById('nombre-operario-input').value.trim();
+        var errDiv = document.getElementById('nombre-operario-error');
+        errDiv.innerText = '';
+        if (!nombre || nombre.length < 3) { errDiv.innerText = 'Escribe tu nombre completo.'; return; }
+        window.actualizarNombreOperario(nombre).then(function() {
+            var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
+            if (user) { user.displayName = nombre; manejarEstadoAuthOperario(user); }
+        }).catch(function(err) {
+            errDiv.innerText = 'No se pudo guardar. Intenta de nuevo.';
         });
     }
 
