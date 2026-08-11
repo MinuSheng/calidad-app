@@ -178,7 +178,7 @@
            ============================================================ */
         body.theme-neon {
             --bg-color: #12131c; --text-color: #f0f0f5; --card-bg: #1a1b26; --border-color: #2e2f42; --input-bg: #1f2030; --input-border: #3a3b52; --table-header: #181926;
-            --danger: #ec4899; --info: #22d3ee; --success: #34d399; --warning: #f59e0b; --purple: #a855f7; --dark: #1a1b26;
+            --danger: #dc2626; --info: #22d3ee; --success: #34d399; --warning: #f59e0b; --purple: #a855f7; --dark: #1a1b26;
         }
         body.theme-neon .header-app { background: var(--card-bg); color: var(--text-color); box-shadow: 0 4px 15px rgba(217,70,239,0.15); }
         body.theme-neon .header-app h1 { color: #f0f0f5; }
@@ -204,7 +204,7 @@
         body.theme-neon .swal2-input, body.theme-neon .swal2-textarea { color: #f0f0f5; background: #1f2030; border-color: #3a3b52; }
         body.theme-neon .swal-table th, body.theme-neon .swal-table td { border-color: #2e2f42; }
         body.theme-neon .dropdown-options { box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
-        body.theme-neon .security-box { background: #191a26; box-shadow: 13px 13px 25px #0c0d14, -13px -13px 25px #262838; }
+        body.theme-neon .security-box { background: #191a26; box-shadow: 13px 13px 25px #0c0d14, -13px -13px 25px #262838; color: #9a9bc0; }
         body.theme-neon .security-box h2 { color: #ffffff; }
         body.theme-neon .security-box p { color: #9a9bc0; }
         body.theme-neon .device-id-box { background: #191a26; box-shadow: inset 8px 8px 15px #0c0d14, inset -8px -8px 15px #262838; }
@@ -223,7 +223,7 @@
         body.theme-neon [style*="background-color: #842029"] { background-color: #9f1239 !important; }
         body.theme-neon [style*="background-color: #a31d5d"] { background-color: #be185d !important; }
         body.theme-neon [style*="background-color: #d63384"] { background-color: #ec4899 !important; }
-        body.theme-neon [style*="background-color: #dc3545"], body.theme-neon [style*="background-color:#dc3545"], body.theme-neon [style*="background: #dc3545"] { background-color: #ec4899 !important; }
+        body.theme-neon [style*="background-color: #dc3545"], body.theme-neon [style*="background-color:#dc3545"], body.theme-neon [style*="background: #dc3545"] { background-color: #dc2626 !important; }
         body.theme-neon [style*="background-color: #fd7e14"], body.theme-neon [style*="background-color:#fd7e14"] { background-color: #f59e0b !important; }
         body.theme-neon [style*="background-color: #ff8c00"] { background-color: #f59e0b !important; }
         body.theme-neon [style*="background-color: #ffc107"], body.theme-neon [style*="background: #ffc107"] { background-color: #f59e0b !important; }
@@ -303,7 +303,7 @@
         /* Diseño oscuro para pantallas no-operativas basadas en .security-box
            (Gestionar Licencia) — antes se quedaban con fondo claro fijo y el
            texto se volvía invisible por las reglas globales de modo oscuro. */
-        body.dark-mode .security-box { background: #24252b; box-shadow: 13px 13px 20px #1a1b1f, -13px -13px 20px #2e2f37; }
+        body.dark-mode .security-box { background: #24252b; box-shadow: 13px 13px 20px #1a1b1f, -13px -13px 20px #2e2f37; color: #b8b9c2; }
         body.dark-mode .security-box h2 { color: #f0f0f3; }
         body.dark-mode .security-box p { color: #b8b9c2; }
         body.dark-mode .device-id-box { background: #24252b; box-shadow: inset 8px 8px 15px #1a1b1f, inset -8px -8px 15px #2e2f37; }
@@ -395,6 +395,15 @@
         <button class="btn-action" onclick="cerrarPerfil(); mostrarPantallaSeguridad(true);">🔑 Gestionar Licencia</button>
         <button class="btn-action" style="background-color: #dc3545; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil(); cerrarSesionOperarioUI();">🚪 Cerrar Sesión</button>
         <button class="btn-action" style="background-color: #6c757d; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarPerfil()">Cerrar</button>
+    </div>
+</div>
+
+<div id="admin-panel-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
+    <div class="security-box" style="max-width: 480px; text-align: left;">
+        <h2 style="text-align: center;">📊 Panel Admin</h2>
+        <p id="admin-panel-subtitulo" style="text-align: center;">Turnos guardados en la nube</p>
+        <div id="admin-panel-tabla-container" style="max-height: 400px; overflow-y: auto; margin: 15px 0;"></div>
+        <button class="btn-action" style="background-color: #6c757d; color: white;" onclick="cerrarPanelAdmin()">Cerrar</button>
     </div>
 </div>
 
@@ -3270,18 +3279,41 @@
     }
 
     function abrirPanelAdmin() {
-        Swal.fire({ title: 'Cargando turnos...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        document.getElementById('admin-panel-overlay').style.display = 'flex';
+        document.getElementById('admin-panel-subtitulo').innerText = 'Turnos guardados en la nube';
+        var cont = document.getElementById('admin-panel-tabla-container');
+        cont.innerHTML = '<p style="text-align:center;">Cargando...</p>';
+
         window.obtenerTurnosParaAdmin(30).then(function(turnos) {
-            if (turnos.length === 0) { return Swal.fire('Sin Datos', 'Aún no hay turnos guardados en la nube.', 'info'); }
-            var html = '<div style="max-height:400px; overflow-y:auto; text-align:left;"><table class="swal-table" style="width:100%; font-size:0.8rem;"><thead><tr><th>Fecha</th><th>Turno</th><th>Verificador</th><th>Pack</th></tr></thead><tbody>';
+            if (turnos.length === 0) {
+                cont.innerHTML = '<p style="text-align:center;">Aún no hay turnos guardados en la nube.</p>';
+                return;
+            }
+            var html = '<table class="swal-table" style="width:100%; font-size:0.78rem; border-collapse:collapse;"><thead><tr><th>Fecha</th><th>Turno</th><th>Verificador</th><th>Pack</th><th>Defectos</th><th>Paro</th></tr></thead><tbody>';
             turnos.forEach(function(t) {
-                html += '<tr><td>' + (t.fecha || '—') + '</td><td>' + (t.turno || '—') + '</td><td>' + (t.verificador || '—') + '</td><td>' + (t.totalPack || 0) + '</td></tr>';
+                var defectos = 0;
+                if (Array.isArray(t.registros)) {
+                    t.registros.forEach(function(r) {
+                        if (!r.tipoEspecial) { defectos += (Number(r.malSellado) || 0) + (Number(r.sobrellenado) || 0) + (Number(r.volumenBajo) || 0); }
+                    });
+                }
+                var minParos = 0;
+                if (Array.isArray(t.parosTurno)) {
+                    t.parosTurno.forEach(function(p) { minParos += Number(p.minutos) || 0; });
+                }
+                var horasParo = Math.floor(minParos / 60) + 'h ' + (minParos % 60) + 'm';
+                html += '<tr><td>' + (t.fecha || '—') + '</td><td>' + (t.turno || '—') + '</td><td>' + (t.verificador || '—') + '</td><td>' + (t.totalPack || 0) + '</td><td>' + defectos + '</td><td>' + horasParo + '</td></tr>';
             });
-            html += '</tbody></table></div>';
-            Swal.fire({ title: '📊 Panel Admin — Últimos ' + turnos.length + ' turnos', html: html, width: 500 });
+            html += '</tbody></table>';
+            cont.innerHTML = html;
+            document.getElementById('admin-panel-subtitulo').innerText = 'Últimos ' + turnos.length + ' turnos guardados';
         }).catch(function(err) {
-            Swal.fire('Error', 'No se pudieron cargar los turnos: ' + err.message, 'error');
+            cont.innerHTML = '<p style="text-align:center; color:var(--danger);">Error al cargar: ' + err.message + '</p>';
         });
+    }
+
+    function cerrarPanelAdmin() {
+        document.getElementById('admin-panel-overlay').style.display = 'none';
     }
 
     function abrirPerfil() {
