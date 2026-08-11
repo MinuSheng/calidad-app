@@ -170,6 +170,71 @@
         body.dark-mode [style*="background-color:#d1e7dd"] { background-color: #1f2e28 !important; }
         body.dark-mode [style*="background-color: #e2e3e5"] { background-color: #26272c !important; }
 
+        /* ============================================================
+           MODO NEÓN — tercer tema, inspirado en el panel gerencial
+           (fondo casi negro, acentos vibrantes magenta/cian). No toca
+           el login (mantiene siempre su foto de fondo, sin importar
+           el tema elegido).
+           ============================================================ */
+        body.theme-neon {
+            --bg-color: #12131c; --text-color: #f0f0f5; --card-bg: #1a1b26; --border-color: #2e2f42; --input-bg: #1f2030; --input-border: #3a3b52; --table-header: #181926;
+            --danger: #ec4899; --info: #22d3ee; --success: #34d399; --warning: #f59e0b; --purple: #a855f7; --dark: #1a1b26;
+        }
+        body.theme-neon .header-app { background: var(--card-bg); color: var(--text-color); box-shadow: 0 4px 15px rgba(217,70,239,0.15); }
+        body.theme-neon .header-app h1 { color: #f0f0f5; }
+        body.theme-neon .time-display { background: #181926; color: #9a9bc0; border: 1px solid #2e2f42; }
+        body.theme-neon h2 { color: #ffffff; border-bottom: 2px solid var(--border-color); }
+        body.theme-neon input, body.theme-neon select { color: #f0f0f5; }
+        body.theme-neon .change-row { background-color: #1a2b3d; color: #67e8f9; border-color: #2e2f42; }
+        body.theme-neon .lunch-row { background-color: #3d2e10 !important; color: #fbbf24 !important; }
+        body.theme-neon .lavado-row { background-color: #3d1530 !important; color: #f9a8d4 !important; border-color: #2e2f42; }
+        body.theme-neon .merma-row { background-color: #2a1a3d !important; color: #d8b4fe !important; border-color: #2e2f42; }
+        body.theme-neon .total-row { background-color: #181926 !important; color: #f0f0f5 !important;}
+        body.theme-neon .btn-minus { background-color: #1f2030; color: #f0f0f5; border-color: #3a3b52; }
+        body.theme-neon .calc-box { background: #1f2030; color: #f0f0f5; border: 1px solid #3a3b52; }
+        body.theme-neon .merma-summary { background-color: #2a1a3d; color: #d8b4fe; border-color: #5b21b6; }
+        body.theme-neon .timer-alert { background-color: #3d2e10; color: #fbbf24; border-color: #92650a; }
+        body.theme-neon .tab-btn { background: #181926; color: #9a9bc0; border-color: #2e2f42; }
+        body.theme-neon .tab-btn.active { background: linear-gradient(135deg, #d946ef, #7c3aed); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(217,70,239,0.4); }
+        body.theme-neon .btn-corte-manual { background: linear-gradient(135deg, #d946ef, #7c3aed) !important; color: white; }
+        body.theme-neon th, body.theme-neon td { border-color: #2e2f42; }
+        body.theme-neon .swal2-popup { background: #1a1b26; color: #f0f0f5; border: 1px solid #2e2f42; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        body.theme-neon .swal2-title { color: #ffffff; }
+        body.theme-neon .swal2-html-container { color: #9a9bc0; text-align: left; }
+        body.theme-neon .swal2-input, body.theme-neon .swal2-textarea { color: #f0f0f5; background: #1f2030; border-color: #3a3b52; }
+        body.theme-neon .swal-table th, body.theme-neon .swal-table td { border-color: #2e2f42; }
+        body.theme-neon .dropdown-options { box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
+        body.theme-neon .security-box { background: #191a26; box-shadow: 13px 13px 25px #0c0d14, -13px -13px 25px #262838; }
+        body.theme-neon .security-box h2 { color: #ffffff; }
+        body.theme-neon .security-box p { color: #9a9bc0; }
+        body.theme-neon .device-id-box { background: #191a26; box-shadow: inset 8px 8px 15px #0c0d14, inset -8px -8px 15px #262838; }
+        body.theme-neon .device-id-box span { color: #9a9bc0; }
+        body.theme-neon .device-id-box strong { color: #d946ef; }
+        body.theme-neon .security-box input { background: #191a26; color: #f0f0f5; box-shadow: inset 8px 8px 15px #0c0d14, inset -8px -8px 15px #262838; }
+        body.theme-neon .security-box .btn-action { background: #191a26; color: #d946ef; box-shadow: 8px 8px 15px #0c0d14, -8px -8px 15px #262838; }
+        body.theme-neon .security-box .btn-action:active { box-shadow: inset 8px 8px 15px #0c0d14, inset -8px -8px 15px #262838; }
+
+        /* Silencia/vibra los colores fijos escritos directo en botones/insignias,
+           igual que en Modo Oscuro pero con la paleta magenta/cian. */
+        body.theme-neon [style*="background-color: #0d6efd"], body.theme-neon [style*="background-color:#0d6efd"], body.theme-neon [style*="background: #0d6efd"] { background-color: #22d3ee !important; color: #0a0a12 !important; }
+        body.theme-neon [style*="background-color: #198754"], body.theme-neon [style*="background-color:#198754"], body.theme-neon [style*="background: #198754"] { background-color: #34d399 !important; }
+        body.theme-neon [style*="background-color: #28a745"] { background-color: #34d399 !important; }
+        body.theme-neon [style*="background-color: #20c997"], body.theme-neon [style*="background-color:#20c997"] { background-color: #2dd4bf !important; }
+        body.theme-neon [style*="background-color: #842029"] { background-color: #9f1239 !important; }
+        body.theme-neon [style*="background-color: #a31d5d"] { background-color: #be185d !important; }
+        body.theme-neon [style*="background-color: #d63384"] { background-color: #ec4899 !important; }
+        body.theme-neon [style*="background-color: #dc3545"], body.theme-neon [style*="background-color:#dc3545"], body.theme-neon [style*="background: #dc3545"] { background-color: #ec4899 !important; }
+        body.theme-neon [style*="background-color: #fd7e14"], body.theme-neon [style*="background-color:#fd7e14"] { background-color: #f59e0b !important; }
+        body.theme-neon [style*="background-color: #ff8c00"] { background-color: #f59e0b !important; }
+        body.theme-neon [style*="background-color: #ffc107"], body.theme-neon [style*="background: #ffc107"] { background-color: #f59e0b !important; }
+        body.theme-neon [style*="background-color: #e7f1ff"] { background-color: #182236 !important; }
+        body.theme-neon [style*="background-color: #f3e8ff"] { background-color: #241a38 !important; }
+        body.theme-neon [style*="background-color: #f8d7da"], body.theme-neon [style*="background-color:#f8d7da"] { background-color: #341824 !important; }
+        body.theme-neon [style*="background-color: #fff3cd"], body.theme-neon [style*="background-color:#fff3cd"], body.theme-neon [style*="background:#fff3cd"] { background-color: #342a14 !important; }
+        body.theme-neon [style*="color:#664d03"], body.theme-neon [style*="color: #664d03"] { color: #fde68a !important; }
+        body.theme-neon [style*="background-color:#d1e7dd"] { background-color: #142c22 !important; }
+        body.theme-neon [style*="background-color: #e2e3e5"] { background-color: #1f2030 !important; }
+
         /* SISTEMA DE PESTAÑAS (SPA) */
         .tabs-container { display: flex; gap: 6px; margin-bottom: 10px; }
         .tab-btn { flex: 1; padding: 12px; text-align: center; border-radius: 8px; font-weight: bold; background: var(--card-bg); color: #6c757d; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.25s ease-out; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.85rem; }
@@ -1006,37 +1071,40 @@
     }
 
     function esTemaOscuro() {
-        return document.body.classList.contains('dark-mode');
+        return document.body.classList.contains('dark-mode') || document.body.classList.contains('theme-neon');
     }
 
     function initDarkMode() {
-        var isDark = localStorage.getItem('lala_dark_mode');
-        // Limpieza de la clave del experimento de 3 modos (Modo Medianoche), ya no se usa
-        localStorage.removeItem('lala_theme_mode');
-        if(isDark === 'false') {
-            document.body.classList.remove('dark-mode');
-            actualizarBotonDarkMode(false);
-        } else {
-            document.body.classList.add('dark-mode');
-            actualizarBotonDarkMode(true);
+        var modo = localStorage.getItem('lala_theme_mode');
+        if (modo === null) {
+            var legacy = localStorage.getItem('lala_dark_mode');
+            modo = (legacy === 'false') ? 'light' : 'dark';
         }
+        aplicarTema(modo);
     }
 
     function toggleDarkMode() {
-        var isDark = document.body.classList.toggle('dark-mode');
-        localStorage.setItem('lala_dark_mode', isDark);
-        actualizarBotonDarkMode(isDark);
+        var actual = localStorage.getItem('lala_theme_mode') || 'dark';
+        var siguiente = actual === 'light' ? 'dark' : (actual === 'dark' ? 'neon' : 'light');
+        localStorage.setItem('lala_theme_mode', siguiente);
+        localStorage.setItem('lala_dark_mode', siguiente !== 'light'); // compatibilidad hacia atrás
+        aplicarTema(siguiente);
     }
 
-    function actualizarBotonDarkMode(isDark) {
+    function aplicarTema(modo) {
+        document.body.classList.remove('dark-mode', 'theme-neon');
+        if (modo === 'dark') { document.body.classList.add('dark-mode'); }
+        else if (modo === 'neon') { document.body.classList.add('theme-neon'); }
+        actualizarBotonDarkMode(modo);
+    }
+
+    function actualizarBotonDarkMode(modo) {
         var icon = document.getElementById('dark-mode-icon');
         var text = document.getElementById('dark-mode-text');
         if(!icon || !text) return;
-        if(isDark) {
-            icon.innerText = "☀️"; text.innerText = "Modo Claro";
-        } else {
-            icon.innerText = "🌙"; text.innerText = "Modo Oscuro";
-        }
+        if (modo === 'light') { icon.innerText = "🌙"; text.innerText = "Modo Oscuro"; }
+        else if (modo === 'dark') { icon.innerText = "✨"; text.innerText = "Modo Neón"; }
+        else { icon.innerText = "☀️"; text.innerText = "Modo Claro"; }
     }
 
     function verAcercaDeSNDR() {
@@ -1059,7 +1127,12 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.0.0 (Actual) - Nueva Base y Mejoras</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.1.0 (Actual) - Nuevo Tema y Ajuste de Merma</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Nuevo tercer tema de color disponible, además del claro y el oscuro.</li>' +
+                      '<li>Al registrar un balde de merma, ahora se puede indicar qué tan lleno está en vez de contarlo siempre como lleno.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.0.0 - Nueva Base y Mejoras</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Se migró a un nuevo sistema de respaldo automático, más seguro y confiable.</li>' +
                       '<li>Ahora cada quien inicia sesión con su propio usuario y contraseña.</li>' +
@@ -2214,11 +2287,66 @@
         });
     }
 
+    var _fraccionBaldeSeleccionada = 1;
+
     function registrarMermaInmediata() {
         if(turnoActivo === "") return Swal.fire('Atención', 'Inicia el turno primero para registrar la merma.', 'warning');
-        var ahora = new Date(); var horaStr = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
-        registros.push({ hora: horaStr, lote: document.getElementById('lote').value || "—", tipoEspecial: 'MERMA_DIRECTA', textoEspecial: "Se descartó 1 Balde de Merma en Línea" });
-        ordenarRegistrosCronologicamente(); guardarEnMemoria(); renderizarTabla(); if (navigator.vibrate) navigator.vibrate([70, 40, 70]);
+        _fraccionBaldeSeleccionada = 1;
+        var htmlCont = `<div style="display:flex; flex-direction:column; align-items:center; gap:14px; padding-top:5px;">
+            <svg width="110" height="130" viewBox="0 0 110 130">
+                <defs>
+                    <clipPath id="baldeClip"><path d="M20,22 L90,22 L78,120 L32,120 Z"/></clipPath>
+                </defs>
+                <rect id="balde-fill-rect" x="20" y="120" width="70" height="0" fill="#0d6efd" clip-path="url(#baldeClip)" style="transition: y 0.35s ease, height 0.35s ease;"/>
+                <path d="M20,22 L90,22 L78,120 L32,120 Z" fill="none" stroke="var(--text-color)" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M14,22 L96,22" stroke="var(--text-color)" stroke-width="4" stroke-linecap="round"/>
+                <path d="M25,22 Q55,-10 85,22" fill="none" stroke="var(--text-color)" stroke-width="3"/>
+            </svg>
+            <div id="balde-porcentaje-label" style="font-weight:bold; font-size:1.1rem;">¿Qué tan lleno está el balde?</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; width:100%;">
+                <button type="button" class="btn-fraccion-balde" onclick="seleccionarFraccionBalde(0.25, event)" style="flex:1; min-width:60px; padding:10px 6px; border-radius:10px; border:2px solid var(--border-color); background:var(--input-bg); color:var(--text-color); font-weight:bold; cursor:pointer;">25%</button>
+                <button type="button" class="btn-fraccion-balde" onclick="seleccionarFraccionBalde(0.5, event)" style="flex:1; min-width:60px; padding:10px 6px; border-radius:10px; border:2px solid var(--border-color); background:var(--input-bg); color:var(--text-color); font-weight:bold; cursor:pointer;">50%</button>
+                <button type="button" class="btn-fraccion-balde" onclick="seleccionarFraccionBalde(0.75, event)" style="flex:1; min-width:60px; padding:10px 6px; border-radius:10px; border:2px solid var(--border-color); background:var(--input-bg); color:var(--text-color); font-weight:bold; cursor:pointer;">75%</button>
+                <button type="button" class="btn-fraccion-balde" onclick="seleccionarFraccionBalde(1, event)" style="flex:1; min-width:70px; padding:10px 6px; border-radius:10px; border:2px solid var(--info); background:var(--info); color:white; font-weight:bold; cursor:pointer;">100% Lleno</button>
+            </div>
+        </div>`;
+        Swal.fire({
+            title: '🪣 Registrar Balde de Merma',
+            html: htmlCont,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar',
+            cancelButtonText: 'Cancelar',
+            didOpen: function() { actualizarVisualBalde(1); }
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                var ahora = new Date(); var horaStr = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
+                var frac = _fraccionBaldeSeleccionada;
+                var pct = Math.round(frac * 100);
+                var texto = (frac >= 1) ? "Se descartó 1 Balde de Merma en Línea (lleno)" : "Se descartó un Balde de Merma en Línea (~" + pct + "% lleno, ~" + (frac * 20).toFixed(1) + " L)";
+                registros.push({ hora: horaStr, lote: document.getElementById('lote').value || "—", tipoEspecial: 'MERMA_DIRECTA', textoEspecial: texto, fraccionBalde: frac });
+                ordenarRegistrosCronologicamente(); guardarEnMemoria(); renderizarTabla(); if (navigator.vibrate) navigator.vibrate([70, 40, 70]);
+            }
+        });
+    }
+
+    function seleccionarFraccionBalde(frac, evt) {
+        _fraccionBaldeSeleccionada = frac;
+        actualizarVisualBalde(frac);
+        document.querySelectorAll('.btn-fraccion-balde').forEach(function(btn) {
+            btn.style.background = 'var(--input-bg)'; btn.style.color = 'var(--text-color)'; btn.style.borderColor = 'var(--border-color)';
+        });
+        if (evt && evt.target) { evt.target.style.background = 'var(--info)'; evt.target.style.color = 'white'; evt.target.style.borderColor = 'var(--info)'; }
+    }
+
+    function actualizarVisualBalde(frac) {
+        var rect = document.getElementById('balde-fill-rect');
+        var label = document.getElementById('balde-porcentaje-label');
+        if (!rect) return;
+        var alturaTotal = 98; // desde y=22 hasta y=120
+        var alturaLlena = alturaTotal * frac;
+        rect.setAttribute('y', 120 - alturaLlena);
+        rect.setAttribute('height', alturaLlena);
+        if (label) label.innerText = Math.round(frac * 100) + '% lleno (~' + (frac * 20).toFixed(1) + ' L de 20 L)';
     }
 
     function actualizarPantallaContadores() {
@@ -2372,6 +2500,7 @@
         var totalSobre = 0; 
         var totalBajo = 0; 
         var totalBaldesMerma = 0; 
+        var totalLitrosMerma = 0;
         var lastHeaderSignature = "";
 
         // Función para editar el texto de la cabecera de sección
@@ -2424,7 +2553,10 @@
                 tbody.appendChild(trLav); continue;
             }
             if (reg.tipoEspecial === 'MERMA_DIRECTA') {
-                totalBaldesMerma++; var trMer = document.createElement('tr'); trMer.className = "merma-row";
+                totalBaldesMerma++;
+                var fraccion = (typeof reg.fraccionBalde === 'number') ? reg.fraccionBalde : 1;
+                totalLitrosMerma += fraccion * 20;
+                var trMer = document.createElement('tr'); trMer.className = "merma-row";
                 trMer.innerHTML = '<td style="font-weight:bold; cursor:pointer;" onclick="abrirMenuOpcionesFila(' + i + ')">' + reg.hora + '</td><td colspan="5">🪣 ' + reg.textoEspecial + ' (Lote: ' + reg.lote + ')</td>';
                 tbody.appendChild(trMer); continue;
             }
@@ -2458,8 +2590,8 @@
         document.getElementById('tot-pack').innerText = totalPack.toLocaleString(); document.getElementById('tot-mal').innerText = totalMal.toLocaleString(); document.getElementById('tot-sobre').innerText = totalSobre.toLocaleString(); document.getElementById('tot-bajo').innerText = totalBajo.toLocaleString();
         var equivPaquetes = Math.round(totalPack / 24); var equivPolines = (equivPaquetes / 120).toFixed(2);
         
-        // Cálculo de merma en litros
-        var mermaTotalLitros = totalBaldesMerma * 20;
+        // Cálculo de merma en litros (según el % real de llenado de cada balde)
+        var mermaTotalLitros = totalLitrosMerma.toFixed(1);
 
         document.getElementById('conversion-box').innerHTML = "📦 Equivalencia de producción: <b>" + equivPaquetes + " paquetes</b> (~" + equivPolines + " polines)";
         document.getElementById('merma-box').innerHTML = '<span>🪣 Total merma: <b>' + totalBaldesMerma + ' baldes</b> | ~' + mermaTotalLitros + ' Litros</span><span style="font-size: 0.75rem; text-decoration: underline; color:var(--purple);">Ver detalles 🔍</span>';
@@ -2596,7 +2728,14 @@
     function verDetalleMerma() {
         var mDirectas = registros.filter(function(r) { return r.tipoEspecial === 'MERMA_DIRECTA'; });
         if(mDirectas.length === 0) { return Swal.fire('Mermas', 'No se han descartado baldes de merma en este turno de forma directa.', 'info'); }
-        var mHtml = '<ul>'; for(var i=0; i<mDirectas.length; i++){ mHtml += '<li style="text-align:left; font-size:0.9rem; margin-bottom:4px;"><b>' + mDirectas[i].hora + '</b> - Lote ' + mDirectas[i].lote + ': 1 Balde Descartado</li>'; } mHtml += '</ul>';
+        var mHtml = '<ul>';
+        for(var i=0; i<mDirectas.length; i++){
+            var frac = (typeof mDirectas[i].fraccionBalde === 'number') ? mDirectas[i].fraccionBalde : 1;
+            var pct = Math.round(frac * 100);
+            var litros = (frac * 20).toFixed(1);
+            mHtml += '<li style="text-align:left; font-size:0.9rem; margin-bottom:4px;"><b>' + mDirectas[i].hora + '</b> - Lote ' + mDirectas[i].lote + ': ' + pct + '% lleno (~' + litros + ' L)</li>';
+        }
+        mHtml += '</ul>';
         Swal.fire({ title: 'Detalle de Mermas (Baldes)', html: mHtml, icon: 'info' });
     }
 
