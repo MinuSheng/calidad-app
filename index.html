@@ -3472,6 +3472,8 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
+    var APP_VERSION = "3.2.0";
+
     function mostrarAppPrincipal() {
         try {
             document.getElementById('main-app-container').style.display = 'block';
@@ -3486,6 +3488,15 @@
             alert("Error iniciando la app: " + err.message);
         }
         verificarEstadoEmergencia();
+        avisarSiHuboActualizacion();
+    }
+
+    function avisarSiHuboActualizacion() {
+        var ultimaVista = localStorage.getItem('lala_ultima_version_vista');
+        if (ultimaVista === APP_VERSION) return; // ya la vio, no repetir
+        localStorage.setItem('lala_ultima_version_vista', APP_VERSION);
+        if (ultimaVista === null) return; // primer uso en este dispositivo: no es "una actualización"
+        setTimeout(function() { verHistorialVersiones(); }, 900);
     }
 
     var _emergencyCountdownInterval = null;
