@@ -407,6 +407,19 @@
     </div>
 </div>
 
+<div id="sincronizacion-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999997; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; text-align: center;">
+    <div class="security-box" style="max-width: 480px; text-align: left;">
+        <h2 style="text-align: center;">☁️ Sincronización</h2>
+        <div class="device-id-box">
+            <span>Estado</span>
+            <strong id="sync-resumen" style="font-size: 1.05rem;">—</strong>
+        </div>
+        <div id="sync-lista-container" style="max-height: 320px; overflow-y: auto; margin: 15px 0; text-align: left;"></div>
+        <button class="btn-action" id="sync-btn-todos" onclick="sincronizarTodosPendientes()">☁️ Sincronizar Pendientes</button>
+        <button class="btn-action" style="background-color: #6c757d; color: white; margin-top: 10px; font-size: 0.9rem;" onclick="cerrarSincronizacion()">Cerrar</button>
+    </div>
+</div>
+
 <div id="nombre-overlay" class="op-login-overlay">
     <div class="security-box">
         <h2>👤 Un Último Paso</h2>
@@ -441,6 +454,9 @@
         <div style="margin-top: 15px; border-top: 2px dashed var(--border-color); padding-top: 15px;">
             <div class="sidebar-item" onclick="toggleSidebar(); abrirPerfil()">
                 👤 Perfil
+            </div>
+            <div class="sidebar-item" onclick="toggleSidebar(); abrirSincronizacion()">
+                ☁️ Sincronización
             </div>
             <div class="sidebar-item" onclick="toggleSidebar(); abrirAjustes()">
                 ⚙️ Ajustes
@@ -1136,7 +1152,12 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.1.0 (Actual) - Nuevo Tema y Ajuste de Merma</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.0 (Actual) - Sincronización Confiable</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Nuevo apartado "Sincronización": muestra si tus turnos guardados ya se respaldaron en la nube, y permite subir los pendientes en un solo paso.</li>' +
+                      '<li>Corregido: si un turno no lograba subirse a la nube, antes no había ningún aviso; ahora se avisa con claridad y queda marcado para reintentar.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.1.0 - Nuevo Tema y Ajuste de Merma</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Nuevo tercer tema de color disponible, además del claro y el oscuro.</li>' +
                       '<li>Al registrar un balde de merma, ahora se puede indicar qué tan lleno está en vez de contarlo siempre como lleno.</li>' +
@@ -1387,20 +1408,122 @@
         localStorage.setItem('lala_turnos_pasados', JSON.stringify(turnosGuardados));
 
         // --- CONEXIÓN A FIREBASE ---
-        // Verificamos si hay internet y si la función de la nube existe
-        if (navigator.onLine && window.guardarTurnoEnNube) {
-            // Notificación flotante (Toast) para no interrumpir al usuario
-            Swal.fire({
-                title: 'Sincronizando con la nube...',
-                icon: 'info',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 2000
-            });
-            window.guardarTurnoEnNube(nuevoTurno);
-        }
+        sincronizarTurnoConNube(nuevoTurno, false);
     }
+
+    // Envía un turno a la nube y avisa con claridad si falló, en vez de
+    // asumir que "hay internet" (navigator.onLine no es confiable) o dejar
+    // el error solo en la consola. Si falla, el turno queda marcado como
+    // pendiente y se puede reintentar desde "Historial Turnos Pasados".
+    function sincronizarTurnoConNube(turno, silencioso) {
+        if (!window.guardarTurnoEnNube) {
+            marcarSincronizacionTurno(turno.id, false);
+            return Promise.resolve(false);
+        }
+        return window.guardarTurnoEnNube(turno).then(function(exito) {
+            marcarSincronizacionTurno(turno.id, !!exito);
+            if (exito) {
+                if (!silencioso) {
+                    Swal.fire({ icon: 'success', title: 'Turno sincronizado con la nube', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+                }
+            } else {
+                Swal.fire({ icon: 'warning', title: 'No se pudo sincronizar con la nube', text: 'El turno quedó guardado en este dispositivo, pero no llegó a la nube. Puedes reintentarlo desde "Historial Turnos Pasados" o "Sincronización" cuando tengas mejor señal.', confirmButtonText: 'Entendido' });
+            }
+            if (document.getElementById('sincronizacion-overlay').style.display === 'flex') { renderizarPanelSincronizacion(); }
+            return exito;
+        }).catch(function() {
+            marcarSincronizacionTurno(turno.id, false);
+            Swal.fire({ icon: 'warning', title: 'No se pudo sincronizar con la nube', text: 'El turno quedó guardado en este dispositivo, pero no llegó a la nube. Puedes reintentarlo desde "Historial Turnos Pasados" o "Sincronización" cuando tengas mejor señal.', confirmButtonText: 'Entendido' });
+            if (document.getElementById('sincronizacion-overlay').style.display === 'flex') { renderizarPanelSincronizacion(); }
+            return false;
+        });
+    }
+
+    function marcarSincronizacionTurno(id, exito) {
+        var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+        for (var i = 0; i < turnosGuardados.length; i++) {
+            if (turnosGuardados[i].id === id) { turnosGuardados[i].sincronizado = exito; break; }
+        }
+        localStorage.setItem('lala_turnos_pasados', JSON.stringify(turnosGuardados));
+    }
+
+    function reintentarSincronizacion(id) {
+        var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+        var turno = null;
+        for (var i = 0; i < turnosGuardados.length; i++) { if (turnosGuardados[i].id === id) { turno = turnosGuardados[i]; break; } }
+        if (!turno) return;
+        Swal.fire({ title: 'Reintentando...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        sincronizarTurnoConNube(turno, false);
+    }
+
+    function abrirSincronizacion() {
+        document.getElementById('sincronizacion-overlay').style.display = 'flex';
+        renderizarPanelSincronizacion();
+    }
+
+    function cerrarSincronizacion() {
+        document.getElementById('sincronizacion-overlay').style.display = 'none';
+    }
+
+    function renderizarPanelSincronizacion() {
+        var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+        var resumenEl = document.getElementById('sync-resumen');
+        var listaEl = document.getElementById('sync-lista-container');
+        var btnTodos = document.getElementById('sync-btn-todos');
+
+        if (turnosGuardados.length === 0) {
+            resumenEl.innerText = 'Sin turnos guardados';
+            listaEl.innerHTML = '';
+            btnTodos.style.display = 'none';
+            return;
+        }
+
+        var pendientes = turnosGuardados.filter(function(t) { return t.sincronizado !== true; });
+        var sincronizados = turnosGuardados.length - pendientes.length;
+
+        resumenEl.innerText = sincronizados + ' de ' + turnosGuardados.length + ' sincronizados';
+        resumenEl.style.color = pendientes.length === 0 ? '#198754' : '#dc3545';
+        btnTodos.style.display = pendientes.length === 0 ? 'none' : 'block';
+
+        var arrayReverso = turnosGuardados.slice().reverse();
+        var html = '';
+        arrayReverso.forEach(function(t) {
+            var pendiente = (t.sincronizado !== true);
+            var icono = pendiente ? '⚠️' : '✅';
+            html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-color); gap:8px;">' +
+                '<span style="font-size:0.82rem;">' + icono + ' ' + t.fecha + ' - Turno ' + t.turno + ' | ' + t.verificador + '</span>' +
+                (pendiente ? '<span style="font-size:0.72rem; font-weight:bold; color:#dc3545; text-decoration:underline; cursor:pointer; white-space:nowrap;" onclick="reintentarSincronizacion(' + t.id + ')">Subir</span>' : '') +
+            '</div>';
+        });
+        listaEl.innerHTML = html;
+    }
+
+    function sincronizarTodosPendientes() {
+        var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+        var pendientes = turnosGuardados.filter(function(t) { return t.sincronizado !== true; });
+        if (pendientes.length === 0) return;
+
+        Swal.fire({ title: 'Sincronizando ' + pendientes.length + ' turnos...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        Promise.all(pendientes.map(function(t) { return sincronizarTurnoConNube(t, true); })).then(function(resultados) {
+            var exitosos = resultados.filter(function(r) { return r; }).length;
+            Swal.fire({
+                icon: exitosos === pendientes.length ? 'success' : 'warning',
+                title: 'Sincronización completa',
+                text: exitosos + ' de ' + pendientes.length + ' turnos se subieron correctamente.' + (exitosos < pendientes.length ? ' Los que fallaron los puedes reintentar más tarde.' : '')
+            });
+            renderizarPanelSincronizacion();
+        });
+    }
+
+    function reintentarSincronizacionesPendientes() {
+        var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+        turnosGuardados.forEach(function(t) {
+            if (t.sincronizado === false) { sincronizarTurnoConNube(t, true); }
+        });
+    }
+
+    window.addEventListener('online', reintentarSincronizacionesPendientes);
 
     function verTurnosPasados() {
         var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
@@ -1413,10 +1536,12 @@
         for(var j=0; j<arrayReverso.length; j++) {
             var t = arrayReverso[j];
             var txtInfo = '🥛 Lote: ' + t.lotePrincipal + ' - ' + t.prodPrincipal + ' (' + t.etiquetaPrincipal + ')<br>🧺 Cestas: ' + t.totalRevCestas + ' rev';
-            
+            var avisoPendiente = (t.sincronizado === false) ? '<div style="color:#dc3545; font-weight:bold; font-size:0.72rem; margin-top:4px;">⚠️ No sincronizado con la nube — <span style="text-decoration:underline;" onclick="event.stopPropagation(); reintentarSincronizacion(' + t.id + ')">Reintentar</span></div>' : '';
+
             htmlBotones += '<button class="btn-action" style="background-color:#6c757d; font-size:0.85rem; padding:10px; text-align:left;" onclick="mostrarDetalleTurnoPasado(' + t.id + ')">' +
                 '📅 <b>' + t.fecha + ' - Turno ' + t.turno + '</b> | ' + t.verificador + '<br>' +
                 '<span style="font-weight:normal; font-size:0.75rem;">' + txtInfo + '<br>📦 Total: ' + t.totalPack + ' packs</span>' +
+                avisoPendiente +
             '</button>';
         }
         htmlBotones += '</div>';
@@ -1636,9 +1761,7 @@
         localStorage.setItem('lala_turnos_pasados', JSON.stringify(turnosGuardados));
 
         // --- CONEXIÓN A FIREBASE: sincroniza la corrección con la nube ---
-        if (navigator.onLine && window.guardarTurnoEnNube) {
-            window.guardarTurnoEnNube(turnosGuardados[index]);
-        }
+        sincronizarTurnoConNube(turnosGuardados[index], false);
     }
 
     function restaurarTurnoTemporal() {
