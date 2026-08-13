@@ -1152,7 +1152,16 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.0 (Actual) - Sincronización Confiable</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.2 (Actual) - Actualización Automática</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: en algunos celulares (sobre todo iPhone) la app se podía quedar con una versión vieja durante horas si nunca se cerraba del todo. Ahora, cada vez que la abres desde cero, revisa sola si hay una versión más nueva y se actualiza automáticamente antes de que empieces a trabajar — nunca a mitad de un turno.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.1 - Seguridad en Modo Revisión</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: si se cerraba la app estando en Modo Revisión de un turno pasado sin darle "Volver al Turno Actual", al reabrir la app ahora se restaura sola de forma segura, sin riesgo de confundir un turno viejo con el de hoy.</li>' +
+                      '<li>Los cortes automáticos ahora quedan en pausa mientras estás revisando un turno pasado.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.0 - Sincronización Confiable</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Nuevo apartado "Sincronización": muestra si tus turnos guardados ya se respaldaron en la nube, y permite subir los pendientes en un solo paso.</li>' +
                       '<li>Corregido: si un turno no lograba subirse a la nube, antes no había ningún aviso; ahora se avisa con claridad y queda marcado para reintentar.</li>' +
@@ -1764,7 +1773,7 @@
         sincronizarTurnoConNube(turnosGuardados[index], false);
     }
 
-    function restaurarTurnoTemporal() {
+    function restaurarTurnoTemporal(esRecuperacionAutomatica) {
         var tempStr = localStorage.getItem('lala_turno_temporal');
         if (!tempStr) {
             salirModoEdicion();
@@ -1818,7 +1827,15 @@
         renderizarTablaCestas();
 
         localStorage.removeItem('lala_turno_temporal');
-        Swal.fire('Restaurado', 'Has vuelto a tu turno en curso intacto.', 'success');
+        if (esRecuperacionAutomatica) {
+            Swal.fire({
+                title: 'Modo Revisión Recuperado',
+                text: 'La app detectó que se cerró mientras revisabas un turno pasado. Tu turno actual en curso se restauró automáticamente — la revisión anterior no guardó ningún cambio.',
+                icon: 'info'
+            });
+        } else {
+            Swal.fire('Restaurado', 'Has vuelto a tu turno en curso intacto.', 'success');
+        }
     }
 
     function salirModoEdicion() {
@@ -2499,6 +2516,14 @@
         var ahora = new Date(); var hrs = ahora.getHours(); var mins = ahora.getMinutes(); var segs = ahora.getSeconds();
         var timeEl = document.getElementById('current-time-block');
         if(timeEl) timeEl.innerText = String(hrs).padStart(2, '0') + ":" + String(mins).padStart(2, '0') + ":" + String(segs).padStart(2, '0');
+
+        // Si estamos revisando un turno pasado (Nevera), los cortes automáticos
+        // deben quedar en pausa por completo — no le pertenecen a ese turno.
+        if (editandoRespaldoId) {
+            var tb = document.getElementById('timer-banner'); if (tb) tb.innerText = "⏸️ Cortes automáticos en pausa (Modo Revisión)";
+            var mpb = document.getElementById('missing-pack-banner'); if (mpb) mpb.style.display = 'none';
+            return;
+        }
 
         // --- 1. LÓGICA DE YOGURT (CADA 30 MIN) ---
         if (modoLavadoActivo) {
@@ -3472,12 +3497,13 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.2.0";
+    var APP_VERSION = "3.2.2";
 
     function mostrarAppPrincipal() {
         try {
             document.getElementById('main-app-container').style.display = 'block';
             initDarkMode();
+            recuperarSesionRevisionAbandonada();
             cargarConfiguracionPrevia();
             actualizarBotonParoUI();
             if (!_relojGlobalIniciado) {
@@ -3489,6 +3515,18 @@
         }
         verificarEstadoEmergencia();
         avisarSiHuboActualizacion();
+    }
+
+    // Si la app se cerró (o se salió del navegador) mientras estaba en Modo
+    // Revisión sin darle "Volver al Turno Actual", al reabrir se restaura
+    // el turno real automáticamente, ANTES de que se cargue nada en pantalla
+    // — así el respaldo que se estaba revisando nunca se confunde con el
+    // turno del día de hoy.
+    function recuperarSesionRevisionAbandonada() {
+        if (localStorage.getItem('lala_turno_temporal')) {
+            editandoRespaldoId = null; // por si acaso quedó algo en memoria de esta misma carga
+            restaurarTurnoTemporal(true);
+        }
     }
 
     function avisarSiHuboActualizacion() {
@@ -3549,6 +3587,7 @@
 
     window.onload = function() {
         try {
+            verificarActualizacionAlAbrir();
             verificarInterruptorMaestro();
             actualizarPantallaCestas();
             renderizarTablaCestas();
@@ -3556,6 +3595,26 @@
             alert("Error fatal en el inicio: " + err.message);
         }
     };
+
+    // Solo revisa si hay una versión nueva cuando la app arranca de cero
+    // (pestaña/proceso nuevo) — nunca en medio de una sesión activa, y nunca
+    // solo por regresar de segundo plano (eso no borra el sessionStorage).
+    // Si detecta una versión distinta en el servidor, recarga sola ANTES de
+    // que el operario haya escrito algo, así nunca se pierde nada.
+    function verificarActualizacionAlAbrir() {
+        if (sessionStorage.getItem('lala_sesion_activa')) return;
+        sessionStorage.setItem('lala_sesion_activa', 'true');
+
+        var urlBase = location.href.split('?')[0].split('#')[0];
+        fetch(urlBase + '?chk=' + Date.now(), { cache: 'no-store' }).then(function(res) {
+            return res.text();
+        }).then(function(html) {
+            var match = html.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+            if (match && match[1] && match[1] !== APP_VERSION) {
+                location.reload();
+            }
+        }).catch(function() { /* si falla el chequeo, seguimos con la versión ya cargada */ });
+    }
 </script>
 
 <!-- MÓDULO DE CONEXIÓN A FIREBASE -->
