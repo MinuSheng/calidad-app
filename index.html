@@ -1152,7 +1152,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.2 (Actual) - Actualización Automática</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.3 (Actual) - Fecha Correcta al Cerrar Turno</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: si un turno se cerraba después de medianoche (por ejemplo, se te olvidó cerrarlo a tiempo), quedaba guardado con la fecha del día en que lo cerraste en vez del día en que realmente empezó. Esto también afectaba lo que se veía en el panel gerencial.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.2 - Actualización Automática</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido: en algunos celulares (sobre todo iPhone) la app se podía quedar con una versión vieja durante horas si nunca se cerraba del todo. Ahora, cada vez que la abres desde cero, revisa sola si hay una versión más nueva y se actualiza automáticamente antes de que empieces a trabajar — nunca a mitad de un turno.</li>' +
                   '</ul>' +
@@ -1380,10 +1384,14 @@
             prodPrincipal = getProductName(); lotePrincipal = document.getElementById('lote').value; etiquetaPrincipal = document.getElementById('etiqueta').value;
         }
 
-        var fechaObj = new Date();
-        if (turnoActivo === "C" && fechaObj.getHours() < 10) { fechaObj.setDate(fechaObj.getDate() - 1); }
+        var fechaObj = fechaInicioTurno ? new Date(fechaInicioTurno) : new Date();
+        if (!fechaInicioTurno) {
+            // Único caso sin fechaInicioTurno guardado (no debería pasar en un turno normal):
+            // se mantiene el ajuste viejo solo para Turno C que cruza medianoche.
+            if (turnoActivo === "C" && fechaObj.getHours() < 10) { fechaObj.setDate(fechaObj.getDate() - 1); }
+            fechaInicioTurno = fechaObj;
+        }
         var dd = String(fechaObj.getDate()).padStart(2, '0');
-        if (!fechaInicioTurno) fechaInicioTurno = fechaObj;
         var mm = String(fechaObj.getMonth() + 1).padStart(2, '0');
         var yy = String(fechaObj.getFullYear()).slice(-2);
         var fString = dd + "-" + mm + "-" + yy;
@@ -3497,7 +3505,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.2.2";
+    var APP_VERSION = "3.2.3";
 
     function mostrarAppPrincipal() {
         try {
