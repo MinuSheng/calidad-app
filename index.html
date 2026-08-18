@@ -1152,7 +1152,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.3 (Actual) - Fecha Correcta al Cerrar Turno</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.4 (Actual) - Fecha Correcta en Modo Revisión</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: al entrar a revisar un turno ya cerrado y descargar el Excel desde ahí, a veces salía con la fecha del día en que lo revisabas en vez del día real del turno. Ya usa siempre la fecha correcta.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.3 - Fecha Correcta al Cerrar Turno</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido: si un turno se cerraba después de medianoche (por ejemplo, se te olvidó cerrarlo a tiempo), quedaba guardado con la fecha del día en que lo cerraste en vez del día en que realmente empezó. Esto también afectaba lo que se veía en el panel gerencial.</li>' +
                   '</ul>' +
@@ -1666,7 +1670,8 @@
                         contadoresCestas: JSON.parse(JSON.stringify(contadoresCestas)),
                         ultimoCorteCestas: ultimoCorteCestas,
                         alertaCestasMostrada: alertaCestasMostrada,
-                        parosRegistrados: JSON.parse(JSON.stringify(parosRegistrados))
+                        parosRegistrados: JSON.parse(JSON.stringify(parosRegistrados)),
+                        fechaInicioTurno: fechaInicioTurno ? fechaInicioTurno.toISOString() : null
                     };
                     localStorage.setItem('lala_turno_temporal', JSON.stringify(turnoTemporal));
                 }
@@ -1705,7 +1710,14 @@
                 historialAccionesCestas = [];
                 alertaCestasMostrada = false;
 
-                editandoRespaldoId = id; 
+                editandoRespaldoId = id;
+
+                if (turno.fecha) {
+                    var partesFecha = turno.fecha.split('-');
+                    fechaInicioTurno = (partesFecha.length === 3) ? new Date(2000 + parseInt(partesFecha[2], 10), parseInt(partesFecha[1], 10) - 1, parseInt(partesFecha[0], 10)) : null;
+                } else {
+                    fechaInicioTurno = null;
+                }
 
                 actualizarBotonLavadoUI();
                 actualizarLabelEstadoTurno();
@@ -1819,6 +1831,7 @@
         contadoresCestas = t.contadoresCestas || { bloques: 0, sueltas: 0, sucias: 0, quebradas: 0 };
         ultimoCorteCestas = t.ultimoCorteCestas || "";
         alertaCestasMostrada = t.alertaCestasMostrada || false;
+        fechaInicioTurno = t.fechaInicioTurno ? new Date(t.fechaInicioTurno) : null;
 
         editandoRespaldoId = null;
         document.getElementById('banner-edicion').style.display = 'none';
@@ -3505,7 +3518,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.2.3";
+    var APP_VERSION = "3.2.4";
 
     function mostrarAppPrincipal() {
         try {
