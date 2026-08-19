@@ -1152,7 +1152,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.4 (Actual) - Fecha Correcta en Modo Revisión</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.5 (Actual) - Bloqueo sin Turno Iniciado</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: se podía registrar un Paro de máquina y cerrar/guardar el turno sin haber iniciado nunca un Turno Oficial. Ahora ninguna de las dos cosas se puede hacer sin un turno iniciado, igual que ya pasaba con los contadores y la merma.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.4 - Fecha Correcta en Modo Revisión</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido: al entrar a revisar un turno ya cerrado y descargar el Excel desde ahí, a veces salía con la fecha del día en que lo revisabas en vez del día real del turno. Ya usa siempre la fecha correcta.</li>' +
                   '</ul>' +
@@ -1369,6 +1373,7 @@
     // GESTIÓN DE TURNOS PASADOS Y NEVERA TEMPORAL
     // =========================================================
     function guardarTurnoPasado() {
+        if (turnoActivo === "" && registros.length === 0) return; // salvaguarda: nunca se guarda nada sin un Turno Oficial iniciado
         if(registros.length === 0 && registrosCestas.length === 0) return;
         var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
         
@@ -2294,6 +2299,7 @@
 
     // TAREA 5: Gestor de Paros y Auto-Reporte (El Cronómetro)
     function abrirModalRegistrarParo() {
+        if (turnoActivo === "") return Swal.fire('Atención', 'Debes iniciar un Turno Oficial primero.', 'warning');
         const paroActivo = parosRegistrados.find(p => !p.hora_fin);
         if (paroActivo) {
             const horaFin = new Date();
@@ -2932,6 +2938,10 @@
             return;
         }
 
+        if (turnoActivo === "" && registros.length === 0) {
+            return Swal.fire('Nada que guardar', 'No has iniciado un Turno Oficial, así que no hay nada que cerrar ni guardar.', 'info');
+        }
+
         Swal.fire({
             title: '¿Cerrar Turno por Completo?', text: "Se guardará un respaldo de Yogurt y Cestas, y se limpiará la pantalla.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar y guardar', cancelButtonText: 'Cancelar'
         }).then(function(res) {
@@ -3518,7 +3528,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.2.4";
+    var APP_VERSION = "3.2.5";
 
     function mostrarAppPrincipal() {
         try {
