@@ -505,6 +505,7 @@
         <button class="tab-btn active" id="btn-tab-yogurt" onclick="switchTab('yogurt')">🥛 YOGURT</button>
         <button class="tab-btn" id="btn-tab-cestas" onclick="switchTab('cestas')">🧺 CESTAS</button>
         <button class="tab-btn" id="btn-tab-caducidad" onclick="switchTab('caducidad')">📅 CADUCIDAD</button>
+        <button class="tab-btn" id="btn-tab-peso" onclick="switchTab('peso')">⚖️ PESO</button>
     </div>
 
     <!-- ========================================== -->
@@ -825,6 +826,90 @@
     </div>
     <!-- FIN PESTAÑA CADUCIDAD -->
 
+    <div id="tab-peso" class="tab-content">
+        <div class="card" id="peso-cargando">
+            <h2>⚖️ Verificación de Peso</h2>
+            <p style="font-size:0.85rem; color:#6c757d;">Conectando con la hoja compartida...</p>
+        </div>
+
+        <!-- PANTALLA DE INICIO / SELECCIÓN -->
+        <div class="card" id="peso-setup" style="display:none;">
+            <h2>⚖️ Verificación de Peso</h2>
+            <p style="font-size: 0.85rem; color: #6c757d; margin-top:0;">Esta hoja la comparten todos los analistas de calidad del turno — lo que registre uno lo ven los demás en tiempo real.</p>
+
+            <div id="peso-continuar-box" style="display:none; background: var(--input-bg); border: 2px solid var(--success); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align:center;">
+                <p style="margin:0 0 10px 0; font-weight:bold;">Ya hay una hoja de <span id="peso-continuar-tipo"></span> abierta, iniciada por <span id="peso-continuar-autor"></span>.</p>
+                <button class="btn-action" style="background-color: var(--success); color: white;" onclick="continuarHojaPeso()">▶️ Continuar Hoja Existente</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Tipo de Formato</label>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action" id="btn-peso-tipo-uht" style="flex:1; background-color: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color);" onclick="seleccionarTipoPeso('uht')">🥛 UHT</button>
+                    <button class="btn-action" id="btn-peso-tipo-derivados" style="flex:1; background-color: var(--input-bg); color: var(--text-color); border: 2px solid var(--border-color);" onclick="seleccionarTipoPeso('derivados')">🧈 Derivados</button>
+                </div>
+            </div>
+
+            <div id="peso-setup-detalle" style="display:none;">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Máquina</label>
+                    <div class="custom-dropdown" id="dd-peso-maquina" onclick="toggleDropdown('dd-peso-maquina', event)">
+                        <div class="dropdown-selected" id="lbl-peso-maquina">-- Seleccione Máquina --</div>
+                        <div class="dropdown-options" id="opciones-peso-maquina"></div>
+                        <input type="hidden" id="select-peso-maquina" value="">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Producto</label>
+                    <div class="custom-dropdown" id="dd-peso-producto" onclick="toggleDropdown('dd-peso-producto', event)">
+                        <div class="dropdown-selected" id="lbl-peso-producto">-- Seleccione Máquina Primero --</div>
+                        <div class="dropdown-options" id="opciones-peso-producto"></div>
+                        <input type="hidden" id="select-peso-producto" value="">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="margin-bottom: 15px; flex:1;">
+                        <label>Lote</label>
+                        <input type="text" id="input-peso-lote" placeholder="Ej. 1308">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px; flex:1;">
+                        <label>Vence</label>
+                        <input type="text" id="input-peso-vence" placeholder="DD/MM/AAAA">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Cantidad de Bocas de la Máquina</label>
+                    <input type="number" id="input-peso-bocas" min="1" max="20" value="5">
+                </div>
+
+                <button class="btn-action" style="background-color: var(--info); color:white;" onclick="iniciarHojaPeso()">🆕 Iniciar Hoja Nueva</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE TRABAJO -->
+        <div class="card" id="peso-trabajo" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+                <h2 style="margin:0; border:none;">⚖️ Verificación de Peso — <span id="peso-trabajo-tipo"></span></h2>
+            </div>
+            <p id="peso-info-actual" style="font-size:0.85rem; color:#6c757d; margin:0 0 15px 0;"></p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 15px;">
+                <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--info); color:white; font-size:0.85rem;" onclick="abrirModalRevisionPeso()">➕ Registrar Revisión</button>
+                <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🔄 Cambiar Producto/Lote</button>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 15px;">
+                <button class="btn-action" style="flex:1; min-width:140px; background-color: #6c757d; color:white; font-size:0.85rem;" onclick="descargarImagenReportePeso()">📸 Ver Formato</button>
+                <button class="btn-action" style="flex:1; min-width:140px; background-color: #dc3545; color:white; font-size:0.85rem;" onclick="cerrarHojaPeso()">🔒 Cerrar Hoja</button>
+            </div>
+
+            <div id="peso-tabla-container"></div>
+        </div>
+    </div>
+    <!-- FIN PESTAÑA PESO -->
+
 </div>
 
 <script>
@@ -886,19 +971,52 @@
 
 
     // =========================================================
+    // MÓDULO DE VERIFICACIÓN DE PESO (analistas de calidad)
+    // =========================================================
+    const catalogoMaquinasPeso = {
+        uht: {
+            "COMPACT": { bocas: 5, productos: ["Lechelado Fresa", "Lechelado Chocolate", "Lechelado Vainilla", "Oh Lala Fresa", "Oh Lala Chocolate", "Oh Lala Vainilla"] },
+            "A3FLEX": { bocas: 5, productos: ["Nutrilety", "Descremada Eskimo/LALA", "Entera Eskimo/LALA", "Semi Deslactosada Eskimo/LALA"] },
+            "THIMONIER": { bocas: 5, productos: ["Entera Eskimo", "Fortificada Eskimo", "Vida+ Chocolate", "Vida+ Fresa (bolsa)", "Semi Descremada Eskimo"] }
+        },
+        derivados: {
+            "TÓMBOLA": { bocas: 5, productos: ["Mantequilla a Granel"] },
+            "BENHILL": { bocas: 5, productos: ["Mantequilla La Perfecta", "Mantequilla Eskimo 100g"] },
+            "FASA": { bocas: 5, productos: ["Mantequilla La Perfecta 10g"] },
+            "IS6-7": { bocas: 5, productos: ["Crema Ácida (420)", "Crema Ácida (210)", "Crema Ácida (105)", "Nutri Crema (400)", "Nutri Crema (200)", "Nutri Crema (95)", "Crema Dulce La Perfecta (420)", "Nutri Yogurt Fresa (105)", "Nutri Yogurt Frutas Tropicales (105)", "Nutri Yogurt Durazno (105)"] },
+            "ERCA": { bocas: 8, productos: ["Fresa LALA/LP", "Fresa Moras LALA/LP", "Durazno LALA/LP", "Ciruela LP", "Manzana LALA/LP", "Natural con Azúcar LALA/LP"] },
+            "PRIMO": { bocas: 8, productos: ["Fresa LALA", "Fresa Moras LALA", "Durazno LALA", "Manzana LALA", "Natural con Azúcar LALA", "Natural sin Azúcar LALA", "Natural Griego LALA"] },
+            "SERAC": { bocas: 16, productos: ["Fresa LALA/LP", "Durazno LALA/LP", "Manzana LALA/LP", "Fresamoras LALA/LP", "Fresa Banano LALA/LP", "Aloe + Manzana LALA/LP", "Aloe + Manzana Fibra LALA/LP"] }
+        }
+    };
+
+    var _pesoInicializado = false;
+    var _pesoTipoSeleccionTemp = null;
+    var _pesoTipoActual = null;      // 'uht' o 'derivados' — la hoja que se está trabajando ahora
+    var _pesoDatos = null;           // copia local del documento compartido (vivo)
+    var _pesoUnsubUht = null;
+    var _pesoUnsubDerivados = null;
+    var _pesoDatosUht = null;
+    var _pesoDatosDerivados = null;
+
+    // =========================================================
     // NAVEGACIÓN SPA (PESTAÑAS)
     // =========================================================
     function switchTab(tabName) {
         document.getElementById('btn-tab-yogurt').classList.remove('active');
         document.getElementById('btn-tab-cestas').classList.remove('active');
         document.getElementById('btn-tab-caducidad').classList.remove('active');
+        document.getElementById('btn-tab-peso').classList.remove('active');
         
         document.getElementById('tab-yogurt').classList.remove('active');
         document.getElementById('tab-cestas').classList.remove('active');
         document.getElementById('tab-caducidad').classList.remove('active');
+        document.getElementById('tab-peso').classList.remove('active');
 
         document.getElementById('btn-tab-' + tabName).classList.add('active');
         document.getElementById('tab-' + tabName).classList.add('active');
+
+        if (tabName === 'peso' && !_pesoInicializado) { inicializarTabPeso(); }
     }
 
     // =========================================================
@@ -1152,7 +1270,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.2.5 (Actual) - Bloqueo sin Turno Iniciado</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.0 (Actual) - Verificación de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Nueva pestaña "⚖️ Peso" para los analistas de calidad — una hoja compartida en tiempo real entre todos, con captura de imagen del formato tal como va quedando.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.2.5 - Bloqueo sin Turno Iniciado</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido: se podía registrar un Paro de máquina y cerrar/guardar el turno sin haber iniciado nunca un Turno Oficial. Ahora ninguna de las dos cosas se puede hacer sin un turno iniciado, igual que ya pasaba con los contadores y la merma.</li>' +
                   '</ul>' +
@@ -3528,7 +3650,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.2.5";
+    var APP_VERSION = "3.3.0";
 
     function mostrarAppPrincipal() {
         try {
@@ -3646,13 +3768,302 @@
             }
         }).catch(function() { /* si falla el chequeo, seguimos con la versión ya cargada */ });
     }
+
+    // ---------------------------------------------------------
+    // VERIFICACIÓN DE PESO — lógica completa
+    // ---------------------------------------------------------
+
+    function inicializarTabPeso() {
+        _pesoInicializado = true;
+        if (typeof window.suscribirseHojaPeso !== 'function') {
+            setTimeout(inicializarTabPeso, 300);
+            _pesoInicializado = false;
+            return;
+        }
+        _pesoUnsubUht = window.suscribirseHojaPeso('uht', function(datos) { _pesoDatosUht = datos; evaluarPantallaPeso(); });
+        _pesoUnsubDerivados = window.suscribirseHojaPeso('derivados', function(datos) { _pesoDatosDerivados = datos; evaluarPantallaPeso(); });
+    }
+
+    function evaluarPantallaPeso() {
+        document.getElementById('peso-cargando').style.display = 'none';
+
+        // Si ya estamos trabajando una hoja y sigue abierta, solo actualizamos la tabla en vivo
+        if (_pesoTipoActual) {
+            var datosActual = _pesoTipoActual === 'uht' ? _pesoDatosUht : _pesoDatosDerivados;
+            if (datosActual && datosActual.abierta) {
+                _pesoDatos = datosActual;
+                renderizarTablaPeso();
+                return;
+            } else if (datosActual && !datosActual.abierta) {
+                // alguien más la cerró desde otro dispositivo
+                _pesoTipoActual = null;
+                Swal.fire('Hoja Cerrada', 'Otro analista cerró esta hoja. Vuelve a elegir tipo si necesitas iniciar una nueva.', 'info');
+            }
+        }
+
+        document.getElementById('peso-setup').style.display = 'block';
+        document.getElementById('peso-trabajo').style.display = 'none';
+
+        var hayUht = _pesoDatosUht && _pesoDatosUht.abierta;
+        var hayDerivados = _pesoDatosDerivados && _pesoDatosDerivados.abierta;
+        var cajaContinuar = document.getElementById('peso-continuar-box');
+        if (hayUht || hayDerivados) {
+            var d = hayUht ? _pesoDatosUht : _pesoDatosDerivados;
+            _pesoTipoSeleccionTemp = hayUht ? 'uht' : 'derivados';
+            document.getElementById('peso-continuar-tipo').innerText = (hayUht ? 'UHT' : 'Derivados');
+            document.getElementById('peso-continuar-autor').innerText = d.creadoPor || '—';
+            cajaContinuar.style.display = 'block';
+        } else {
+            cajaContinuar.style.display = 'none';
+        }
+    }
+
+    function continuarHojaPeso() {
+        _pesoTipoActual = _pesoTipoSeleccionTemp;
+        evaluarPantallaPeso();
+    }
+
+    function seleccionarTipoPeso(tipo) {
+        _pesoTipoSeleccionTemp = tipo;
+        document.getElementById('btn-peso-tipo-uht').style.background = (tipo === 'uht') ? 'var(--info)' : 'var(--input-bg)';
+        document.getElementById('btn-peso-tipo-uht').style.color = (tipo === 'uht') ? 'white' : 'var(--text-color)';
+        document.getElementById('btn-peso-tipo-derivados').style.background = (tipo === 'derivados') ? 'var(--info)' : 'var(--input-bg)';
+        document.getElementById('btn-peso-tipo-derivados').style.color = (tipo === 'derivados') ? 'white' : 'var(--text-color)';
+
+        var opciones = document.getElementById('opciones-peso-maquina');
+        opciones.innerHTML = '';
+        Object.keys(catalogoMaquinasPeso[tipo]).forEach(function(maq) {
+            opciones.innerHTML += '<div class="drop-opt" onclick="seleccionarMaquinaPeso(\'' + maq + '\')">' + maq + '</div>';
+        });
+        document.getElementById('lbl-peso-maquina').innerText = '-- Seleccione Máquina --';
+        document.getElementById('select-peso-maquina').value = '';
+        document.getElementById('lbl-peso-producto').innerText = '-- Seleccione Máquina Primero --';
+        document.getElementById('select-peso-producto').value = '';
+        document.getElementById('opciones-peso-producto').innerHTML = '';
+        document.getElementById('peso-setup-detalle').style.display = 'block';
+    }
+
+    function seleccionarMaquinaPeso(maquina) {
+        document.getElementById('lbl-peso-maquina').innerText = maquina;
+        document.getElementById('select-peso-maquina').value = maquina;
+
+        var info = catalogoMaquinasPeso[_pesoTipoSeleccionTemp][maquina];
+        document.getElementById('input-peso-bocas').value = info.bocas;
+
+        var opcionesProd = document.getElementById('opciones-peso-producto');
+        opcionesProd.innerHTML = '';
+        info.productos.forEach(function(p) {
+            opcionesProd.innerHTML += '<div class="drop-opt" onclick="setDropdown(\'dd-peso-producto\', \'' + p.replace(/'/g, "\\'") + '\', \'' + p.replace(/'/g, "\\'") + '\')">' + p + '</div>';
+        });
+        document.getElementById('lbl-peso-producto').innerText = '-- Seleccione Producto --';
+    }
+
+    function iniciarHojaPeso() {
+        var maquina = document.getElementById('select-peso-maquina').value;
+        var producto = document.getElementById('select-peso-producto').value;
+        var lote = document.getElementById('input-peso-lote').value.trim();
+        var vence = document.getElementById('input-peso-vence').value.trim();
+        var bocas = parseInt(document.getElementById('input-peso-bocas').value) || 5;
+
+        if (!maquina || !producto || !lote) {
+            return Swal.fire('Faltan datos', 'Selecciona máquina, producto e ingresa el lote.', 'warning');
+        }
+
+        var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
+        var nombre = user && user.displayName ? user.displayName : 'Analista';
+
+        var primerBloque = {
+            id: 'b' + Date.now(),
+            maquina: maquina, producto: producto, lote: lote, vence: vence, bocas: bocas,
+            creadoPor: nombre, creadoEn: new Date().toISOString()
+        };
+
+        Swal.fire({ title: 'Iniciando hoja...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        window.crearHojaPeso(_pesoTipoSeleccionTemp, primerBloque, nombre).then(function() {
+            _pesoTipoActual = _pesoTipoSeleccionTemp;
+            Swal.fire('¡Listo!', 'Hoja iniciada.', 'success');
+        }).catch(function(err) {
+            Swal.fire('Error', 'No se pudo iniciar la hoja: ' + err.message, 'error');
+        });
+    }
+
+    function renderizarTablaPeso() {
+        var d = _pesoDatos;
+        document.getElementById('peso-trabajo').style.display = 'block';
+        document.getElementById('peso-setup').style.display = 'none';
+        document.getElementById('peso-trabajo-tipo').innerText = (_pesoTipoActual === 'uht' ? 'UHT' : 'Derivados');
+
+        var bloques = d.bloques || [];
+        var ultimoBloque = bloques[bloques.length - 1];
+        if (ultimoBloque) {
+            document.getElementById('peso-info-actual').innerText = '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoBloque.producto + ' — Lote ' + ultimoBloque.lote + (ultimoBloque.vence ? (' — Vence ' + ultimoBloque.vence) : '');
+        }
+
+        var revisiones = d.revisiones || [];
+        var html = '<div id="peso-formato-visual">';
+        bloques.forEach(function(bloque) {
+            var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+            html += '<div style="margin-bottom:18px; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">';
+            html += '<div style="background:var(--table-header); padding:8px 10px; font-size:0.8rem; font-weight:bold;">' + bloque.maquina + ' — ' + bloque.producto + ' — Lote ' + bloque.lote + (bloque.vence ? (' — Vence ' + bloque.vence) : '') + '</div>';
+            if (revsBloque.length === 0) {
+                html += '<div style="padding:10px; font-size:0.8rem; color:#6c757d;">Sin revisiones registradas todavía.</div>';
+            } else {
+                html += '<div style="overflow-x:auto;"><table class="swal-table" style="width:100%; font-size:0.72rem;"><thead><tr><th>Boca</th>';
+                revsBloque.forEach(function(r) { html += '<th>' + r.hora + '</th>'; });
+                html += '</tr></thead><tbody>';
+                for (var b = 1; b <= bloque.bocas; b++) {
+                    html += '<tr><td style="font-weight:bold;">B' + b + '</td>';
+                    revsBloque.forEach(function(r) {
+                        if (r.esParo) { html += '<td>—</td>'; }
+                        else { html += '<td>' + (r.pesos && r.pesos[b - 1] !== undefined ? r.pesos[b - 1] : '') + '</td>'; }
+                    });
+                    html += '</tr>';
+                }
+                html += '</tbody></table></div>';
+                var paros = revsBloque.filter(function(r) { return r.esParo; });
+                if (paros.length > 0) {
+                    html += '<div style="padding:8px 10px; font-size:0.75rem; color:#dc3545;">';
+                    paros.forEach(function(p) { html += '⏸️ ' + p.hora + ' — Paro: ' + (p.causaParo || 'Sin causa especificada') + '<br>'; });
+                    html += '</div>';
+                }
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        document.getElementById('peso-tabla-container').innerHTML = html;
+    }
+
+    function abrirModalRevisionPeso() {
+        var d = _pesoDatos;
+        var bloques = d.bloques || [];
+        var bloqueActual = bloques[bloques.length - 1];
+        if (!bloqueActual) return Swal.fire('Atención', 'No hay un bloque de producto activo.', 'warning');
+
+        var ahora = new Date();
+        var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+
+        var camposHtml = '<div style="text-align:left;"><label style="font-weight:bold;">Hora</label><input id="peso-rev-hora" class="swal2-input" value="' + horaStr + '" style="margin-bottom:12px;">';
+        camposHtml += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="peso-rev-paro" onchange="document.getElementById(\'peso-rev-pesos\').style.display = this.checked ? \'none\' : \'block\'; document.getElementById(\'peso-rev-causa-box\').style.display = this.checked ? \'block\' : \'none\';"> Esta revisión fue un Paro (sin pesos)</label>';
+        camposHtml += '<div id="peso-rev-causa-box" style="display:none;"><input id="peso-rev-causa" class="swal2-input" placeholder="Causa del paro" style="margin-bottom:12px;"></div>';
+        camposHtml += '<div id="peso-rev-pesos">';
+        for (var b = 1; b <= bloqueActual.bocas; b++) {
+            camposHtml += '<label>Boca B' + b + '</label><input id="peso-rev-b' + b + '" type="number" step="0.1" class="swal2-input" style="margin-bottom:8px;">';
+        }
+        camposHtml += '</div></div>';
+
+        Swal.fire({
+            title: 'Registrar Revisión (' + bloqueActual.maquina + ')',
+            html: camposHtml,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar',
+            didOpen: function() { document.getElementById('peso-rev-hora').focus(); },
+            preConfirm: function() {
+                var hora = document.getElementById('peso-rev-hora').value.trim();
+                var esParo = document.getElementById('peso-rev-paro').checked;
+                if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
+                if (esParo) {
+                    return { bloqueId: bloqueActual.id, hora: hora, esParo: true, causaParo: document.getElementById('peso-rev-causa').value.trim() };
+                }
+                var pesos = [];
+                for (var b = 1; b <= bloqueActual.bocas; b++) {
+                    var val = document.getElementById('peso-rev-b' + b).value;
+                    pesos.push(val === '' ? null : parseFloat(val));
+                }
+                return { bloqueId: bloqueActual.id, hora: hora, esParo: false, pesos: pesos };
+            }
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
+                res.value.registradoPor = user && user.displayName ? user.displayName : 'Analista';
+                window.agregarRevisionPeso(_pesoTipoActual, res.value).catch(function(err) {
+                    Swal.fire('Error', 'No se pudo guardar: ' + err.message, 'error');
+                });
+            }
+        });
+    }
+
+    function abrirModalCambiarProductoPeso() {
+        var tipo = _pesoTipoActual;
+        var opcionesMaquinas = Object.keys(catalogoMaquinasPeso[tipo]);
+        var htmlCont = '<div style="text-align:left;">' +
+            '<label style="font-weight:bold;">Máquina</label><select id="peso-cambio-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="actualizarProductosCambioPeso()">' +
+            '<option value="">-- Seleccione --</option>' + opcionesMaquinas.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select>' +
+            '<label style="font-weight:bold;">Producto</label><select id="peso-cambio-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;"><option value="">-- Seleccione Máquina Primero --</option></select>' +
+            '<label style="font-weight:bold;">Lote</label><input id="peso-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0;">' +
+            '<label style="font-weight:bold;">Vence</label><input id="peso-cambio-vence" class="swal2-input" style="margin:4px 0 12px 0;">' +
+            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-cambio-bocas" type="number" class="swal2-input" value="5">' +
+            '</div>';
+
+        window._catalogoTipoTemp = tipo;
+        Swal.fire({
+            title: '🔄 Cambiar Producto/Lote', html: htmlCont, showCancelButton: true, confirmButtonText: 'Abrir Nuevo Bloque',
+            preConfirm: function() {
+                var maquina = document.getElementById('peso-cambio-maquina').value;
+                var producto = document.getElementById('peso-cambio-producto').value;
+                var lote = document.getElementById('peso-cambio-lote').value.trim();
+                if (!maquina || !producto || !lote) { Swal.showValidationMessage('Selecciona máquina, producto e ingresa el lote.'); return false; }
+                return {
+                    id: 'b' + Date.now(), maquina: maquina, producto: producto, lote: lote,
+                    vence: document.getElementById('peso-cambio-vence').value.trim(),
+                    bocas: parseInt(document.getElementById('peso-cambio-bocas').value) || 5
+                };
+            }
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
+                res.value.creadoPor = user && user.displayName ? user.displayName : 'Analista';
+                res.value.creadoEn = new Date().toISOString();
+                window.agregarBloquePeso(_pesoTipoActual, res.value).catch(function(err) {
+                    Swal.fire('Error', 'No se pudo agregar el bloque: ' + err.message, 'error');
+                });
+            }
+        });
+    }
+
+    function actualizarProductosCambioPeso() {
+        var maquina = document.getElementById('peso-cambio-maquina').value;
+        var select = document.getElementById('peso-cambio-producto');
+        if (!maquina) { select.innerHTML = '<option value="">-- Seleccione Máquina Primero --</option>'; return; }
+        var info = catalogoMaquinasPeso[window._catalogoTipoTemp][maquina];
+        document.getElementById('peso-cambio-bocas').value = info.bocas;
+        select.innerHTML = '<option value="">-- Seleccione --</option>' + info.productos.map(function(p) { return '<option value="' + p + '">' + p + '</option>'; }).join('');
+    }
+
+    function cerrarHojaPeso() {
+        Swal.fire({
+            title: '¿Cerrar esta hoja?', text: 'Se archivará el historial completo y quedará lista para que se inicie una hoja nueva cuando haga falta.',
+            icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar hoja'
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                window.cerrarHojaPesoNube(_pesoTipoActual).then(function() {
+                    _pesoTipoActual = null;
+                    Swal.fire('Hoja Cerrada', 'Se guardó en el historial correctamente.', 'success');
+                }).catch(function(err) {
+                    Swal.fire('Error', 'No se pudo cerrar: ' + err.message, 'error');
+                });
+            }
+        });
+    }
+
+    function descargarImagenReportePeso() {
+        var contenedor = document.getElementById('peso-formato-visual');
+        if (!contenedor) return Swal.fire('Sin Datos', 'No hay nada que capturar todavía.', 'info');
+        Swal.fire({ title: 'Generando imagen...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        html2canvas(contenedor, { backgroundColor: esTemaOscuro() ? '#000000' : '#ffffff', scale: 2 }).then(function(canvas) {
+            Swal.close();
+            var link = document.createElement('a');
+            link.download = 'VerificacionPeso_' + _pesoTipoActual + '_' + Date.now() + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
 </script>
 
 <!-- MÓDULO DE CONEXIÓN A FIREBASE -->
 <script type="module">
     // 1. Importamos las herramientas necesarias desde los servidores de Google (CDN)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, collection, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, updateDoc, getDoc, onSnapshot, arrayUnion, collection, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     // 2. Tus credenciales de acceso (El "pasaporte" de tu app)
     const firebaseConfig = {
@@ -3726,6 +4137,55 @@
         const q = query(collection(db, "turnos_produccion"), orderBy("timestamp_servidor", "desc"), limit(cantidad || 30));
         const snap = await getDocs(q);
         return snap.docs.map(d => d.data());
+    };
+
+    // 7. VERIFICACIÓN DE PESO (analistas de calidad) — colección aparte
+    //    (verificacion_peso), totalmente separada de turnos_produccion, para
+    //    que nunca se mezcle con los datos de los auxiliares de yogurt.
+    //    Cada tipo (uht/derivados) vive en un documento fijo "<tipo>_activa"
+    //    que TODOS los analistas escuchan en vivo (onSnapshot) — así, lo que
+    //    uno registra lo ven los demás sin recargar la página.
+    window.suscribirseHojaPeso = function(tipo, callback) {
+        const refDoc = doc(db, "verificacion_peso", tipo + "_activa");
+        return onSnapshot(refDoc, function(snap) {
+            callback(snap.exists() ? snap.data() : null);
+        }, function(err) {
+            console.error("Error escuchando hoja de peso (" + tipo + "):", err);
+        });
+    };
+
+    window.crearHojaPeso = async function(tipo, primerBloque, nombreAutor) {
+        const refDoc = doc(db, "verificacion_peso", tipo + "_activa");
+        await setDoc(refDoc, {
+            tipo: tipo,
+            abierta: true,
+            creadoPor: nombreAutor,
+            creadoEn: serverTimestamp(),
+            bloques: [primerBloque],
+            revisiones: []
+        });
+    };
+
+    window.agregarBloquePeso = async function(tipo, bloque) {
+        const refDoc = doc(db, "verificacion_peso", tipo + "_activa");
+        await updateDoc(refDoc, { bloques: arrayUnion(bloque) });
+    };
+
+    window.agregarRevisionPeso = async function(tipo, revision) {
+        const refDoc = doc(db, "verificacion_peso", tipo + "_activa");
+        await updateDoc(refDoc, { revisiones: arrayUnion(revision) });
+    };
+
+    window.cerrarHojaPesoNube = async function(tipo) {
+        const refDoc = doc(db, "verificacion_peso", tipo + "_activa");
+        const refHistorial = doc(collection(db, "verificacion_peso_historial"));
+        const snap = await getDoc(refDoc);
+        if (snap.exists()) {
+            const datos = snap.data();
+            datos.cerradoEn = serverTimestamp();
+            await setDoc(refHistorial, datos);
+        }
+        await setDoc(refDoc, { tipo: tipo, abierta: false, bloques: [], revisiones: [] });
     };
 </script>
 
