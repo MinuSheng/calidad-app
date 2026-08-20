@@ -880,8 +880,8 @@
                     <input type="text" id="input-peso-lote" placeholder="Ej. 1308" oninput="previsualizarVencePeso()">
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label>Vence (calculado automático, igual que en Caducidad)</label>
-                    <input type="text" id="input-peso-vence" readonly style="opacity:0.8;">
+                    <label>Vence (sugerido automático, igual que en Caducidad — puedes corregirlo)</label>
+                    <input type="text" id="input-peso-vence" placeholder="DD/MM/AAAA">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
@@ -900,6 +900,7 @@
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--info); color:white; font-size:0.85rem;" onclick="abrirModalRevisionPeso()">➕ Registrar Revisión</button>
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🔄 Cambiar Producto</button>
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: #d1a253; color:white; font-size:0.85rem;" onclick="abrirModalNuevoLotePeso()">📦 Nuevo Lote (mismo producto)</button>
+                    <button class="btn-action" style="flex:1; min-width:140px; background-color: #495057; color:white; font-size:0.85rem;" onclick="abrirModalFinProduccionPeso()">🏁 Fin de Producción</button>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 15px;">
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: #6c757d; color:white; font-size:0.85rem;" onclick="abrirPrevisualizacionPeso()">🔍 Ver Formato</button>
@@ -976,22 +977,57 @@
     // =========================================================
     // MÓDULO DE VERIFICACIÓN DE PESO (analistas de calidad)
     // =========================================================
+    // Cada producto trae ya pegada su categoría de Caducidad (crema45,
+    // griego46, crema50, yogurt62, bolsa90, leche120, leche150, caja180) —
+    // son EXACTAMENTE las mismas categorías/días de la pestaña Caducidad.
+    // Así el vencimiento nunca puede quedar mal por un nombre que no
+    // coincida con una lista aparte.
     const catalogoMaquinasPeso = {
         uht: {
-            "COMPACT": { bocas: 5, productos: ["Lechelado Fresa", "Lechelado Chocolate", "Lechelado Vainilla", "Oh Lala Fresa", "Oh Lala Chocolate", "Oh Lala Vainilla"] },
-            "A3FLEX": { bocas: 5, productos: ["Nutrilety", "Descremada Eskimo/LALA", "Entera Eskimo/LALA", "Semi Deslactosada Eskimo/LALA"] },
-            "THIMONIER": { bocas: 5, productos: ["Entera Eskimo", "Fortificada Eskimo", "Vida+ Chocolate", "Vida+ Fresa (bolsa)", "Semi Descremada Eskimo"] }
+            "COMPACT": { bocas: 5, productos: [
+                { nombre: "Lechelado Fresa", categoria: "leche150" }, { nombre: "Lechelado Chocolate", categoria: "leche150" }, { nombre: "Lechelado Vainilla", categoria: "leche150" },
+                { nombre: "Oh Lala Fresa", categoria: "leche150" }, { nombre: "Oh Lala Chocolate", categoria: "leche150" }, { nombre: "Oh Lala Vainilla", categoria: "leche150" }
+            ]},
+            "A3FLEX": { bocas: 5, productos: [
+                { nombre: "Nutrilety", categoria: "leche120" }, { nombre: "Descremada Eskimo/LALA", categoria: "leche120" },
+                { nombre: "Entera Eskimo/LALA", categoria: "leche120" }, { nombre: "Semi Deslactosada Eskimo/LALA", categoria: "leche120" }
+            ]},
+            "THIMONIER": { bocas: 5, productos: [
+                { nombre: "Entera Eskimo", categoria: "leche150" }, { nombre: "Fortificada Eskimo", categoria: "leche150" },
+                { nombre: "Vida+ Chocolate", categoria: "leche150" }, { nombre: "Vida+ Fresa (bolsa)", categoria: "leche150" }, { nombre: "Semi Descremada Eskimo", categoria: "leche150" }
+            ]}
         },
         derivados: {
-            "TÓMBOLA": { bocas: 5, productos: ["Mantequilla a Granel"] },
-            "BENHILL": { bocas: 5, productos: ["Mantequilla La Perfecta", "Mantequilla Eskimo 100g"] },
-            "FASA": { bocas: 5, productos: ["Mantequilla La Perfecta 10g"] },
-            "IS6-7": { bocas: 5, productos: ["Crema Ácida (420)", "Crema Ácida (210)", "Crema Ácida (105)", "Nutri Crema (400)", "Nutri Crema (200)", "Nutri Crema (95)", "Crema Dulce La Perfecta (420)", "Nutri Yogurt Fresa (105)", "Nutri Yogurt Frutas Tropicales (105)", "Nutri Yogurt Durazno (105)"] },
-            "ERCA": { bocas: 8, productos: ["Fresa LALA/LP", "Fresa Moras LALA/LP", "Durazno LALA/LP", "Ciruela LP", "Manzana LALA/LP", "Natural con Azúcar LALA/LP"] },
-            "PRIMO": { bocas: 8, productos: ["Fresa LALA", "Fresa Moras LALA", "Durazno LALA", "Manzana LALA", "Natural con Azúcar LALA", "Natural sin Azúcar LALA", "Natural Griego LALA"] },
-            "SERAC": { bocas: 16, productos: ["Fresa LALA/LP", "Durazno LALA/LP", "Manzana LALA/LP", "Fresamoras LALA/LP", "Fresa Banano LALA/LP", "Aloe + Manzana LALA/LP", "Aloe + Manzana Fibra LALA/LP"] }
+            "TÓMBOLA": { bocas: 5, productos: [{ nombre: "Mantequilla a Granel", categoria: "caja180" }] },
+            "BENHILL": { bocas: 5, productos: [{ nombre: "Mantequilla La Perfecta", categoria: "leche150" }, { nombre: "Mantequilla Eskimo 100g", categoria: "leche150" }] },
+            "FASA": { bocas: 5, productos: [{ nombre: "Mantequilla La Perfecta 10g", categoria: "leche150" }] },
+            "IS6-7": { bocas: 5, productos: [
+                { nombre: "Crema Ácida (420)", categoria: "crema45" }, { nombre: "Crema Ácida (210)", categoria: "crema45" }, { nombre: "Crema Ácida (105)", categoria: "crema45" },
+                { nombre: "Nutri Crema (400)", categoria: "crema45" }, { nombre: "Nutri Crema (200)", categoria: "crema45" }, { nombre: "Nutri Crema (95)", categoria: "crema45" },
+                { nombre: "Crema Dulce La Perfecta (420)", categoria: "crema45" },
+                { nombre: "Nutri Yogurt Fresa (105)", categoria: "yogurt62" }, { nombre: "Nutri Yogurt Frutas Tropicales (105)", categoria: "yogurt62" }, { nombre: "Nutri Yogurt Durazno (105)", categoria: "yogurt62" }
+            ]},
+            "ERCA": { bocas: 8, productos: [
+                { nombre: "Fresa LALA/LP", categoria: "yogurt62" }, { nombre: "Fresa Moras LALA/LP", categoria: "yogurt62" }, { nombre: "Durazno LALA/LP", categoria: "yogurt62" },
+                { nombre: "Ciruela LP", categoria: "yogurt62" }, { nombre: "Manzana LALA/LP", categoria: "yogurt62" }, { nombre: "Natural con Azúcar LALA/LP", categoria: "yogurt62" }
+            ]},
+            "PRIMO": { bocas: 8, productos: [
+                { nombre: "Fresa LALA", categoria: "yogurt62" }, { nombre: "Fresa Moras LALA", categoria: "yogurt62" }, { nombre: "Durazno LALA", categoria: "yogurt62" },
+                { nombre: "Manzana LALA", categoria: "yogurt62" }, { nombre: "Natural con Azúcar LALA", categoria: "yogurt62" }, { nombre: "Natural sin Azúcar LALA", categoria: "yogurt62" }, { nombre: "Natural Griego LALA", categoria: "griego46" }
+            ]},
+            "SERAC": { bocas: 16, productos: [
+                { nombre: "Fresa LALA/LP", categoria: "yogurt62" }, { nombre: "Durazno LALA/LP", categoria: "yogurt62" }, { nombre: "Manzana LALA/LP", categoria: "yogurt62" },
+                { nombre: "Fresamoras LALA/LP", categoria: "yogurt62" }, { nombre: "Fresa Banano LALA/LP", categoria: "yogurt62" }, { nombre: "Aloe + Manzana LALA/LP", categoria: "yogurt62" }, { nombre: "Aloe + Manzana Fibra LALA/LP", categoria: "yogurt62" }
+            ]}
         }
     };
+
+    function obtenerCategoriaProducto(tipo, maquina, producto) {
+        var info = catalogoMaquinasPeso[tipo] && catalogoMaquinasPeso[tipo][maquina];
+        if (!info) return 'yogurt62';
+        var item = info.productos.find(function(p) { return p.nombre === producto; });
+        return item ? item.categoria : 'yogurt62';
+    }
 
     var _pesoInicializado = false;
     var _pesoTipoSeleccionTemp = null;
@@ -1273,7 +1309,15 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.3 (Actual) - Lotes y Ajustes en Verificación de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.4 (Actual) - Correcciones de Planta en Verificación de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Ahora se puede elegir la máquina al registrar una revisión o un nuevo lote, en vez de usar siempre la última.</li>' +
+                      '<li>El vencimiento ya se puede corregir a mano, y su cálculo automático usa exactamente las mismas categorías de la pestaña Caducidad.</li>' +
+                      '<li>Nuevo buscador para encontrar productos rápido entre la lista de cada máquina.</li>' +
+                      '<li>Nuevo botón "Fin de Producción" para marcar cuando algo terminó, sin tener que abrir un lote nuevo de inmediato.</li>' +
+                      '<li>Los pesos en 0 o sin registrar ahora se muestran como guion (-), en vez de quedar en blanco.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.3.3 - Lotes y Ajustes en Verificación de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Nuevo botón "Nuevo Lote" para cuando cambia el lote pero sigue siendo el mismo producto — ya no abre un bloque nuevo, continúa en la misma sección marcando el "FIN" y el lote nuevo, tal como en el formato físico.</li>' +
                       '<li>Corregido: el texto de "Ver Formato" se veía gris e ilegible — ahora es negro sobre blanco, claro.</li>' +
@@ -3677,7 +3721,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.3.3";
+    var APP_VERSION = "3.3.4";
 
     function mostrarAppPrincipal() {
         try {
@@ -3820,7 +3864,7 @@
         "Natural Griego LALA": "griego46"
     };
 
-    function calcularVenceParaPeso(loteStr, producto) {
+    function calcularVenceParaPeso(loteStr, tipo, maquina, producto) {
         if (!loteStr || loteStr.length < 3 || loteStr.length > 4) return '';
         loteStr = loteStr.padStart(4, '0');
         var day = parseInt(loteStr.substring(0, 2));
@@ -3828,7 +3872,7 @@
         var year = new Date().getFullYear();
         var prodDate = new Date(year, month, day);
         if (isNaN(prodDate.getTime()) || prodDate.getMonth() !== month) return '';
-        var cat = categoriaCaducidadPeso[producto] || 'yogurt62';
+        var cat = obtenerCategoriaProducto(tipo, maquina, producto);
         var dias = categoryDays[cat];
         var expDate = new Date(prodDate);
         expDate.setDate(expDate.getDate() + dias);
@@ -3837,8 +3881,9 @@
 
     function previsualizarVencePeso() {
         var lote = document.getElementById('input-peso-lote').value.trim();
+        var maquina = document.getElementById('select-peso-maquina').value;
         var producto = document.getElementById('select-peso-producto').value;
-        document.getElementById('input-peso-vence').value = calcularVenceParaPeso(lote, producto) || '';
+        document.getElementById('input-peso-vence').value = calcularVenceParaPeso(lote, _pesoVistaActual, maquina, producto) || '';
     }
 
     function inicializarTabPeso() {
@@ -3904,11 +3949,22 @@
         document.getElementById('input-peso-bocas').value = info.bocas;
 
         var opcionesProd = document.getElementById('opciones-peso-producto');
-        opcionesProd.innerHTML = '';
+        var buscadorHtml = '<input type="text" placeholder="🔍 Buscar producto..." onclick="event.stopPropagation();" oninput="filtrarOpcionesDropdown(this, \'opciones-peso-producto\')" style="width:90%; margin:6px auto; display:block; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">';
+        opcionesProd.innerHTML = buscadorHtml;
         info.productos.forEach(function(p) {
-            opcionesProd.innerHTML += '<div class="drop-opt" onclick="setDropdown(\'dd-peso-producto\', \'' + p.replace(/'/g, "\\'") + '\', \'' + p.replace(/'/g, "\\'") + '\'); previsualizarVencePeso();">' + p + '</div>';
+            opcionesProd.innerHTML += '<div class="drop-opt" onclick="setDropdown(\'dd-peso-producto\', \'' + p.nombre.replace(/'/g, "\\'") + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\'); previsualizarVencePeso();">' + p.nombre + '</div>';
         });
         document.getElementById('lbl-peso-producto').innerText = '-- Seleccione Producto --';
+    }
+
+    // Filtra las opciones de un dropdown de productos según lo que se escriba,
+    // para poder buscar rápido entre muchos productos.
+    function filtrarOpcionesDropdown(inputEl, containerId) {
+        var texto = inputEl.value.toLowerCase();
+        var opciones = document.getElementById(containerId).querySelectorAll('.drop-opt');
+        opciones.forEach(function(op) {
+            op.style.display = op.innerText.toLowerCase().indexOf(texto) !== -1 ? '' : 'none';
+        });
     }
 
     function iniciarHojaPeso() {
@@ -3966,8 +4022,8 @@
     function generarHtmlFormatoOficialPeso(d, tipo) {
         var bloques = d.bloques || [];
         var revisiones = d.revisiones || [];
-        var primero = bloques[0];
-        var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[0] : null;
+        var primero = bloques[bloques.length - 1];
+        var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[primero.lotes.length - 1] : null;
         var f = { border: '1px solid #333' };
         var NEGRO = 'color:#000 !important;';
 
@@ -3998,7 +4054,7 @@
             html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Horas</td>';
             grupos.forEach(function(g, gi) {
                 if (gi > 0) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td><td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#fff3cd; writing-mode:vertical-rl; ' + NEGRO + '">Lote ' + g.lote.lote + '</td>';
-                g.revs.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; ' + NEGRO + '">' + (r.esParo ? 'Paro' : r.hora) + '</td>'; });
+                g.revs.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; ' + NEGRO + '">' + _formatoHoraCelda(r) + '</td>'; });
             });
             html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
             grupos.forEach(function(g, gi) {
@@ -4011,8 +4067,7 @@
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td><td style="border:' + f.border + '; background:#fff3cd;"></td>';
                     g.revs.forEach(function(r) {
-                        var val = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
-                        html += '<td style="border:' + f.border + '; padding:3px; text-align:center; ' + NEGRO + '">' + val + '</td>';
+                        html += '<td style="border:' + f.border + '; padding:3px; text-align:center; ' + NEGRO + '">' + _formatoPesoValor(r, b) + '</td>';
                     });
                 });
                 html += '</tr>';
@@ -4052,6 +4107,21 @@
         return html;
     }
 
+    // Valor a mostrar en una celda de peso: guion si no se registró o quedó
+    // en 0, "Paro" si fue un paro, vacío si fue un marcador de Fin.
+    function _formatoPesoValor(r, b) {
+        if (r.esParo || r.esFin) return '';
+        var v = (r.pesos && r.pesos[b - 1] !== undefined) ? r.pesos[b - 1] : null;
+        if (v === null || v === undefined || v === 0) return '-';
+        return v;
+    }
+
+    function _formatoHoraCelda(r) {
+        if (r.esParo) return 'Paro';
+        if (r.esFin) return 'FIN';
+        return r.hora;
+    }
+
     function generarHtmlFormatoPeso(d, editable) {
         var bloques = d.bloques || [];
         var revisiones = d.revisiones || [];
@@ -4066,7 +4136,7 @@
                 html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid #ccc; padding:4px;">Boca</th>';
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th><th style="border:1px solid #ccc; padding:4px; background:#fff3cd;">Lote ' + g.lote.lote + '</th>';
-                    g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + r.hora + (editable ? ' ✏️' : '') + '</th>'; });
+                    g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoHoraCelda(r) + (editable ? ' ✏️' : '') + '</th>'; });
                 });
                 html += '</tr></thead><tbody>';
                 for (var b = 1; b <= bloque.bocas; b++) {
@@ -4074,8 +4144,7 @@
                     grupos.forEach(function(g, gi) {
                         if (gi > 0) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td><td style="border:1px solid #ccc; background:#fff3cd; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? g.lote.lote : '') + '</td>';
                         g.revs.forEach(function(r) {
-                            var val = r.esParo ? 'Paro' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
-                            html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + val + '</td>';
+                            html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoPesoValor(r, b) + '</td>';
                         });
                     });
                     html += '</tr>';
@@ -4120,23 +4189,33 @@
     function abrirModalNuevoLotePeso() {
         var d = _pesoDatos;
         var bloques = (d.bloques || []).slice();
+        if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
+        window._pesoNuevoLoteBloques = bloques;
         var bloqueActual = bloques[bloques.length - 1];
-        if (!bloqueActual) return Swal.fire('Atención', 'No hay un bloque de producto activo.', 'warning');
+
+        var htmlCont = '<div style="text-align:left;">' +
+            '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
+            bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>' +
+            '<label style="font-weight:bold;">Nuevo Lote</label><input id="peso-nuevolote-lote" class="swal2-input" placeholder="Ej. 1608" style="margin:4px 0 12px 0;" oninput="_previsualizarVenceNuevoLote()">' +
+            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-nuevolote-vence" class="swal2-input" style="margin:4px 0 0 0;">' +
+            '</div>';
 
         Swal.fire({
-            title: '📦 Nuevo Lote — ' + bloqueActual.producto,
-            html: '<div style="text-align:left;"><label style="font-weight:bold;">Nuevo Lote</label><input id="peso-nuevolote-lote" class="swal2-input" placeholder="Ej. 1608" style="margin:4px 0 4px 0;" oninput="document.getElementById(\'peso-nuevolote-vence\').innerText = calcularVenceParaPeso(this.value, \'' + bloqueActual.producto.replace(/'/g, "\\'") + '\') || \'—\';"><p style="font-size:0.8rem; margin:4px 0 0 0;">Vence: <b id="peso-nuevolote-vence">—</b></p></div>',
+            title: '📦 Nuevo Lote',
+            html: htmlCont,
             showCancelButton: true, confirmButtonText: 'Registrar Fin de Lote y Continuar',
             preConfirm: function() {
                 var lote = document.getElementById('peso-nuevolote-lote').value.trim();
+                var vence = document.getElementById('peso-nuevolote-vence').value.trim();
                 if (!lote) { Swal.showValidationMessage('Ingresa el nuevo lote.'); return false; }
-                return { id: 'l' + Date.now(), lote: lote, vence: calcularVenceParaPeso(lote, bloqueActual.producto) || '', creadoEn: new Date().toISOString() };
+                return { bloqueId: document.getElementById('peso-nuevolote-bloque').value, lote: { id: 'l' + Date.now(), lote: lote, vence: vence, creadoEn: new Date().toISOString() } };
             }
         }).then(function(res) {
             if (res.isConfirmed) {
                 var nuevosBloques = bloques.slice();
-                var idx = nuevosBloques.length - 1;
-                var lotesActualizados = (nuevosBloques[idx].lotes || []).concat([res.value]);
+                var idx = nuevosBloques.findIndex(function(bl) { return bl.id === res.value.bloqueId; });
+                if (idx === -1) return;
+                var lotesActualizados = (nuevosBloques[idx].lotes || []).concat([res.value.lote]);
                 nuevosBloques[idx] = Object.assign({}, nuevosBloques[idx], { lotes: lotesActualizados });
                 window.actualizarBloquesPeso(_pesoVistaActual, nuevosBloques, _pesoModoSimulacion).catch(function(err) {
                     Swal.fire('Error', 'No se pudo registrar el nuevo lote: ' + err.message, 'error');
@@ -4145,44 +4224,67 @@
         });
     }
 
+    function _previsualizarVenceNuevoLote() {
+        var bloqueId = document.getElementById('peso-nuevolote-bloque').value;
+        var bloque = window._pesoNuevoLoteBloques.find(function(bl) { return bl.id === bloqueId; });
+        var lote = document.getElementById('peso-nuevolote-lote').value.trim();
+        document.getElementById('peso-nuevolote-vence').value = calcularVenceParaPeso(lote, _pesoVistaActual, bloque.maquina, bloque.producto) || '';
+    }
+
+    function _generarCamposBocasHtml(bloque) {
+        var html = '';
+        for (var b = 1; b <= bloque.bocas; b++) {
+            html += '<label>Boca B' + b + '</label><input id="peso-rev-b' + b + '" type="number" step="0.1" class="swal2-input" style="margin-bottom:8px;">';
+        }
+        return html;
+    }
+
+    function _actualizarCamposRevisionPeso() {
+        var bloqueId = document.getElementById('peso-rev-bloque').value;
+        var bloque = window._pesoRevBloques.find(function(bl) { return bl.id === bloqueId; });
+        document.getElementById('peso-rev-pesos-container').innerHTML = _generarCamposBocasHtml(bloque);
+    }
+
     function abrirModalRevisionPeso() {
         var d = _pesoDatos;
         var bloques = d.bloques || [];
+        if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
+        window._pesoRevBloques = bloques;
         var bloqueActual = bloques[bloques.length - 1];
-        if (!bloqueActual) return Swal.fire('Atención', 'No hay un bloque de producto activo.', 'warning');
 
         var ahora = new Date();
         var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
 
-        var camposHtml = '<div style="text-align:left;"><label style="font-weight:bold;">Hora</label><input id="peso-rev-hora" class="swal2-input" value="' + horaStr + '" style="margin-bottom:12px;">';
+        var camposHtml = '<div style="text-align:left;">';
+        camposHtml += '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-rev-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="_actualizarCamposRevisionPeso()">' +
+            bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>';
+        camposHtml += '<label style="font-weight:bold;">Hora</label><input id="peso-rev-hora" class="swal2-input" value="' + horaStr + '" style="margin-bottom:12px;">';
         camposHtml += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="peso-rev-paro" onchange="document.getElementById(\'peso-rev-pesos\').style.display = this.checked ? \'none\' : \'block\'; document.getElementById(\'peso-rev-causa-box\').style.display = this.checked ? \'block\' : \'none\';"> Esta revisión fue un Paro (sin pesos)</label>';
         camposHtml += '<div id="peso-rev-causa-box" style="display:none;"><input id="peso-rev-causa" class="swal2-input" placeholder="Causa del paro" style="margin-bottom:12px;"></div>';
-        camposHtml += '<div id="peso-rev-pesos">';
-        for (var b = 1; b <= bloqueActual.bocas; b++) {
-            camposHtml += '<label>Boca B' + b + '</label><input id="peso-rev-b' + b + '" type="number" step="0.1" class="swal2-input" style="margin-bottom:8px;">';
-        }
-        camposHtml += '</div></div>';
+        camposHtml += '<div id="peso-rev-pesos"><div id="peso-rev-pesos-container">' + _generarCamposBocasHtml(bloqueActual) + '</div></div>';
+        camposHtml += '</div>';
 
         Swal.fire({
-            title: 'Registrar Revisión (' + bloqueActual.maquina + ')',
+            title: 'Registrar Revisión',
             html: camposHtml,
             showCancelButton: true,
             confirmButtonText: 'Registrar',
             didOpen: function() { document.getElementById('peso-rev-hora').focus(); },
             preConfirm: function() {
+                var bloqueSel = bloques.find(function(bl) { return bl.id === document.getElementById('peso-rev-bloque').value; });
                 var hora = document.getElementById('peso-rev-hora').value.trim();
                 var esParo = document.getElementById('peso-rev-paro').checked;
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
-                var loteActualId = bloqueActual.lotes && bloqueActual.lotes.length ? bloqueActual.lotes[bloqueActual.lotes.length - 1].id : null;
+                var loteActualId = bloqueSel.lotes && bloqueSel.lotes.length ? bloqueSel.lotes[bloqueSel.lotes.length - 1].id : null;
                 if (esParo) {
-                    return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, loteId: loteActualId, hora: hora, esParo: true, causaParo: document.getElementById('peso-rev-causa').value.trim() };
+                    return { id: 'r' + Date.now(), bloqueId: bloqueSel.id, loteId: loteActualId, hora: hora, esParo: true, causaParo: document.getElementById('peso-rev-causa').value.trim() };
                 }
                 var pesos = [];
-                for (var b = 1; b <= bloqueActual.bocas; b++) {
+                for (var b = 1; b <= bloqueSel.bocas; b++) {
                     var val = document.getElementById('peso-rev-b' + b).value;
                     pesos.push(val === '' ? null : parseFloat(val));
                 }
-                return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, loteId: loteActualId, hora: hora, esParo: false, pesos: pesos };
+                return { id: 'r' + Date.now(), bloqueId: bloqueSel.id, loteId: loteActualId, hora: hora, esParo: false, pesos: pesos };
             }
         }).then(function(res) {
             if (res.isConfirmed) {
@@ -4204,6 +4306,22 @@
         var r = revisiones[idx];
         var bloque = (d.bloques || []).find(function(bl) { return bl.id === r.bloqueId; });
         if (!bloque) return;
+
+        if (r.esFin) {
+            Swal.fire({
+                title: '🏁 Marcador de Fin', html: '<div style="text-align:left;"><label style="font-weight:bold;">Hora</label><input id="peso-edit-fin-hora" class="swal2-input" value="' + r.hora + '"></div>',
+                showCancelButton: true, showDenyButton: true, confirmButtonText: 'Guardar', denyButtonText: '🗑️ Eliminar', denyButtonColor: '#dc3545'
+            }).then(function(res) {
+                if (res.isConfirmed) {
+                    revisiones[idx] = { id: r.id, bloqueId: r.bloqueId, loteId: r.loteId, hora: document.getElementById('peso-edit-fin-hora').value.trim(), esFin: true };
+                    window.actualizarRevisionesPeso(_pesoVistaActual, revisiones, _pesoModoSimulacion);
+                } else if (res.isDenied) {
+                    revisiones.splice(idx, 1);
+                    window.actualizarRevisionesPeso(_pesoVistaActual, revisiones, _pesoModoSimulacion);
+                }
+            });
+            return;
+        }
 
         var camposHtml = '<div style="text-align:left;"><label style="font-weight:bold;">Hora</label><input id="peso-edit-hora" class="swal2-input" value="' + r.hora + '" style="margin-bottom:12px;">';
         camposHtml += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="peso-edit-paro" ' + (r.esParo ? 'checked' : '') + ' onchange="document.getElementById(\'peso-edit-pesos\').style.display = this.checked ? \'none\' : \'block\'; document.getElementById(\'peso-edit-causa-box\').style.display = this.checked ? \'block\' : \'none\';"> Esta revisión fue un Paro (sin pesos)</label>';
@@ -4267,15 +4385,19 @@
             lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" style="flex:1; margin:0;"></div>'; }).join('') +
             '</div>';
 
-        Swal.fire({ title: 'Editar Bloque', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar' }).then(function(res) {
+        Swal.fire({
+            title: 'Editar Bloque', html: htmlCont, showCancelButton: true, showDenyButton: true,
+            confirmButtonText: 'Guardar', denyButtonText: '🗑️ Eliminar Bloque Completo', denyButtonColor: '#dc3545'
+        }).then(function(res) {
             if (res.isConfirmed) {
+                var maquinaEditada = document.getElementById('peso-editbl-maquina').value;
                 var producto = document.getElementById('peso-editbl-producto').value.trim();
                 var lotesEditados = lotes.map(function(l, i) {
                     var nuevoLote = document.getElementById('peso-editbl-lote' + i).value.trim();
-                    return { id: l.id, lote: nuevoLote, vence: calcularVenceParaPeso(nuevoLote, producto) || l.vence, creadoEn: l.creadoEn };
+                    return { id: l.id, lote: nuevoLote, vence: calcularVenceParaPeso(nuevoLote, _pesoVistaActual, maquinaEditada, producto) || l.vence, creadoEn: l.creadoEn };
                 });
                 bloques[idx] = {
-                    id: b.id, maquina: document.getElementById('peso-editbl-maquina').value,
+                    id: b.id, maquina: maquinaEditada,
                     producto: producto,
                     bocas: parseInt(document.getElementById('peso-editbl-bocas').value) || 5,
                     lotes: lotesEditados,
@@ -4283,6 +4405,51 @@
                 };
                 window.actualizarBloquesPeso(_pesoVistaActual, bloques, _pesoModoSimulacion).catch(function(err) {
                     Swal.fire('Error', 'No se pudo guardar: ' + err.message, 'error');
+                });
+            } else if (res.isDenied) {
+                Swal.fire({
+                    title: '¿Eliminar este bloque por completo?', text: 'Se borrará el bloque y todas sus revisiones registradas. Esto no se puede deshacer.',
+                    icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar todo'
+                }).then(function(res2) {
+                    if (!res2.isConfirmed) return;
+                    var nuevosBloques = bloques.slice(); nuevosBloques.splice(idx, 1);
+                    var nuevasRevisiones = (d.revisiones || []).filter(function(r) { return r.bloqueId !== bloqueId; });
+                    window.actualizarBloquesPeso(_pesoVistaActual, nuevosBloques, _pesoModoSimulacion).then(function() {
+                        return window.actualizarRevisionesPeso(_pesoVistaActual, nuevasRevisiones, _pesoModoSimulacion);
+                    }).catch(function(err) {
+                        Swal.fire('Error', 'No se pudo eliminar: ' + err.message, 'error');
+                    });
+                });
+            }
+        });
+    }
+
+    function abrirModalFinProduccionPeso() {
+        var d = _pesoDatos;
+        var bloques = d.bloques || [];
+        if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
+        window._pesoFinBloques = bloques;
+        var bloqueActual = bloques[bloques.length - 1];
+        var ahora = new Date();
+        var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+
+        Swal.fire({
+            title: '🏁 Marcar Fin de Producción',
+            html: '<div style="text-align:left;"><label style="font-weight:bold;">Máquina / Producto</label><select id="peso-fin-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
+                bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>' +
+                '<label style="font-weight:bold;">Hora</label><input id="peso-fin-hora" class="swal2-input" value="' + horaStr + '"></div>',
+            showCancelButton: true, confirmButtonText: 'Marcar Fin',
+            preConfirm: function() {
+                var bloqueSel = bloques.find(function(bl) { return bl.id === document.getElementById('peso-fin-bloque').value; });
+                var hora = document.getElementById('peso-fin-hora').value.trim();
+                if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
+                var loteActualId = bloqueSel.lotes && bloqueSel.lotes.length ? bloqueSel.lotes[bloqueSel.lotes.length - 1].id : null;
+                return { id: 'r' + Date.now(), bloqueId: bloqueSel.id, loteId: loteActualId, hora: hora, esFin: true };
+            }
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                window.agregarRevisionPeso(_pesoVistaActual, res.value, _pesoModoSimulacion).catch(function(err) {
+                    Swal.fire('Error', 'No se pudo marcar el fin de producción: ' + err.message, 'error');
                 });
             }
         });
@@ -4296,7 +4463,7 @@
             '<option value="">-- Seleccione --</option>' + opcionesMaquinas.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select>' +
             '<label style="font-weight:bold;">Producto</label><select id="peso-cambio-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="previsualizarVenceCambioPeso()"><option value="">-- Seleccione Máquina Primero --</option></select>' +
             '<label style="font-weight:bold;">Lote</label><input id="peso-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0;" oninput="previsualizarVenceCambioPeso()">' +
-            '<label style="font-weight:bold;">Vence (automático)</label><input id="peso-cambio-vence" class="swal2-input" readonly style="margin:4px 0 12px 0; opacity:0.8;">' +
+            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-cambio-vence" class="swal2-input" style="margin:4px 0 12px 0;">' +
             '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-cambio-bocas" type="number" class="swal2-input" value="5">' +
             '</div>';
 
@@ -4332,13 +4499,14 @@
         if (!maquina) { select.innerHTML = '<option value="">-- Seleccione Máquina Primero --</option>'; return; }
         var info = catalogoMaquinasPeso[window._catalogoTipoTemp][maquina];
         document.getElementById('peso-cambio-bocas').value = info.bocas;
-        select.innerHTML = '<option value="">-- Seleccione --</option>' + info.productos.map(function(p) { return '<option value="' + p + '">' + p + '</option>'; }).join('');
+        select.innerHTML = '<option value="">-- Seleccione --</option>' + info.productos.map(function(p) { return '<option value="' + p.nombre + '">' + p.nombre + '</option>'; }).join('');
     }
 
     function previsualizarVenceCambioPeso() {
         var lote = document.getElementById('peso-cambio-lote').value.trim();
+        var maquina = document.getElementById('peso-cambio-maquina').value;
         var producto = document.getElementById('peso-cambio-producto').value;
-        document.getElementById('peso-cambio-vence').value = calcularVenceParaPeso(lote, producto) || '';
+        document.getElementById('peso-cambio-vence').value = calcularVenceParaPeso(lote, window._catalogoTipoTemp, maquina, producto) || '';
     }
 
     function cerrarHojaPeso() {
@@ -4438,7 +4606,7 @@
                         g.revs.forEach(function(r) {
                             if (col > 25) return;
                             var c = filaHoras.getCell(col);
-                            c.value = r.esParo ? 'Paro' : r.hora;
+                            c.value = _formatoHoraCelda(r);
                             c.font = normalFont;
                             c.alignment = { horizontal: 'center' };
                             col++;
@@ -4456,7 +4624,7 @@
                             g.revs.forEach(function(r) {
                                 if (col2 > 25) return;
                                 var c = filaB.getCell(col2);
-                                c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                                c.value = _formatoPesoValor(r, b);
                                 c.font = normalFont;
                                 c.alignment = { horizontal: 'center' };
                                 col2++;
@@ -4531,7 +4699,7 @@
             filaHoras.getCell(1).value = 'Boca'; filaHoras.getCell(1).font = headerFont; filaHoras.getCell(1).border = borde;
             revsBloque.forEach(function(r, i) {
                 var c = filaHoras.getCell(2 + i);
-                c.value = r.esParo ? 'Paro' : r.hora; c.font = headerFont; c.border = borde; c.fill = grisClaro; c.alignment = { horizontal: 'center' };
+                c.value = _formatoHoraCelda(r); c.font = headerFont; c.border = borde; c.fill = grisClaro; c.alignment = { horizontal: 'center' };
             });
             filaHoras.commit();
             fila++;
@@ -4541,7 +4709,7 @@
                 filaB.getCell(1).value = 'B' + b; filaB.getCell(1).font = headerFont; filaB.getCell(1).border = borde;
                 revsBloque.forEach(function(r, i) {
                     var c = filaB.getCell(2 + i);
-                    c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                    c.value = _formatoPesoValor(r, b);
                     c.font = normalFont; c.border = borde; c.alignment = { horizontal: 'center' };
                 });
                 filaB.commit();
@@ -4605,27 +4773,41 @@
             conectarListenersPeso();
 
             // ---------- UHT: turno completo con 3 bloques (llena toda la plantilla oficial) ----------
-            var b1 = { id: 'bsim1', maquina: 'THIMONIER', producto: 'Entera Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'Entera Eskimo'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var b2 = { id: 'bsim2', maquina: 'THIMONIER', producto: 'Fortificada Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'Fortificada Eskimo'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var b3 = { id: 'bsim3', maquina: 'THIMONIER', producto: 'Vida+ Fresa (bolsa)', lote: '1508', vence: calcularVenceParaPeso('1508', 'Vida+ Fresa (bolsa)'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l1a = { id: 'lsim1a', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
+            var l1b = { id: 'lsim1b', lote: '1608', vence: calcularVenceParaPeso('1608', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
+            var b1 = { id: 'bsim1', maquina: 'THIMONIER', producto: 'Entera Eskimo', bocas: 5, lotes: [l1a, l1b], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l2 = { id: 'lsim2', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Fortificada Eskimo'), creadoEn: new Date().toISOString() };
+            var b2 = { id: 'bsim2', maquina: 'THIMONIER', producto: 'Fortificada Eskimo', bocas: 5, lotes: [l2], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l3 = { id: 'lsim3', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Vida+ Fresa (bolsa)'), creadoEn: new Date().toISOString() };
+            var b3 = { id: 'bsim3', maquina: 'THIMONIER', producto: 'Vida+ Fresa (bolsa)', bocas: 5, lotes: [l3], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
 
             var revsUht = [];
-            _generarHorasCada30(7, 0, 8).forEach(function(hora, i) {
-                revsUht.push({ id: 'ru1_' + i, bloqueId: 'bsim1', hora: hora, esParo: false, pesos: _pesosSimulados(5, 450, 2), registradoPor: 'Prueba' });
+            // Bloque 1, primer lote (1508): 5 revisiones, luego FIN, luego lote nuevo (1608) con 3 revisiones más.
+            _generarHorasCada30(7, 0, 5).forEach(function(hora, i) {
+                revsUht.push({ id: 'ru1a_' + i, bloqueId: 'bsim1', loteId: l1a.id, hora: hora, esParo: false, pesos: _pesosSimulados(5, 450, 2), registradoPor: 'Prueba' });
             });
+            revsUht.push({ id: 'ru1fin', bloqueId: 'bsim1', loteId: l1a.id, hora: '09:30', esFin: true });
+            _generarHorasCada30(9, 30, 3).forEach(function(hora, i) {
+                revsUht.push({ id: 'ru1b_' + i, bloqueId: 'bsim1', loteId: l1b.id, hora: hora, esParo: false, pesos: _pesosSimulados(5, 450, 2), registradoPor: 'Prueba' });
+            });
+            // Bloque 2, con un paro en medio.
             _generarHorasCada30(11, 0, 5).forEach(function(hora, i) {
-                if (i === 2) { revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', hora: hora, esParo: true, causaParo: 'Cambio de foil', registradoPor: 'Prueba' }); return; }
-                revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', hora: hora, esParo: false, pesos: _pesosSimulados(5, 451, 2), registradoPor: 'Prueba' });
+                if (i === 2) { revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', loteId: l2.id, hora: hora, esParo: true, causaParo: 'Cambio de foil', registradoPor: 'Prueba' }); return; }
+                revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', loteId: l2.id, hora: hora, esParo: false, pesos: _pesosSimulados(5, 451, 2), registradoPor: 'Prueba' });
             });
+            // Bloque 3, con una revisión dejada en 0 (para mostrar el guion).
             _generarHorasCada30(13, 30, 3).forEach(function(hora, i) {
-                revsUht.push({ id: 'ru3_' + i, bloqueId: 'bsim3', hora: hora, esParo: false, pesos: _pesosSimulados(5, 200, 3), registradoPor: 'Prueba' });
+                var pesos = _pesosSimulados(5, 200, 3);
+                if (i === 1) pesos[2] = 0;
+                revsUht.push({ id: 'ru3_' + i, bloqueId: 'bsim3', loteId: l3.id, hora: hora, esParo: false, pesos: pesos, registradoPor: 'Prueba' });
             });
 
             // ---------- Derivados: turno completo con SERAC (16 bocas) ----------
-            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA/LP', lote: '1207', vence: calcularVenceParaPeso('1207', 'Fresa LALA/LP'), bocas: 16, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l4 = { id: 'lsim4', lote: '1207', vence: calcularVenceParaPeso('1207', 'derivados', 'SERAC', 'Fresa LALA/LP'), creadoEn: new Date().toISOString() };
+            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA/LP', bocas: 16, lotes: [l4], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
             var revsDeriv = [];
             _generarHorasCada30(13, 0, 7).forEach(function(hora, i) {
-                revsDeriv.push({ id: 'rd1_' + i, bloqueId: 'bsim4', hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
+                revsDeriv.push({ id: 'rd1_' + i, bloqueId: 'bsim4', loteId: l4.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
             });
 
             window.crearHojaPeso('uht', b1, 'Prueba', true).then(function() {
@@ -4640,7 +4822,7 @@
                 return window.actualizarRevisionesPeso('derivados', revsDeriv, true);
             }).then(function() {
                 switchTab('peso');
-                Swal.fire('¡Turno Completo Cargado!', 'UHT tiene 3 bloques de producto (16 revisiones en total) y Derivados tiene SERAC con 16 bocas × 7 revisiones. Ya puedes probar "Ver Formato" y "Descargar Excel".', 'success');
+                Swal.fire('¡Turno Completo Cargado!', 'UHT tiene 3 bloques de producto (con un cambio de lote y un Fin de Producción de ejemplo) y Derivados tiene SERAC con 16 bocas × 7 revisiones. Ya puedes probar "Ver Formato" y "Descargar Excel".', 'success');
             }).catch(function(err) {
                 Swal.fire('Error', 'No se pudo cargar la prueba: ' + err.message, 'error');
             });
