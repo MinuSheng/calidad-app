@@ -898,7 +898,8 @@
 
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px;">
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--info); color:white; font-size:0.85rem;" onclick="abrirModalRevisionPeso()">➕ Registrar Revisión</button>
-                    <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🔄 Cambiar Producto/Lote</button>
+                    <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🔄 Cambiar Producto</button>
+                    <button class="btn-action" style="flex:1; min-width:140px; background-color: #d1a253; color:white; font-size:0.85rem;" onclick="abrirModalNuevoLotePeso()">📦 Nuevo Lote (mismo producto)</button>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 15px;">
                     <button class="btn-action" style="flex:1; min-width:140px; background-color: #6c757d; color:white; font-size:0.85rem;" onclick="abrirPrevisualizacionPeso()">🔍 Ver Formato</button>
@@ -1272,7 +1273,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.2 (Actual) - Formato Oficial de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.3 (Actual) - Lotes y Ajustes en Verificación de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Nuevo botón "Nuevo Lote" para cuando cambia el lote pero sigue siendo el mismo producto — ya no abre un bloque nuevo, continúa en la misma sección marcando el "FIN" y el lote nuevo, tal como en el formato físico.</li>' +
+                      '<li>Corregido: el texto de "Ver Formato" se veía gris e ilegible — ahora es negro sobre blanco, claro.</li>' +
+                      '<li>Corregido: en el Excel, las horas no cabían en su columna — se ensancharon.</li>' +
+                      '<li>Corregido: "Borrar Prueba de Peso" dejaba datos viejos sin borrar en el historial de pruebas — ahora borra todo por completo.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.3.2 - Formato Oficial de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>El Excel de UHT ahora se genera directo sobre el formato oficial real.</li>' +
                       '<li>"Ver Formato" ahora se ve como el documento oficial (encabezado, tablas de especificación, firmas), no como la tabla de trabajo.</li>' +
@@ -3669,7 +3677,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.3.2";
+    var APP_VERSION = "3.3.3";
 
     function mostrarAppPrincipal() {
         try {
@@ -3917,9 +3925,11 @@
         var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
         var nombre = user && user.displayName ? user.displayName : 'Analista';
 
+        var primerLote = { id: 'l' + Date.now(), lote: lote, vence: vence, creadoEn: new Date().toISOString() };
         var primerBloque = {
             id: 'b' + Date.now(),
-            maquina: maquina, producto: producto, lote: lote, vence: vence, bocas: bocas,
+            maquina: maquina, producto: producto, bocas: bocas,
+            lotes: [primerLote],
             creadoPor: nombre, creadoEn: new Date().toISOString()
         };
 
@@ -3938,7 +3948,8 @@
         var bannerSim = _pesoModoSimulacion ? '<div style="background:#6f42c1; color:white; text-align:center; font-weight:bold; font-size:0.75rem; padding:6px; border-radius:8px; margin-bottom:10px;">🧪 DATOS DE PRUEBA — no es la hoja real</div>' : '';
 
         if (ultimoBloque) {
-            document.getElementById('peso-info-actual').innerHTML = bannerSim + '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoBloque.producto + ' — Lote ' + ultimoBloque.lote + (ultimoBloque.vence ? (' — Vence ' + ultimoBloque.vence) : '');
+            var ultimoLote = ultimoBloque.lotes && ultimoBloque.lotes.length ? ultimoBloque.lotes[ultimoBloque.lotes.length - 1] : { lote: ultimoBloque.lote, vence: ultimoBloque.vence };
+            document.getElementById('peso-info-actual').innerHTML = bannerSim + '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoBloque.producto + ' — Lote ' + ultimoLote.lote + (ultimoLote.vence ? (' — Vence ' + ultimoLote.vence) : '');
         }
 
         var revisiones = d.revisiones || [];
@@ -3956,71 +3967,82 @@
         var bloques = d.bloques || [];
         var revisiones = d.revisiones || [];
         var primero = bloques[0];
-        var f = { A: '#000', border: '1px solid #333' };
+        var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[0] : null;
+        var f = { border: '1px solid #333' };
+        var NEGRO = 'color:#000 !important;';
 
-        var html = '<div id="peso-formato-visual" style="color:#000; background:#fff; font-family: Arial, sans-serif; max-width:950px; margin:0 auto; border:2px solid #000;">';
+        var html = '<div id="peso-formato-visual" style="' + NEGRO + ' background:#fff; font-family: Arial, sans-serif; max-width:950px; margin:0 auto; border:2px solid #000;">';
 
         html += '<div style="display:flex; border-bottom:2px solid #000;">';
-        html += '<div style="flex:1.2; padding:8px; border-right:1px solid #000; font-weight:bold; font-size:0.72rem;">LALA<br>Departamento de Aseguramiento de Calidad</div>';
-        html += '<div style="flex:2.5; padding:8px; text-align:center; border-right:1px solid #000;"><div style="font-weight:bold; font-size:0.85rem;">DIVISIÓN SAN BENITO NICARAGUA</div><div style="font-size:0.62rem; margin:2px 0;">San Benito departamento de Tipitapa kilómetro 35½ de la carretera Panamericana Norte, Managua, Nicaragua.</div><div style="font-weight:bold; font-size:0.78rem; margin-top:4px;">MONITOREO DE PESO DE PRODUCTOS ' + (tipo === 'uht' ? 'UHT' : 'DERIVADOS') + '</div></div>';
-        html += '<div style="flex:1; padding:8px; font-size:0.62rem;">Fecha de Actualización: 10/01/2024<br>Versión: Cuarta<br>Página 1 de 1</div>';
+        html += '<div style="flex:1.2; padding:8px; border-right:1px solid #000; font-weight:bold; font-size:0.72rem; ' + NEGRO + '">LALA<br>Departamento de Aseguramiento de Calidad</div>';
+        html += '<div style="flex:2.5; padding:8px; text-align:center; border-right:1px solid #000; ' + NEGRO + '"><div style="font-weight:bold; font-size:0.85rem; ' + NEGRO + '">DIVISIÓN SAN BENITO NICARAGUA</div><div style="font-size:0.62rem; margin:2px 0; ' + NEGRO + '">San Benito departamento de Tipitapa kilómetro 35½ de la carretera Panamericana Norte, Managua, Nicaragua.</div><div style="font-weight:bold; font-size:0.78rem; margin-top:4px; ' + NEGRO + '">MONITOREO DE PESO DE PRODUCTOS ' + (tipo === 'uht' ? 'UHT' : 'DERIVADOS') + '</div></div>';
+        html += '<div style="flex:1; padding:8px; font-size:0.62rem; ' + NEGRO + '">Fecha de Actualización: 10/01/2024<br>Versión: Cuarta<br>Página 1 de 1</div>';
         html += '</div>';
-        html += '<div style="padding:4px 8px; font-size:0.68rem; border-bottom:1px solid #000;">Código: ' + (tipo === 'uht' ? 'SB-ACF-009' : 'SB-ACF-071') + '</div>';
+        html += '<div style="padding:4px 8px; font-size:0.68rem; border-bottom:1px solid #000; ' + NEGRO + '">Código: ' + (tipo === 'uht' ? 'SB-ACF-009' : 'SB-ACF-071') + '</div>';
 
         var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
         var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
-        html += '<div style="display:flex; border-bottom:2px solid #000; font-size:0.72rem; font-weight:bold;">';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;">FECHA: ' + fechaTxt + '</div>';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;">LOTE: ' + (primero ? primero.lote : '') + '</div>';
-        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000;">VENCE: ' + (primero ? (primero.vence || '') : '') + '</div>';
-        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000;">MÁQUINA: ' + (primero ? primero.maquina : '') + '</div>';
-        html += '<div style="flex:1.2; padding:6px;">frecuencia: cada 30 min</div>';
+        html += '<div style="display:flex; border-bottom:2px solid #000; font-size:0.72rem; font-weight:bold; ' + NEGRO + '">';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '">FECHA: ' + fechaTxt + '</div>';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '">LOTE: ' + (primerLote ? primerLote.lote : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000; ' + NEGRO + '">VENCE: ' + (primerLote ? (primerLote.vence || '') : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000; ' + NEGRO + '">MÁQUINA: ' + (primero ? primero.maquina : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px; ' + NEGRO + '">frecuencia: cada 30 min</div>';
         html += '</div>';
 
         bloques.forEach(function(bloque) {
-            var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+            var grupos = _agruparRevisionesPorLote(bloque, revisiones);
             html += '<div style="border-bottom:2px solid #000;">';
-            html += '<div style="padding:4px 8px; font-weight:bold; font-size:0.7rem; background:#f0f0f0; border-bottom:1px solid #000;">PRODUCTO(s) y presentación: ' + bloque.producto + ' — Lote: ' + bloque.lote + (bloque.vence ? (' — Vence: ' + bloque.vence) : '') + ' — Máquina: ' + bloque.maquina + '</div>';
-            html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.65rem; border-collapse:collapse;">';
-            html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa;">Horas</td>';
-            revsBloque.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold;">' + (r.esParo ? 'Paro' : r.hora) + '</td>'; });
-            html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa;">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
-            revsBloque.forEach(function() { html += '<td style="border:' + f.border + ';"></td>'; });
+            html += '<div style="padding:4px 8px; font-weight:bold; font-size:0.7rem; background:#f0f0f0; border-bottom:1px solid #000; ' + NEGRO + '">PRODUCTO(s) y presentación: ' + bloque.producto + ' — Máquina: ' + bloque.maquina + '</div>';
+            html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.65rem; border-collapse:collapse; ' + NEGRO + '">';
+            html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Horas</td>';
+            grupos.forEach(function(g, gi) {
+                if (gi > 0) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td><td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#fff3cd; writing-mode:vertical-rl; ' + NEGRO + '">Lote ' + g.lote.lote + '</td>';
+                g.revs.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; ' + NEGRO + '">' + (r.esParo ? 'Paro' : r.hora) + '</td>'; });
+            });
+            html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
+            grupos.forEach(function(g, gi) {
+                if (gi > 0) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td><td style="border:' + f.border + '; background:#fff3cd;"></td>';
+                g.revs.forEach(function() { html += '<td style="border:' + f.border + ';"></td>'; });
+            });
             html += '</tr>';
             for (var b = 1; b <= bloque.bocas; b++) {
-                html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold;">B' + b + '</td>';
-                revsBloque.forEach(function(r) {
-                    var val = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
-                    html += '<td style="border:' + f.border + '; padding:3px; text-align:center;">' + val + '</td>';
+                html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; ' + NEGRO + '">B' + b + '</td>';
+                grupos.forEach(function(g, gi) {
+                    if (gi > 0) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td><td style="border:' + f.border + '; background:#fff3cd;"></td>';
+                    g.revs.forEach(function(r) {
+                        var val = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                        html += '<td style="border:' + f.border + '; padding:3px; text-align:center; ' + NEGRO + '">' + val + '</td>';
+                    });
                 });
                 html += '</tr>';
             }
             html += '</table></div></div>';
         });
 
-        html += '<div style="display:flex; font-size:0.6rem; border-bottom:1px solid #000;">';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;"><b>ESPECIFICACIONES LECHE EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 ml<br>Bolsa 450 ml: 400 ±5 ml<br>Bolsa 200 ml: 200 ±5 ml</div>';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;"><b>ESPECIF LECHE EN CAJA</b><br>Caja 1000 ml: 1000 ±5 ml<br>Caja 500 ml: 500 ±5 ml<br>Caja 200 ml: 200 ±5 ml</div>';
-        html += '<div style="flex:1; padding:6px;"><b>ESPECIF LECHE SABORIZADAS EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 g<br>Bolsa 400 ml: 400 ±5 g<br>Bolsa 200 ml: 200 ±5 g</div>';
+        html += '<div style="display:flex; font-size:0.6rem; border-bottom:1px solid #000; ' + NEGRO + '">';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIFICACIONES LECHE EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 ml<br>Bolsa 450 ml: 400 ±5 ml<br>Bolsa 200 ml: 200 ±5 ml</div>';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIF LECHE EN CAJA</b><br>Caja 1000 ml: 1000 ±5 ml<br>Caja 500 ml: 500 ±5 ml<br>Caja 200 ml: 200 ±5 ml</div>';
+        html += '<div style="flex:1; padding:6px; ' + NEGRO + '"><b>ESPECIF LECHE SABORIZADAS EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 g<br>Bolsa 400 ml: 400 ±5 g<br>Bolsa 200 ml: 200 ±5 g</div>';
         html += '</div>';
 
         var paros = revisiones.filter(function(r) { return r.esParo; });
-        html += '<div style="border-bottom:2px solid #000;"><div style="display:flex; font-size:0.62rem; font-weight:bold; border-bottom:1px solid #000;"><div style="flex:1; padding:4px;">Hora</div><div style="flex:2; padding:4px;">Causa</div><div style="flex:3; padding:4px;">Ajuste/Acción Correctiva</div></div>';
+        html += '<div style="border-bottom:2px solid #000; ' + NEGRO + '"><div style="display:flex; font-size:0.62rem; font-weight:bold; border-bottom:1px solid #000; ' + NEGRO + '"><div style="flex:1; padding:4px;">Hora</div><div style="flex:2; padding:4px;">Causa</div><div style="flex:3; padding:4px;">Ajuste/Acción Correctiva</div></div>';
         if (paros.length === 0) {
-            html += '<div style="padding:6px; font-size:0.65rem; color:#888;">Sin paros registrados.</div>';
+            html += '<div style="padding:6px; font-size:0.65rem; color:#666 !important;">Sin paros registrados.</div>';
         } else {
             paros.forEach(function(p) {
-                html += '<div style="display:flex; font-size:0.62rem; border-bottom:1px dashed #ccc;"><div style="flex:1; padding:4px;">' + p.hora + '</div><div style="flex:2; padding:4px;">' + (p.causaParo || '—') + '</div><div style="flex:3; padding:4px;"></div></div>';
+                html += '<div style="display:flex; font-size:0.62rem; border-bottom:1px dashed #ccc; ' + NEGRO + '"><div style="flex:1; padding:4px;">' + p.hora + '</div><div style="flex:2; padding:4px;">' + (p.causaParo || '—') + '</div><div style="flex:3; padding:4px;"></div></div>';
             });
         }
         html += '</div>';
 
-        html += '<div style="display:flex; font-size:0.6rem; padding:15px 8px 5px 8px; text-align:center;">';
+        html += '<div style="display:flex; font-size:0.6rem; padding:15px 8px 5px 8px; text-align:center; ' + NEGRO + '">';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno A</div>';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno B</div>';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno C</div>';
         html += '</div>';
-        html += '<div style="display:flex; font-size:0.6rem; padding:20px 8px 15px 8px; text-align:center;">';
+        html += '<div style="display:flex; font-size:0.6rem; padding:20px 8px 15px 8px; text-align:center; ' + NEGRO + '">';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno A</div>';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno B</div>';
         html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno C</div>';
@@ -4035,25 +4057,32 @@
         var revisiones = d.revisiones || [];
         var html = '<div id="peso-formato-visual" style="color:#000;">';
         bloques.forEach(function(bloque) {
-            var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+            var grupos = _agruparRevisionesPorLote(bloque, revisiones);
             html += '<div style="margin-bottom:18px; border:1px solid #999; border-radius:6px; overflow:hidden;">';
-            html += '<div style="background:#e9ecef; color:#000; padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + bloque.producto + ' — Lote ' + bloque.lote + (bloque.vence ? (' — Vence ' + bloque.vence) : '') + (editable ? ' ✏️' : '') + '</div>';
-            if (revsBloque.length === 0) {
-                html += '<div style="padding:10px; font-size:0.8rem; color:#6c757d;">Sin revisiones registradas todavía.</div>';
+            html += '<div style="background:#e9ecef; color:#000; padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + bloque.producto + (editable ? ' ✏️' : '') + '</div>';
+            if (grupos.length === 0) {
+                html += '<div style="padding:10px; font-size:0.8rem; color:#6c757d;">Sin revisiones registradas todavía. Lote actual: ' + ((bloque.lotes && bloque.lotes[0]) ? bloque.lotes[0].lote : '—') + '</div>';
             } else {
                 html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid #ccc; padding:4px;">Boca</th>';
-                revsBloque.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + r.hora + (editable ? ' ✏️' : '') + '</th>'; });
+                grupos.forEach(function(g, gi) {
+                    if (gi > 0) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th><th style="border:1px solid #ccc; padding:4px; background:#fff3cd;">Lote ' + g.lote.lote + '</th>';
+                    g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + r.hora + (editable ? ' ✏️' : '') + '</th>'; });
+                });
                 html += '</tr></thead><tbody>';
                 for (var b = 1; b <= bloque.bocas; b++) {
                     html += '<tr><td style="border:1px solid #ccc; padding:4px; font-weight:bold;">B' + b + '</td>';
-                    revsBloque.forEach(function(r) {
-                        var val = r.esParo ? 'Paro' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
-                        html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + val + '</td>';
+                    grupos.forEach(function(g, gi) {
+                        if (gi > 0) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td><td style="border:1px solid #ccc; background:#fff3cd; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? g.lote.lote : '') + '</td>';
+                        g.revs.forEach(function(r) {
+                            var val = r.esParo ? 'Paro' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                            html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + val + '</td>';
+                        });
                     });
                     html += '</tr>';
                 }
                 html += '</tbody></table></div>';
-                var paros = revsBloque.filter(function(r) { return r.esParo; });
+                var todasRevs = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+                var paros = todasRevs.filter(function(r) { return r.esParo; });
                 if (paros.length > 0) {
                     html += '<div style="padding:8px 10px; font-size:0.75rem; color:#dc3545;">';
                     paros.forEach(function(p) { html += '⏸️ ' + p.hora + ' — Paro: ' + (p.causaParo || 'Sin causa especificada') + '<br>'; });
@@ -4064,6 +4093,56 @@
         });
         html += '</div>';
         return html;
+    }
+
+    // Un mismo bloque (máquina+producto) puede pasar por varios lotes
+    // seguidos sin cambiar de producto — esta función agrupa las revisiones
+    // de un bloque en tramos consecutivos por lote, en el orden en que se
+    // registraron, para poder dibujar el "FIN" + lote nuevo tal como en el
+    // formato físico.
+    function _agruparRevisionesPorLote(bloque, revisiones) {
+        var lotesMap = {};
+        (bloque.lotes || []).forEach(function(l) { lotesMap[l.id] = l; });
+        var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+        var grupos = [];
+        revsBloque.forEach(function(r) {
+            var loteObj = lotesMap[r.loteId] || (bloque.lotes && bloque.lotes[0]) || { lote: bloque.lote || '', vence: bloque.vence || '' };
+            var ultimo = grupos[grupos.length - 1];
+            if (!ultimo || ultimo.loteId !== r.loteId) {
+                grupos.push({ loteId: r.loteId, lote: loteObj, revs: [r] });
+            } else {
+                ultimo.revs.push(r);
+            }
+        });
+        return grupos;
+    }
+
+    function abrirModalNuevoLotePeso() {
+        var d = _pesoDatos;
+        var bloques = (d.bloques || []).slice();
+        var bloqueActual = bloques[bloques.length - 1];
+        if (!bloqueActual) return Swal.fire('Atención', 'No hay un bloque de producto activo.', 'warning');
+
+        Swal.fire({
+            title: '📦 Nuevo Lote — ' + bloqueActual.producto,
+            html: '<div style="text-align:left;"><label style="font-weight:bold;">Nuevo Lote</label><input id="peso-nuevolote-lote" class="swal2-input" placeholder="Ej. 1608" style="margin:4px 0 4px 0;" oninput="document.getElementById(\'peso-nuevolote-vence\').innerText = calcularVenceParaPeso(this.value, \'' + bloqueActual.producto.replace(/'/g, "\\'") + '\') || \'—\';"><p style="font-size:0.8rem; margin:4px 0 0 0;">Vence: <b id="peso-nuevolote-vence">—</b></p></div>',
+            showCancelButton: true, confirmButtonText: 'Registrar Fin de Lote y Continuar',
+            preConfirm: function() {
+                var lote = document.getElementById('peso-nuevolote-lote').value.trim();
+                if (!lote) { Swal.showValidationMessage('Ingresa el nuevo lote.'); return false; }
+                return { id: 'l' + Date.now(), lote: lote, vence: calcularVenceParaPeso(lote, bloqueActual.producto) || '', creadoEn: new Date().toISOString() };
+            }
+        }).then(function(res) {
+            if (res.isConfirmed) {
+                var nuevosBloques = bloques.slice();
+                var idx = nuevosBloques.length - 1;
+                var lotesActualizados = (nuevosBloques[idx].lotes || []).concat([res.value]);
+                nuevosBloques[idx] = Object.assign({}, nuevosBloques[idx], { lotes: lotesActualizados });
+                window.actualizarBloquesPeso(_pesoVistaActual, nuevosBloques, _pesoModoSimulacion).catch(function(err) {
+                    Swal.fire('Error', 'No se pudo registrar el nuevo lote: ' + err.message, 'error');
+                });
+            }
+        });
     }
 
     function abrirModalRevisionPeso() {
@@ -4094,15 +4173,16 @@
                 var hora = document.getElementById('peso-rev-hora').value.trim();
                 var esParo = document.getElementById('peso-rev-paro').checked;
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
+                var loteActualId = bloqueActual.lotes && bloqueActual.lotes.length ? bloqueActual.lotes[bloqueActual.lotes.length - 1].id : null;
                 if (esParo) {
-                    return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, hora: hora, esParo: true, causaParo: document.getElementById('peso-rev-causa').value.trim() };
+                    return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, loteId: loteActualId, hora: hora, esParo: true, causaParo: document.getElementById('peso-rev-causa').value.trim() };
                 }
                 var pesos = [];
                 for (var b = 1; b <= bloqueActual.bocas; b++) {
                     var val = document.getElementById('peso-rev-b' + b).value;
                     pesos.push(val === '' ? null : parseFloat(val));
                 }
-                return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, hora: hora, esParo: false, pesos: pesos };
+                return { id: 'r' + Date.now(), bloqueId: bloqueActual.id, loteId: loteActualId, hora: hora, esParo: false, pesos: pesos };
             }
         }).then(function(res) {
             if (res.isConfirmed) {
@@ -4142,7 +4222,7 @@
                 var hora = document.getElementById('peso-edit-hora').value.trim();
                 var esParo = document.getElementById('peso-edit-paro').checked;
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
-                var nueva = { id: r.id, bloqueId: r.bloqueId, hora: hora, esParo: esParo, registradoPor: r.registradoPor };
+                var nueva = { id: r.id, bloqueId: r.bloqueId, loteId: r.loteId, hora: hora, esParo: esParo, registradoPor: r.registradoPor };
                 if (esParo) { nueva.causaParo = document.getElementById('peso-edit-causa').value.trim(); }
                 else {
                     var pesos = [];
@@ -4176,24 +4256,29 @@
         if (idx === -1) return;
         var b = bloques[idx];
         var opcionesMaquinas = Object.keys(catalogoMaquinasPeso[_pesoVistaActual]);
+        var lotes = b.lotes || [];
 
         var htmlCont = '<div style="text-align:left;">' +
             '<label style="font-weight:bold;">Máquina</label><select id="peso-editbl-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
             opcionesMaquinas.map(function(m) { return '<option value="' + m + '" ' + (m === b.maquina ? 'selected' : '') + '>' + m + '</option>'; }).join('') + '</select>' +
             '<label style="font-weight:bold;">Producto</label><input id="peso-editbl-producto" class="swal2-input" value="' + b.producto + '" style="margin:4px 0 12px 0;">' +
-            '<label style="font-weight:bold;">Lote</label><input id="peso-editbl-lote" class="swal2-input" value="' + b.lote + '" style="margin:4px 0 12px 0;">' +
-            '<label style="font-weight:bold;">Vence</label><input id="peso-editbl-vence" class="swal2-input" value="' + (b.vence || '') + '" style="margin:4px 0 12px 0;">' +
-            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '">' +
+            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '" style="margin:4px 0 12px 0;">' +
+            '<label style="font-weight:bold;">Lotes registrados en este bloque</label>' +
+            lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" style="flex:1; margin:0;"></div>'; }).join('') +
             '</div>';
 
         Swal.fire({ title: 'Editar Bloque', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar' }).then(function(res) {
             if (res.isConfirmed) {
+                var producto = document.getElementById('peso-editbl-producto').value.trim();
+                var lotesEditados = lotes.map(function(l, i) {
+                    var nuevoLote = document.getElementById('peso-editbl-lote' + i).value.trim();
+                    return { id: l.id, lote: nuevoLote, vence: calcularVenceParaPeso(nuevoLote, producto) || l.vence, creadoEn: l.creadoEn };
+                });
                 bloques[idx] = {
                     id: b.id, maquina: document.getElementById('peso-editbl-maquina').value,
-                    producto: document.getElementById('peso-editbl-producto').value.trim(),
-                    lote: document.getElementById('peso-editbl-lote').value.trim(),
-                    vence: document.getElementById('peso-editbl-vence').value.trim(),
+                    producto: producto,
                     bocas: parseInt(document.getElementById('peso-editbl-bocas').value) || 5,
+                    lotes: lotesEditados,
                     creadoPor: b.creadoPor, creadoEn: b.creadoEn
                 };
                 window.actualizarBloquesPeso(_pesoVistaActual, bloques, _pesoModoSimulacion).catch(function(err) {
@@ -4217,15 +4302,15 @@
 
         window._catalogoTipoTemp = tipo;
         Swal.fire({
-            title: '🔄 Cambiar Producto/Lote', html: htmlCont, showCancelButton: true, confirmButtonText: 'Abrir Nuevo Bloque',
+            title: '🔄 Cambiar Producto', html: htmlCont, showCancelButton: true, confirmButtonText: 'Abrir Nuevo Bloque',
             preConfirm: function() {
                 var maquina = document.getElementById('peso-cambio-maquina').value;
                 var producto = document.getElementById('peso-cambio-producto').value;
                 var lote = document.getElementById('peso-cambio-lote').value.trim();
                 if (!maquina || !producto || !lote) { Swal.showValidationMessage('Selecciona máquina, producto e ingresa el lote.'); return false; }
                 return {
-                    id: 'b' + Date.now(), maquina: maquina, producto: producto, lote: lote,
-                    vence: document.getElementById('peso-cambio-vence').value.trim(),
+                    id: 'b' + Date.now(), maquina: maquina, producto: producto,
+                    lotes: [{ id: 'l' + Date.now(), lote: lote, vence: document.getElementById('peso-cambio-vence').value.trim(), creadoEn: new Date().toISOString() }],
                     bocas: parseInt(document.getElementById('peso-cambio-bocas').value) || 5
                 };
             }
@@ -4317,42 +4402,65 @@
                 var bloques = _pesoDatos.bloques || [];
                 var revisiones = _pesoDatos.revisiones || [];
                 var primero = bloques[0];
+                var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[0] : null;
+
+                // Las horas ("07:30", "Paro") no cabían en el ancho original de las
+                // columnas — se ensanchan un poco todas las columnas de datos.
+                for (var col = 2; col <= 25; col++) { ws.getColumn(col).width = 7.5; }
 
                 var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
                 var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
 
                 ws.getCell('A6').value = 'FECHA: ' + fechaTxt;
-                ws.getCell('D6').value = 'LOTE: ' + (primero ? primero.lote : '');
-                ws.getCell('J6').value = 'VENCE: ' + (primero ? (primero.vence || '') : '');
+                ws.getCell('D6').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
+                ws.getCell('J6').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '');
                 ws.getCell('Q6').value = 'MÁQUINA: ' + (primero ? primero.maquina : '');
 
                 var normalFont = { name: 'Arial', size: 9 };
+                var finFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF842029' } };
+                var loteFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF664D03' } };
+                var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+                var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
 
                 bloques.slice(0, 3).forEach(function(bloque, idx) {
                     var baseRow = 7 + (idx * 8);
-                    var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+                    var grupos = _agruparRevisionesPorLote(bloque, revisiones);
 
-                    ws.getCell('B' + baseRow).value = bloque.producto + ' — Lote: ' + bloque.lote + (bloque.vence ? (' — Vence: ' + bloque.vence) : '') + ' — Máquina: ' + bloque.maquina;
+                    ws.getCell('B' + baseRow).value = bloque.producto + ' — Máquina: ' + bloque.maquina;
 
                     var filaHoras = ws.getRow(baseRow + 1);
-                    revsBloque.forEach(function(r, i) {
-                        var col = 2 + i;
-                        if (col > 25) return; // no caben más de 24 revisiones por bloque en esta hoja
-                        var c = filaHoras.getCell(col);
-                        c.value = r.esParo ? 'Paro' : r.hora;
-                        c.font = normalFont;
-                        c.alignment = { horizontal: 'center' };
+                    var col = 2;
+                    grupos.forEach(function(g, gi) {
+                        if (gi > 0) {
+                            if (col <= 25) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
+                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = 'Lote ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
+                        }
+                        g.revs.forEach(function(r) {
+                            if (col > 25) return;
+                            var c = filaHoras.getCell(col);
+                            c.value = r.esParo ? 'Paro' : r.hora;
+                            c.font = normalFont;
+                            c.alignment = { horizontal: 'center' };
+                            col++;
+                        });
                     });
 
                     for (var b = 1; b <= Math.min(bloque.bocas, 5); b++) {
                         var filaB = ws.getRow(baseRow + 2 + b);
-                        revsBloque.forEach(function(r, i) {
-                            var col = 2 + i;
-                            if (col > 25) return;
-                            var c = filaB.getCell(col);
-                            c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
-                            c.font = normalFont;
-                            c.alignment = { horizontal: 'center' };
+                        var col2 = 2;
+                        grupos.forEach(function(g, gi) {
+                            if (gi > 0) {
+                                if (col2 <= 25) { filaB.getCell(col2).fill = finFill; col2++; }
+                                if (col2 <= 25) { filaB.getCell(col2).fill = loteFill; col2++; }
+                            }
+                            g.revs.forEach(function(r) {
+                                if (col2 > 25) return;
+                                var c = filaB.getCell(col2);
+                                c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                                c.font = normalFont;
+                                c.alignment = { horizontal: 'center' };
+                                col2++;
+                            });
                         });
                     }
                 });
@@ -4410,9 +4518,10 @@
 
         var fila = 5;
         (_pesoDatos.bloques || []).forEach(function(bloque) {
+            var lotesTexto = (bloque.lotes || []).map(function(l) { return l.lote; }).join(' → ');
             ws.mergeCells('A' + fila + ':F' + fila);
             var cH = ws.getCell('A' + fila);
-            cH.value = 'Máquina: ' + bloque.maquina + '   |   Producto: ' + bloque.producto + '   |   Lote: ' + bloque.lote + '   |   Vence: ' + (bloque.vence || '—');
+            cH.value = 'Máquina: ' + bloque.maquina + '   |   Producto: ' + bloque.producto + '   |   Lote(s): ' + lotesTexto;
             cH.font = headerFont; cH.fill = grisClaro; cH.border = borde;
             fila++;
 
@@ -4543,7 +4652,7 @@
             title: '¿Borrar los datos de prueba de Peso?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, borrar'
         }).then(function(res) {
             if (!res.isConfirmed) return;
-            Promise.all([window.borrarHojaPesoPrueba('uht'), window.borrarHojaPesoPrueba('derivados')]).then(function() {
+            Promise.all([window.borrarHojaPesoPrueba('uht'), window.borrarHojaPesoPrueba('derivados'), window.borrarHistorialPesoPrueba()]).then(function() {
                 _pesoModoSimulacion = false;
                 conectarListenersPeso();
                 Swal.fire('Borrado', 'Los datos de prueba se eliminaron. Ya estás viendo la hoja real otra vez.', 'success');
@@ -4558,7 +4667,7 @@
 <script type="module">
     // 1. Importamos las herramientas necesarias desde los servidores de Google (CDN)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, updateDoc, getDoc, onSnapshot, arrayUnion, collection, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, updateDoc, getDoc, deleteDoc, onSnapshot, arrayUnion, collection, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
     import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     // 2. Tus credenciales de acceso (El "pasaporte" de tu app)
     const firebaseConfig = {
@@ -4703,6 +4812,16 @@
     window.borrarHojaPesoPrueba = async function(tipo) {
         const refDoc = doc(db, "verificacion_peso_test", tipo + "_activa");
         await setDoc(refDoc, { tipo: tipo, abierta: false, bloques: [], revisiones: [] });
+    };
+
+    // Borra TODO el historial de pruebas archivadas (cada vez que se
+    // "cierra" una hoja de prueba queda un documento aquí — esto los
+    // elimina todos de un jalón). Nunca toca verificacion_peso_historial
+    // (el real).
+    window.borrarHistorialPesoPrueba = async function() {
+        const snap = await getDocs(collection(db, "verificacion_peso_test_historial"));
+        const borrados = snap.docs.map(function(d) { return deleteDoc(d.ref); });
+        await Promise.all(borrados);
     };
 </script>
 
