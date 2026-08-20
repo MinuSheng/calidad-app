@@ -1008,16 +1008,25 @@
                 { nombre: "Nutri Yogurt Fresa (105)", categoria: "yogurt62" }, { nombre: "Nutri Yogurt Frutas Tropicales (105)", categoria: "yogurt62" }, { nombre: "Nutri Yogurt Durazno (105)", categoria: "yogurt62" }
             ]},
             "ERCA": { bocas: 8, productos: [
-                { nombre: "Fresa LALA/LP", categoria: "yogurt62" }, { nombre: "Fresa Moras LALA/LP", categoria: "yogurt62" }, { nombre: "Durazno LALA/LP", categoria: "yogurt62" },
-                { nombre: "Ciruela LP", categoria: "yogurt62" }, { nombre: "Manzana LALA/LP", categoria: "yogurt62" }, { nombre: "Natural con Azúcar LALA/LP", categoria: "yogurt62" }
+                { nombre: "Fresa LALA", categoria: "yogurt62" }, { nombre: "Fresa LP", categoria: "yogurt62" },
+                { nombre: "Fresa Moras LALA", categoria: "yogurt62" }, { nombre: "Fresa Moras LP", categoria: "yogurt62" },
+                { nombre: "Durazno LALA", categoria: "yogurt62" }, { nombre: "Durazno LP", categoria: "yogurt62" },
+                { nombre: "Ciruela LP", categoria: "yogurt62" },
+                { nombre: "Manzana LALA", categoria: "yogurt62" }, { nombre: "Manzana LP", categoria: "yogurt62" },
+                { nombre: "Natural con Azúcar LALA", categoria: "yogurt62" }, { nombre: "Natural con Azúcar LP", categoria: "yogurt62" }
             ]},
             "PRIMO": { bocas: 8, productos: [
                 { nombre: "Fresa LALA", categoria: "yogurt62" }, { nombre: "Fresa Moras LALA", categoria: "yogurt62" }, { nombre: "Durazno LALA", categoria: "yogurt62" },
                 { nombre: "Manzana LALA", categoria: "yogurt62" }, { nombre: "Natural con Azúcar LALA", categoria: "yogurt62" }, { nombre: "Natural sin Azúcar LALA", categoria: "yogurt62" }, { nombre: "Natural Griego LALA", categoria: "griego46" }
             ]},
             "SERAC": { bocas: 16, productos: [
-                { nombre: "Fresa LALA/LP", categoria: "yogurt62" }, { nombre: "Durazno LALA/LP", categoria: "yogurt62" }, { nombre: "Manzana LALA/LP", categoria: "yogurt62" },
-                { nombre: "Fresamoras LALA/LP", categoria: "yogurt62" }, { nombre: "Fresa Banano LALA/LP", categoria: "yogurt62" }, { nombre: "Aloe + Manzana LALA/LP", categoria: "yogurt62" }, { nombre: "Aloe + Manzana Fibra LALA/LP", categoria: "yogurt62" }
+                { nombre: "Fresa LALA", categoria: "yogurt62" }, { nombre: "Fresa LP", categoria: "yogurt62" },
+                { nombre: "Durazno LALA", categoria: "yogurt62" }, { nombre: "Durazno LP", categoria: "yogurt62" },
+                { nombre: "Manzana LALA", categoria: "yogurt62" }, { nombre: "Manzana LP", categoria: "yogurt62" },
+                { nombre: "Fresamoras LALA", categoria: "yogurt62" }, { nombre: "Fresamoras LP", categoria: "yogurt62" },
+                { nombre: "Fresa Banano LALA", categoria: "yogurt62" }, { nombre: "Fresa Banano LP", categoria: "yogurt62" },
+                { nombre: "Aloe + Manzana LALA", categoria: "yogurt62" }, { nombre: "Aloe + Manzana LP", categoria: "yogurt62" },
+                { nombre: "Aloe + Manzana Fibra LALA", categoria: "yogurt62" }, { nombre: "Aloe + Manzana Fibra LP", categoria: "yogurt62" }
             ]}
         }
     };
@@ -1309,7 +1318,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.4 (Actual) - Correcciones de Planta en Verificación de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.5 (Actual) - Más Correcciones en Verificación de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: si registrabas las horas fuera de orden, no se ordenaban solas — ahora sí.</li>' +
+                      '<li>En Derivados, LALA y LP ya aparecen como productos separados en vez de uno solo combinado.</li>' +
+                      '<li>Los formularios de "Registrar Revisión" y "Nuevo Lote" ahora abren por defecto en la última máquina en la que realmente trabajaste, no siempre en la misma.</li>' +
+                      '<li>Corregido el diseño de los campos de cada boca — ya no se empalman ni quedan pegados al recuadro.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.3.4 - Correcciones de Planta en Verificación de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Ahora se puede elegir la máquina al registrar una revisión o un nuevo lote, en vez de usar siempre la última.</li>' +
                       '<li>El vencimiento ya se puede corregir a mano, y su cálculo automático usa exactamente las mismas categorías de la pestaña Caducidad.</li>' +
@@ -3721,7 +3737,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.3.4";
+    var APP_VERSION = "3.3.5";
 
     function mostrarAppPrincipal() {
         try {
@@ -3845,6 +3861,7 @@
     // ---------------------------------------------------------
 
     var _pesoVistaActual = null;     // 'uht' o 'derivados' — cuál se está viendo/editando ahora
+    var _pesoUltimoBloqueUsado = { uht: null, derivados: null }; // recuerda la última máquina/bloque en el que realmente se trabajó, para abrir ahí por defecto
     var _pesoZoomActual = 1;
     var _pesoModoSimulacion = false; // true = usar colección de pruebas, nunca la real
 
@@ -4169,10 +4186,18 @@
     // de un bloque en tramos consecutivos por lote, en el orden en que se
     // registraron, para poder dibujar el "FIN" + lote nuevo tal como en el
     // formato físico.
+    function _normalizarHora(str) {
+        var m = String(str || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return String(str || '').trim();
+        return String(m[1]).padStart(2, '0') + ':' + m[2];
+    }
+
     function _agruparRevisionesPorLote(bloque, revisiones) {
         var lotesMap = {};
         (bloque.lotes || []).forEach(function(l) { lotesMap[l.id] = l; });
         var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+        // Ordena por hora aunque se hayan registrado fuera de orden.
+        revsBloque = revsBloque.slice().sort(function(a, b) { return _normalizarHora(a.hora).localeCompare(_normalizarHora(b.hora)); });
         var grupos = [];
         revsBloque.forEach(function(r) {
             var loteObj = lotesMap[r.loteId] || (bloque.lotes && bloque.lotes[0]) || { lote: bloque.lote || '', vence: bloque.vence || '' };
@@ -4191,7 +4216,8 @@
         var bloques = (d.bloques || []).slice();
         if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
         window._pesoNuevoLoteBloques = bloques;
-        var bloqueActual = bloques[bloques.length - 1];
+        var recordado = _pesoUltimoBloqueUsado[_pesoVistaActual];
+        var bloqueActual = (recordado && bloques.find(function(bl) { return bl.id === recordado; })) || bloques[bloques.length - 1];
 
         var htmlCont = '<div style="text-align:left;">' +
             '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
@@ -4212,6 +4238,7 @@
             }
         }).then(function(res) {
             if (res.isConfirmed) {
+                _pesoUltimoBloqueUsado[_pesoVistaActual] = res.value.bloqueId;
                 var nuevosBloques = bloques.slice();
                 var idx = nuevosBloques.findIndex(function(bl) { return bl.id === res.value.bloqueId; });
                 if (idx === -1) return;
@@ -4234,7 +4261,10 @@
     function _generarCamposBocasHtml(bloque) {
         var html = '';
         for (var b = 1; b <= bloque.bocas; b++) {
-            html += '<label>Boca B' + b + '</label><input id="peso-rev-b' + b + '" type="number" step="0.1" class="swal2-input" style="margin-bottom:8px;">';
+            html += '<div style="margin-bottom:10px; text-align:left;">' +
+                '<label style="display:block; font-weight:bold; font-size:0.85rem; margin-bottom:4px;">Boca B' + b + '</label>' +
+                '<input id="peso-rev-b' + b + '" type="number" step="0.1" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;">' +
+                '</div>';
         }
         return html;
     }
@@ -4250,7 +4280,8 @@
         var bloques = d.bloques || [];
         if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
         window._pesoRevBloques = bloques;
-        var bloqueActual = bloques[bloques.length - 1];
+        var recordado = _pesoUltimoBloqueUsado[_pesoVistaActual];
+        var bloqueActual = (recordado && bloques.find(function(bl) { return bl.id === recordado; })) || bloques[bloques.length - 1];
 
         var ahora = new Date();
         var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
@@ -4272,7 +4303,7 @@
             didOpen: function() { document.getElementById('peso-rev-hora').focus(); },
             preConfirm: function() {
                 var bloqueSel = bloques.find(function(bl) { return bl.id === document.getElementById('peso-rev-bloque').value; });
-                var hora = document.getElementById('peso-rev-hora').value.trim();
+                var hora = _normalizarHora(document.getElementById('peso-rev-hora').value);
                 var esParo = document.getElementById('peso-rev-paro').checked;
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
                 var loteActualId = bloqueSel.lotes && bloqueSel.lotes.length ? bloqueSel.lotes[bloqueSel.lotes.length - 1].id : null;
@@ -4288,6 +4319,7 @@
             }
         }).then(function(res) {
             if (res.isConfirmed) {
+                _pesoUltimoBloqueUsado[_pesoVistaActual] = res.value.bloqueId;
                 var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
                 res.value.registradoPor = user && user.displayName ? user.displayName : 'Analista';
                 window.agregarRevisionPeso(_pesoVistaActual, res.value, _pesoModoSimulacion).catch(function(err) {
@@ -4329,7 +4361,7 @@
         camposHtml += '<div id="peso-edit-pesos" style="display:' + (r.esParo ? 'none' : 'block') + ';">';
         for (var b = 1; b <= bloque.bocas; b++) {
             var valActual = (r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '';
-            camposHtml += '<label>Boca B' + b + '</label><input id="peso-edit-b' + b + '" type="number" step="0.1" class="swal2-input" value="' + valActual + '" style="margin-bottom:8px;">';
+            camposHtml += '<div style="margin-bottom:10px; text-align:left;"><label style="display:block; font-weight:bold; font-size:0.85rem; margin-bottom:4px;">Boca B' + b + '</label><input id="peso-edit-b' + b + '" type="number" step="0.1" class="swal2-input" value="' + valActual + '" style="margin:0; width:100%; box-sizing:border-box;"></div>';
         }
         camposHtml += '</div></div>';
 
@@ -4337,7 +4369,7 @@
             title: 'Editar Revisión', html: camposHtml, showCancelButton: true, showDenyButton: true,
             confirmButtonText: 'Guardar Cambios', denyButtonText: '🗑️ Eliminar', denyButtonColor: '#dc3545',
             preConfirm: function() {
-                var hora = document.getElementById('peso-edit-hora').value.trim();
+                var hora = _normalizarHora(document.getElementById('peso-edit-hora').value);
                 var esParo = document.getElementById('peso-edit-paro').checked;
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
                 var nueva = { id: r.id, bloqueId: r.bloqueId, loteId: r.loteId, hora: hora, esParo: esParo, registradoPor: r.registradoPor };
@@ -4429,7 +4461,8 @@
         var bloques = d.bloques || [];
         if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
         window._pesoFinBloques = bloques;
-        var bloqueActual = bloques[bloques.length - 1];
+        var recordado = _pesoUltimoBloqueUsado[_pesoVistaActual];
+        var bloqueActual = (recordado && bloques.find(function(bl) { return bl.id === recordado; })) || bloques[bloques.length - 1];
         var ahora = new Date();
         var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
 
@@ -4441,13 +4474,14 @@
             showCancelButton: true, confirmButtonText: 'Marcar Fin',
             preConfirm: function() {
                 var bloqueSel = bloques.find(function(bl) { return bl.id === document.getElementById('peso-fin-bloque').value; });
-                var hora = document.getElementById('peso-fin-hora').value.trim();
+                var hora = _normalizarHora(document.getElementById('peso-fin-hora').value);
                 if (!hora) { Swal.showValidationMessage('Ingresa la hora.'); return false; }
                 var loteActualId = bloqueSel.lotes && bloqueSel.lotes.length ? bloqueSel.lotes[bloqueSel.lotes.length - 1].id : null;
                 return { id: 'r' + Date.now(), bloqueId: bloqueSel.id, loteId: loteActualId, hora: hora, esFin: true };
             }
         }).then(function(res) {
             if (res.isConfirmed) {
+                _pesoUltimoBloqueUsado[_pesoVistaActual] = res.value.bloqueId;
                 window.agregarRevisionPeso(_pesoVistaActual, res.value, _pesoModoSimulacion).catch(function(err) {
                     Swal.fire('Error', 'No se pudo marcar el fin de producción: ' + err.message, 'error');
                 });
@@ -4803,8 +4837,8 @@
             });
 
             // ---------- Derivados: turno completo con SERAC (16 bocas) ----------
-            var l4 = { id: 'lsim4', lote: '1207', vence: calcularVenceParaPeso('1207', 'derivados', 'SERAC', 'Fresa LALA/LP'), creadoEn: new Date().toISOString() };
-            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA/LP', bocas: 16, lotes: [l4], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l4 = { id: 'lsim4', lote: '1207', vence: calcularVenceParaPeso('1207', 'derivados', 'SERAC', 'Fresa LALA'), creadoEn: new Date().toISOString() };
+            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA', bocas: 16, lotes: [l4], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
             var revsDeriv = [];
             _generarHorasCada30(13, 0, 7).forEach(function(hora, i) {
                 revsDeriv.push({ id: 'rd1_' + i, bloqueId: 'bsim4', loteId: l4.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
