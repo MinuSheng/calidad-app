@@ -1272,7 +1272,13 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.1 (Actual) - Mejoras en Verificación de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.3.2 (Actual) - Formato Oficial de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>El Excel de UHT ahora se genera directo sobre el formato oficial real.</li>' +
+                      '<li>"Ver Formato" ahora se ve como el documento oficial (encabezado, tablas de especificación, firmas), no como la tabla de trabajo.</li>' +
+                      '<li>El Modo Simulación de Peso ahora carga un turno completo de ejemplo, con varios bloques de producto y varias revisiones cada uno.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.3.1 - Mejoras en Verificación de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Ahora se puede trabajar UHT y Derivados al mismo tiempo, sin tener que cerrar una hoja para abrir la otra.</li>' +
                       '<li>Cualquier dato ya registrado se puede corregir o borrar, tocándolo directamente.</li>' +
@@ -3663,7 +3669,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.3.1";
+    var APP_VERSION = "3.3.2";
 
     function mostrarAppPrincipal() {
         try {
@@ -3943,6 +3949,87 @@
     // Genera el HTML de la tabla. Si editable=true, cada celda de peso y cada
     // encabezado de bloque son clicables para poder corregir cualquier dato
     // ya registrado, tal como pediste.
+    // Vista previa que imita el FORMATO OFICIAL (encabezado, tablas de
+    // especificación, firmas) — distinta a la tabla operativa de arriba,
+    // que es para trabajar rápido tocando cada celda.
+    function generarHtmlFormatoOficialPeso(d, tipo) {
+        var bloques = d.bloques || [];
+        var revisiones = d.revisiones || [];
+        var primero = bloques[0];
+        var f = { A: '#000', border: '1px solid #333' };
+
+        var html = '<div id="peso-formato-visual" style="color:#000; background:#fff; font-family: Arial, sans-serif; max-width:950px; margin:0 auto; border:2px solid #000;">';
+
+        html += '<div style="display:flex; border-bottom:2px solid #000;">';
+        html += '<div style="flex:1.2; padding:8px; border-right:1px solid #000; font-weight:bold; font-size:0.72rem;">LALA<br>Departamento de Aseguramiento de Calidad</div>';
+        html += '<div style="flex:2.5; padding:8px; text-align:center; border-right:1px solid #000;"><div style="font-weight:bold; font-size:0.85rem;">DIVISIÓN SAN BENITO NICARAGUA</div><div style="font-size:0.62rem; margin:2px 0;">San Benito departamento de Tipitapa kilómetro 35½ de la carretera Panamericana Norte, Managua, Nicaragua.</div><div style="font-weight:bold; font-size:0.78rem; margin-top:4px;">MONITOREO DE PESO DE PRODUCTOS ' + (tipo === 'uht' ? 'UHT' : 'DERIVADOS') + '</div></div>';
+        html += '<div style="flex:1; padding:8px; font-size:0.62rem;">Fecha de Actualización: 10/01/2024<br>Versión: Cuarta<br>Página 1 de 1</div>';
+        html += '</div>';
+        html += '<div style="padding:4px 8px; font-size:0.68rem; border-bottom:1px solid #000;">Código: ' + (tipo === 'uht' ? 'SB-ACF-009' : 'SB-ACF-071') + '</div>';
+
+        var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
+        var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
+        html += '<div style="display:flex; border-bottom:2px solid #000; font-size:0.72rem; font-weight:bold;">';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;">FECHA: ' + fechaTxt + '</div>';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;">LOTE: ' + (primero ? primero.lote : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000;">VENCE: ' + (primero ? (primero.vence || '') : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px; border-right:1px solid #000;">MÁQUINA: ' + (primero ? primero.maquina : '') + '</div>';
+        html += '<div style="flex:1.2; padding:6px;">frecuencia: cada 30 min</div>';
+        html += '</div>';
+
+        bloques.forEach(function(bloque) {
+            var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+            html += '<div style="border-bottom:2px solid #000;">';
+            html += '<div style="padding:4px 8px; font-weight:bold; font-size:0.7rem; background:#f0f0f0; border-bottom:1px solid #000;">PRODUCTO(s) y presentación: ' + bloque.producto + ' — Lote: ' + bloque.lote + (bloque.vence ? (' — Vence: ' + bloque.vence) : '') + ' — Máquina: ' + bloque.maquina + '</div>';
+            html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.65rem; border-collapse:collapse;">';
+            html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa;">Horas</td>';
+            revsBloque.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold;">' + (r.esParo ? 'Paro' : r.hora) + '</td>'; });
+            html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa;">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
+            revsBloque.forEach(function() { html += '<td style="border:' + f.border + ';"></td>'; });
+            html += '</tr>';
+            for (var b = 1; b <= bloque.bocas; b++) {
+                html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold;">B' + b + '</td>';
+                revsBloque.forEach(function(r) {
+                    var val = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                    html += '<td style="border:' + f.border + '; padding:3px; text-align:center;">' + val + '</td>';
+                });
+                html += '</tr>';
+            }
+            html += '</table></div></div>';
+        });
+
+        html += '<div style="display:flex; font-size:0.6rem; border-bottom:1px solid #000;">';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;"><b>ESPECIFICACIONES LECHE EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 ml<br>Bolsa 450 ml: 400 ±5 ml<br>Bolsa 200 ml: 200 ±5 ml</div>';
+        html += '<div style="flex:1; padding:6px; border-right:1px solid #000;"><b>ESPECIF LECHE EN CAJA</b><br>Caja 1000 ml: 1000 ±5 ml<br>Caja 500 ml: 500 ±5 ml<br>Caja 200 ml: 200 ±5 ml</div>';
+        html += '<div style="flex:1; padding:6px;"><b>ESPECIF LECHE SABORIZADAS EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 g<br>Bolsa 400 ml: 400 ±5 g<br>Bolsa 200 ml: 200 ±5 g</div>';
+        html += '</div>';
+
+        var paros = revisiones.filter(function(r) { return r.esParo; });
+        html += '<div style="border-bottom:2px solid #000;"><div style="display:flex; font-size:0.62rem; font-weight:bold; border-bottom:1px solid #000;"><div style="flex:1; padding:4px;">Hora</div><div style="flex:2; padding:4px;">Causa</div><div style="flex:3; padding:4px;">Ajuste/Acción Correctiva</div></div>';
+        if (paros.length === 0) {
+            html += '<div style="padding:6px; font-size:0.65rem; color:#888;">Sin paros registrados.</div>';
+        } else {
+            paros.forEach(function(p) {
+                html += '<div style="display:flex; font-size:0.62rem; border-bottom:1px dashed #ccc;"><div style="flex:1; padding:4px;">' + p.hora + '</div><div style="flex:2; padding:4px;">' + (p.causaParo || '—') + '</div><div style="flex:3; padding:4px;"></div></div>';
+            });
+        }
+        html += '</div>';
+
+        html += '<div style="display:flex; font-size:0.6rem; padding:15px 8px 5px 8px; text-align:center;">';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno A</div>';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno B</div>';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Técnico de línea turno C</div>';
+        html += '</div>';
+        html += '<div style="display:flex; font-size:0.6rem; padding:20px 8px 15px 8px; text-align:center;">';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno A</div>';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno B</div>';
+        html += '<div style="flex:1; border-top:1px solid #000; margin:0 8px; padding-top:4px;">Analista de calidad turno C</div>';
+        html += '</div>';
+
+        html += '</div>';
+        return html;
+    }
+
     function generarHtmlFormatoPeso(d, editable) {
         var bloques = d.bloques || [];
         var revisiones = d.revisiones || [];
@@ -4190,7 +4277,7 @@
             return Swal.fire('Sin Datos', 'Todavía no hay nada registrado en esta hoja.', 'info');
         }
         _pesoZoomActual = 1;
-        document.getElementById('peso-preview-contenido').innerHTML = generarHtmlFormatoPeso(_pesoDatos, false);
+        document.getElementById('peso-preview-contenido').innerHTML = generarHtmlFormatoOficialPeso(_pesoDatos, _pesoVistaActual);
         document.getElementById('peso-preview-contenido').style.transform = 'scale(1)';
         document.getElementById('peso-preview-overlay').style.display = 'flex';
     }
@@ -4209,6 +4296,99 @@
         if (!_pesoDatos || !_pesoDatos.bloques || _pesoDatos.bloques.length === 0) {
             return Swal.fire('Sin Datos', 'Todavía no hay nada registrado en esta hoja.', 'info');
         }
+        if (_pesoVistaActual === 'uht') { return descargarExcelPesoConPlantillaUht(); }
+        return descargarExcelPesoGenerico();
+    }
+
+    // Llena la plantilla OFICIAL SB-ACF-009 tal cual la subiste. Usa los
+    // 3 bloques de producto que trae la hoja física; si hay más de 3, los
+    // que sobren se listan aparte al final (igual que en físico usarían
+    // una página nueva).
+    function descargarExcelPesoConPlantillaUht() {
+        Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+        fetch('./plantilla_peso_uht.xlsx').then(function(res) {
+            if (!res.ok) throw new Error("No se encontró 'plantilla_peso_uht.xlsx' en el repositorio.");
+            return res.arrayBuffer();
+        }).then(function(buffer) {
+            var wb = new ExcelJS.Workbook();
+            return wb.xlsx.load(buffer).then(function() {
+                var ws = wb.worksheets[0];
+                var bloques = _pesoDatos.bloques || [];
+                var revisiones = _pesoDatos.revisiones || [];
+                var primero = bloques[0];
+
+                var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
+                var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
+
+                ws.getCell('A6').value = 'FECHA: ' + fechaTxt;
+                ws.getCell('D6').value = 'LOTE: ' + (primero ? primero.lote : '');
+                ws.getCell('J6').value = 'VENCE: ' + (primero ? (primero.vence || '') : '');
+                ws.getCell('Q6').value = 'MÁQUINA: ' + (primero ? primero.maquina : '');
+
+                var normalFont = { name: 'Arial', size: 9 };
+
+                bloques.slice(0, 3).forEach(function(bloque, idx) {
+                    var baseRow = 7 + (idx * 8);
+                    var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id; });
+
+                    ws.getCell('B' + baseRow).value = bloque.producto + ' — Lote: ' + bloque.lote + (bloque.vence ? (' — Vence: ' + bloque.vence) : '') + ' — Máquina: ' + bloque.maquina;
+
+                    var filaHoras = ws.getRow(baseRow + 1);
+                    revsBloque.forEach(function(r, i) {
+                        var col = 2 + i;
+                        if (col > 25) return; // no caben más de 24 revisiones por bloque en esta hoja
+                        var c = filaHoras.getCell(col);
+                        c.value = r.esParo ? 'Paro' : r.hora;
+                        c.font = normalFont;
+                        c.alignment = { horizontal: 'center' };
+                    });
+
+                    for (var b = 1; b <= Math.min(bloque.bocas, 5); b++) {
+                        var filaB = ws.getRow(baseRow + 2 + b);
+                        revsBloque.forEach(function(r, i) {
+                            var col = 2 + i;
+                            if (col > 25) return;
+                            var c = filaB.getCell(col);
+                            c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                            c.font = normalFont;
+                            c.alignment = { horizontal: 'center' };
+                        });
+                    }
+                });
+
+                // Causas de paro en la tabla de "Hora / Causa / Ajuste" que ya trae la plantilla
+                var filaCausa = 36;
+                revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
+                    if (filaCausa > 41) return; // la plantilla solo trae 6 filas para esto
+                    ws.getCell('A' + filaCausa).value = p.hora;
+                    ws.getCell('C' + filaCausa).value = p.causaParo || 'Sin especificar';
+                    filaCausa++;
+                });
+
+                if (bloques.length > 3) {
+                    var notaExtra = ws.addRow(['⚠️ Esta hoja tuvo ' + (bloques.length - 3) + ' bloque(s) de producto adicionales que no caben en esta plantilla (se necesitaría una página más, igual que en físico). Descárgalos revisando la hoja en la app.']);
+                    notaExtra.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
+                }
+
+                return wb.xlsx.writeBuffer();
+            });
+        }).then(function(buffer) {
+            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            Swal.close();
+        }).catch(function(err) {
+            Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
+        });
+    }
+
+    // Para Derivados todavía no tenemos la plantilla oficial (SB-ACF-071) —
+    // en cuanto la subas, la conectamos igual que la de UHT.
+    function descargarExcelPesoGenerico() {
         Swal.fire({ title: 'Generando Excel...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
         var wb = new ExcelJS.Workbook();
@@ -4225,7 +4405,7 @@
         ws.getCell('A1').value = 'DIVISIÓN SAN BENITO NICARAGUA';
         ws.getCell('A1').font = tituloFont;
         ws.mergeCells('A3:F3');
-        ws.getCell('A3').value = 'MONITOREO DE PESO DE PRODUCTOS ' + (_pesoVistaActual === 'uht' ? 'UHT' : 'DERIVADOS');
+        ws.getCell('A3').value = 'MONITOREO DE PESO DE PRODUCTOS DERIVADOS (aún sin plantilla oficial)';
         ws.getCell('A3').font = { name: 'Arial', size: 11, bold: true };
 
         var fila = 5;
@@ -4238,12 +4418,11 @@
 
             var revsBloque = (_pesoDatos.revisiones || []).filter(function(r) { return r.bloqueId === bloque.id; });
 
-            // Fila de horas
             var filaHoras = ws.getRow(fila);
             filaHoras.getCell(1).value = 'Boca'; filaHoras.getCell(1).font = headerFont; filaHoras.getCell(1).border = borde;
             revsBloque.forEach(function(r, i) {
                 var c = filaHoras.getCell(2 + i);
-                c.value = r.hora; c.font = headerFont; c.border = borde; c.fill = grisClaro; c.alignment = { horizontal: 'center' };
+                c.value = r.esParo ? 'Paro' : r.hora; c.font = headerFont; c.border = borde; c.fill = grisClaro; c.alignment = { horizontal: 'center' };
             });
             filaHoras.commit();
             fila++;
@@ -4253,7 +4432,7 @@
                 filaB.getCell(1).value = 'B' + b; filaB.getCell(1).font = headerFont; filaB.getCell(1).border = borde;
                 revsBloque.forEach(function(r, i) {
                     var c = filaB.getCell(2 + i);
-                    c.value = r.esParo ? 'Paro' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
+                    c.value = r.esParo ? '' : ((r.pesos && r.pesos[b - 1] !== undefined && r.pesos[b - 1] !== null) ? r.pesos[b - 1] : '');
                     c.font = normalFont; c.border = borde; c.alignment = { horizontal: 'center' };
                 });
                 filaB.commit();
@@ -4277,7 +4456,7 @@
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             var a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'VerificacionPeso_' + _pesoVistaActual + '_' + Date.now() + '.xlsx';
+            a.download = 'VerificacionPeso_derivados_' + Date.now() + '.xlsx';
             a.click();
             URL.revokeObjectURL(a.href);
             Swal.close();
@@ -4287,38 +4466,72 @@
     }
 
     // ---------- MODO SIMULACIÓN (colección de pruebas, separada de la real) ----------
+    // Genera pesos "creíbles" alrededor de un valor base, para no tener que
+    // escribir a mano decenas de números por revisión.
+    function _pesosSimulados(bocas, base, variacion) {
+        var arr = [];
+        for (var i = 0; i < bocas; i++) {
+            arr.push(Math.round((base + (Math.random() * variacion * 2 - variacion)) * 10) / 10);
+        }
+        return arr;
+    }
+
+    function _generarHorasCada30(inicioH, inicioM, cantidad) {
+        var horas = [];
+        var h = inicioH, m = inicioM;
+        for (var i = 0; i < cantidad; i++) {
+            horas.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
+            m += 30; if (m >= 60) { m -= 60; h = (h + 1) % 24; }
+        }
+        return horas;
+    }
+
     function inyectarSimulacionPeso() {
         Swal.fire({
-            title: '¿Cargar datos de prueba de Peso?', text: 'Esto usa una colección de pruebas totalmente separada de tus datos reales — no afecta nada de lo que ya tienes guardado.',
-            icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, cargar prueba'
+            title: '¿Cargar un turno completo de prueba?', text: 'Esto usa una colección de pruebas totalmente separada de tus datos reales — no afecta nada de lo que ya tienes guardado. Se va a cargar un turno entero (varios bloques de producto, varias revisiones cada uno) en UHT y en Derivados.',
+            icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, cargar turno completo'
         }).then(function(res) {
             if (!res.isConfirmed) return;
             _pesoModoSimulacion = true;
             conectarListenersPeso();
 
-            var bloqueUht = { id: 'bsim1', maquina: 'THIMONIER', producto: 'Fortificada Eskimo', lote: '1308', vence: calcularVenceParaPeso('1308', 'Fortificada Eskimo'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var revsUht = [
-                { id: 'rsim1', bloqueId: 'bsim1', hora: '08:25', esParo: false, pesos: [450, 451, 450, 450, 450], registradoPor: 'Prueba' },
-                { id: 'rsim2', bloqueId: 'bsim1', hora: '08:55', esParo: false, pesos: [451, 452, 451, 451, 452], registradoPor: 'Prueba' },
-                { id: 'rsim3', bloqueId: 'bsim1', hora: '09:25', esParo: true, causaParo: 'Cambio de foil', registradoPor: 'Prueba' },
-                { id: 'rsim4', bloqueId: 'bsim1', hora: '09:55', esParo: false, pesos: [450, 450, 449, 451, 450], registradoPor: 'Prueba' }
-            ];
-            var bloqueDeriv = { id: 'bsim2', maquina: 'SERAC', producto: 'Fresa LALA/LP', lote: '1207', vence: calcularVenceParaPeso('1207', 'Fresa LALA/LP'), bocas: 16, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var pesosDerivBase = [40, 41, 40, 40, 41, 40, 40, 41, 40, 40, 41, 40, 40, 41, 40, 40];
-            var revsDeriv = [
-                { id: 'rsim5', bloqueId: 'bsim2', hora: '13:37', esParo: false, pesos: pesosDerivBase, registradoPor: 'Prueba' },
-                { id: 'rsim6', bloqueId: 'bsim2', hora: '14:10', esParo: false, pesos: pesosDerivBase.map(function(v){return v+1;}), registradoPor: 'Prueba' }
-            ];
+            // ---------- UHT: turno completo con 3 bloques (llena toda la plantilla oficial) ----------
+            var b1 = { id: 'bsim1', maquina: 'THIMONIER', producto: 'Entera Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'Entera Eskimo'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var b2 = { id: 'bsim2', maquina: 'THIMONIER', producto: 'Fortificada Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'Fortificada Eskimo'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var b3 = { id: 'bsim3', maquina: 'THIMONIER', producto: 'Vida+ Fresa (bolsa)', lote: '1508', vence: calcularVenceParaPeso('1508', 'Vida+ Fresa (bolsa)'), bocas: 5, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
 
-            window.crearHojaPeso('uht', bloqueUht, 'Prueba', true).then(function() {
+            var revsUht = [];
+            _generarHorasCada30(7, 0, 8).forEach(function(hora, i) {
+                revsUht.push({ id: 'ru1_' + i, bloqueId: 'bsim1', hora: hora, esParo: false, pesos: _pesosSimulados(5, 450, 2), registradoPor: 'Prueba' });
+            });
+            _generarHorasCada30(11, 0, 5).forEach(function(hora, i) {
+                if (i === 2) { revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', hora: hora, esParo: true, causaParo: 'Cambio de foil', registradoPor: 'Prueba' }); return; }
+                revsUht.push({ id: 'ru2_' + i, bloqueId: 'bsim2', hora: hora, esParo: false, pesos: _pesosSimulados(5, 451, 2), registradoPor: 'Prueba' });
+            });
+            _generarHorasCada30(13, 30, 3).forEach(function(hora, i) {
+                revsUht.push({ id: 'ru3_' + i, bloqueId: 'bsim3', hora: hora, esParo: false, pesos: _pesosSimulados(5, 200, 3), registradoPor: 'Prueba' });
+            });
+
+            // ---------- Derivados: turno completo con SERAC (16 bocas) ----------
+            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA/LP', lote: '1207', vence: calcularVenceParaPeso('1207', 'Fresa LALA/LP'), bocas: 16, creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var revsDeriv = [];
+            _generarHorasCada30(13, 0, 7).forEach(function(hora, i) {
+                revsDeriv.push({ id: 'rd1_' + i, bloqueId: 'bsim4', hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
+            });
+
+            window.crearHojaPeso('uht', b1, 'Prueba', true).then(function() {
+                return window.agregarBloquePeso('uht', b2, true);
+            }).then(function() {
+                return window.agregarBloquePeso('uht', b3, true);
+            }).then(function() {
                 return window.actualizarRevisionesPeso('uht', revsUht, true);
             }).then(function() {
-                return window.crearHojaPeso('derivados', bloqueDeriv, 'Prueba', true);
+                return window.crearHojaPeso('derivados', bd1, 'Prueba', true);
             }).then(function() {
                 return window.actualizarRevisionesPeso('derivados', revsDeriv, true);
             }).then(function() {
                 switchTab('peso');
-                Swal.fire('¡Cargado!', 'Ya tienes datos de prueba en UHT y Derivados. Prueba el botón de Descargar Excel.', 'success');
+                Swal.fire('¡Turno Completo Cargado!', 'UHT tiene 3 bloques de producto (16 revisiones en total) y Derivados tiene SERAC con 16 bocas × 7 revisiones. Ya puedes probar "Ver Formato" y "Descargar Excel".', 'success');
             }).catch(function(err) {
                 Swal.fire('Error', 'No se pudo cargar la prueba: ' + err.message, 'error');
             });
