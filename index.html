@@ -909,8 +909,8 @@
                 <div id="peso-botones-edicion">
                     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px;">
                         <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--info); color:white; font-size:0.85rem;" onclick="abrirModalRevisionPeso()">➕ Registrar Revisión</button>
-                        <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🔄 Cambiar Producto</button>
-                        <button class="btn-action" style="flex:1; min-width:140px; background-color: #d1a253; color:white; font-size:0.85rem;" onclick="abrirModalNuevoLotePeso()">📦 Nuevo Lote (mismo producto)</button>
+                        <button class="btn-action" style="flex:1; min-width:140px; background-color: var(--purple); color:white; font-size:0.85rem;" onclick="abrirModalCambiarProductoPeso()">🆕 Nueva Máquina</button>
+                        <button class="btn-action" style="flex:1; min-width:140px; background-color: #d1a253; color:white; font-size:0.85rem;" onclick="abrirModalNuevoLotePeso()">📦 Nuevo Producto/Lote</button>
                         <button class="btn-action" style="flex:1; min-width:140px; background-color: #495057; color:white; font-size:0.85rem;" onclick="abrirModalFinProduccionPeso()">🏁 Fin de Producción</button>
                     </div>
                     <button class="btn-action" style="width:100%; background-color: #dc3545; color:white; font-size:0.85rem; margin-bottom:15px;" onclick="cerrarHojaPeso()">🔒 Cerrar Hoja</button>
@@ -1008,7 +1008,7 @@
             ]},
             "THIMONIER": { bocas: 5, productos: [
                 { nombre: "Entera Eskimo", dias: 90 }, { nombre: "Fortificada Eskimo", dias: 90 },
-                { nombre: "Vida+ Chocolate", dias: 90 }, { nombre: "Vida+ Fresa (bolsa)", dias: 90 }, { nombre: "Semi Descremada Eskimo", dias: 90 }
+                { nombre: "Vida+ Chocolate", dias: 90 }, { nombre: "Vida+ Fresa", dias: 90 }, { nombre: "Fresa (bolsa)", dias: 90 }, { nombre: "Semi Descremada Eskimo", dias: 90 }
             ]}
         },
         derivados: {
@@ -1332,7 +1332,13 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.4.0 (Actual) - Equipos y Seguridad en Verificación de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.0 (Actual) - Cambios de Producto sin Duplicar Máquina</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Corregido: cambiar de producto en una máquina que sigue con el mismo lote ya no abre una máquina nueva — se marca "FIN" y se continúa en el mismo bloque, como en físico.</li>' +
+                      '<li>Nuevo botón "🆕 Nueva Máquina" (para empezar en una máquina distinta) y "📦 Nuevo Producto/Lote" (para cambios dentro de la misma máquina), reemplazando el botón anterior de "Cambiar Producto".</li>' +
+                      '<li>Excel oficial de Derivados conectado con tu plantilla real (SB-ACF-071).</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.4.0 - Equipos y Seguridad en Verificación de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Ahora solo el equipo asignado a una hoja (o quien la reciba) puede editarla — cualquiera puede seguir viendo en qué se está trabajando, pero ya no cualquiera puede tocarlo.</li>' +
                       '<li>Nuevos botones "Añadir Compañero" y "Entregar Turno", con un período de gracia de 40 minutos tras la entrega antes de perder el acceso.</li>' +
@@ -3763,7 +3769,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.4.0";
+    var APP_VERSION = "3.5.0";
 
     function mostrarAppPrincipal() {
         try {
@@ -4054,10 +4060,10 @@
         if (!user) return Swal.fire('Error', 'No se pudo identificar tu sesión.', 'error');
         var nombre = user.displayName || 'Analista';
 
-        var primerLote = { id: 'l' + Date.now(), lote: lote, vence: vence, creadoEn: new Date().toISOString() };
+        var primerLote = { id: 'l' + Date.now(), producto: producto, lote: lote, vence: vence, creadoEn: new Date().toISOString() };
         var primerBloque = {
             id: 'b' + Date.now(),
-            maquina: maquina, producto: producto, bocas: bocas,
+            maquina: maquina, bocas: bocas,
             lotes: [primerLote],
             creadoPor: nombre, creadoEn: new Date().toISOString()
         };
@@ -4077,8 +4083,8 @@
         var bannerSim = _pesoModoSimulacion ? '<div style="background:#6f42c1; color:white; text-align:center; font-weight:bold; font-size:0.75rem; padding:6px; border-radius:8px; margin-bottom:10px;">🧪 DATOS DE PRUEBA — no es la hoja real</div>' : '';
 
         if (ultimoBloque) {
-            var ultimoLote = ultimoBloque.lotes && ultimoBloque.lotes.length ? ultimoBloque.lotes[ultimoBloque.lotes.length - 1] : { lote: ultimoBloque.lote, vence: ultimoBloque.vence };
-            document.getElementById('peso-info-actual').innerHTML = bannerSim + '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoBloque.producto + ' — Lote ' + ultimoLote.lote + (ultimoLote.vence ? (' — Vence ' + ultimoLote.vence) : '');
+            var ultimoLote = _segmentoActualBloque(ultimoBloque);
+            document.getElementById('peso-info-actual').innerHTML = bannerSim + '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoLote.producto + ' — Lote ' + ultimoLote.lote + (ultimoLote.vence ? (' — Vence ' + ultimoLote.vence) : '');
         }
 
         var revisiones = d.revisiones || [];
@@ -4122,11 +4128,11 @@
         bloques.forEach(function(bloque) {
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
             html += '<div style="border-bottom:2px solid #000;">';
-            html += '<div style="padding:4px 8px; font-weight:bold; font-size:0.7rem; background:#f0f0f0; border-bottom:1px solid #000; ' + NEGRO + '">PRODUCTO(s) y presentación: ' + bloque.producto + ' — Máquina: ' + bloque.maquina + '</div>';
+            html += '<div style="padding:4px 8px; font-weight:bold; font-size:0.7rem; background:#f0f0f0; border-bottom:1px solid #000; ' + NEGRO + '">PRODUCTO(s) y presentación: ' + _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina + '</div>';
             html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.65rem; border-collapse:collapse; ' + NEGRO + '">';
             html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Horas</td>';
             grupos.forEach(function(g, gi) {
-                if (gi > 0) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td><td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#ffe9a8; writing-mode:vertical-rl; ' + NEGRO + '">Lote ' + g.lote.lote + '</td>';
+                if (gi > 0) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td><td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#ffe9a8; writing-mode:vertical-rl; ' + NEGRO + '">' + g.lote.producto + ' — Lote ' + g.lote.lote + '</td>';
                 g.revs.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; ' + NEGRO + '">' + _formatoHoraCelda(r) + '</td>'; });
             });
             html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
@@ -4149,9 +4155,15 @@
         });
 
         html += '<div style="display:flex; font-size:0.6rem; border-bottom:1px solid #000; ' + NEGRO + '">';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIFICACIONES LECHE EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 ml<br>Bolsa 450 ml: 400 ±5 ml<br>Bolsa 200 ml: 200 ±5 ml</div>';
-        html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIF LECHE EN CAJA</b><br>Caja 1000 ml: 1000 ±5 ml<br>Caja 500 ml: 500 ±5 ml<br>Caja 200 ml: 200 ±5 ml</div>';
-        html += '<div style="flex:1; padding:6px; ' + NEGRO + '"><b>ESPECIF LECHE SABORIZADAS EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 g<br>Bolsa 400 ml: 400 ±5 g<br>Bolsa 200 ml: 200 ±5 g</div>';
+        if (tipo === 'uht') {
+            html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIFICACIONES LECHE EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 ml<br>Bolsa 450 ml: 400 ±5 ml<br>Bolsa 200 ml: 200 ±5 ml</div>';
+            html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>ESPECIF LECHE EN CAJA</b><br>Caja 1000 ml: 1000 ±5 ml<br>Caja 500 ml: 500 ±5 ml<br>Caja 200 ml: 200 ±5 ml</div>';
+            html += '<div style="flex:1; padding:6px; ' + NEGRO + '"><b>ESPECIF LECHE SABORIZADAS EN BOLSA</b><br>Bolsa 900 ml: 900 ±5 g<br>Bolsa 400 ml: 400 ±5 g<br>Bolsa 200 ml: 200 ±5 g</div>';
+        } else {
+            html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>CREMA ÁCIDA</b><br>Bolsa 420 g: Min 420 ±5 g<br>Bolsa 210 g: Min 210 ±5 g<br>Bolsa 105 g: Min 105 ±5 g<br>Bolsa 95 g: Min 95 ±5 g</div>';
+            html += '<div style="flex:1; padding:6px; border-right:1px solid #000; ' + NEGRO + '"><b>MANTEQUILLA</b><br>Caja 25 libras: Min 25 libras<br>Barra 100 g: 100 ± 2 g<br>Barra 10 g: 10 ± 0.3 g</div>';
+            html += '<div style="flex:1; padding:6px; ' + NEGRO + '"><b>YOGURT</b><br>Botella 200 g: Min 200 ±5 g<br>Taza 125 g: Min 125 ±5 g<br>Bolsa 105 g: Min 105 ±5 g<br>Envase 900 g: Min 900 ±5 g</div>';
+        }
         html += '</div>';
 
         var paros = revisiones.filter(function(r) { return r.esParo; });
@@ -4202,20 +4214,20 @@
         bloques.forEach(function(bloque) {
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
             html += '<div style="margin-bottom:18px; border:1px solid #999; border-radius:6px; overflow:hidden;">';
-            html += '<div style="background:#e9ecef; color:#000; padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + bloque.producto + (editable ? ' ✏️' : '') + '</div>';
+            html += '<div style="background:#e9ecef; color:#000; padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + _segmentoActualBloque(bloque).producto + (editable ? ' ✏️' : '') + '</div>';
             if (grupos.length === 0) {
                 html += '<div style="padding:10px; font-size:0.8rem; color:#6c757d;">Sin revisiones registradas todavía. Lote actual: ' + ((bloque.lotes && bloque.lotes[0]) ? bloque.lotes[0].lote : '—') + '</div>';
             } else {
                 html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid #ccc; padding:4px;">Boca</th>';
                 grupos.forEach(function(g, gi) {
-                    if (gi > 0) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th><th style="border:1px solid #ccc; padding:4px; background:#ffe9a8;">Lote ' + g.lote.lote + '</th>';
+                    if (gi > 0) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th><th style="border:1px solid #ccc; padding:4px; background:#ffe9a8;">' + g.lote.producto + ' — ' + g.lote.lote + '</th>';
                     g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoHoraCelda(r) + (editable ? ' ✏️' : '') + '</th>'; });
                 });
                 html += '</tr></thead><tbody>';
                 for (var b = 1; b <= bloque.bocas; b++) {
                     html += '<tr><td style="border:1px solid #ccc; padding:4px; font-weight:bold;">B' + b + '</td>';
                     grupos.forEach(function(g, gi) {
-                        if (gi > 0) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td><td style="border:1px solid #ccc; background:#ffe9a8; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? g.lote.lote : '') + '</td>';
+                        if (gi > 0) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td><td style="border:1px solid #ccc; background:#ffe9a8; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? (g.lote.producto + ' — ' + g.lote.lote) : '') + '</td>';
                         g.revs.forEach(function(r) {
                             html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoPesoValor(r, b) + '</td>';
                         });
@@ -4262,6 +4274,14 @@
         return (bloques || []).filter(function(b) { return !b.eliminado; });
     }
 
+    // El producto ya no vive en el bloque (que ahora es solo "una máquina
+    // trabajando") sino en cada segmento/lote — esto da el segmento
+    // vigente (el último), para mostrar qué se está haciendo ahora mismo.
+    function _segmentoActualBloque(bloque) {
+        var segs = bloque.lotes || [];
+        return segs.length ? segs[segs.length - 1] : { producto: '—', lote: '—', vence: '' };
+    }
+
     function _agruparRevisionesPorLote(bloque, revisiones) {
         var lotesMap = {};
         (bloque.lotes || []).forEach(function(l) { lotesMap[l.id] = l; });
@@ -4284,27 +4304,32 @@
     function abrirModalNuevoLotePeso() {
         var d = _pesoDatos;
         var bloques = _bloquesVisibles(d.bloques);
-        if (bloques.length === 0) return Swal.fire('Atención', 'No hay ningún bloque de producto activo.', 'warning');
+        if (bloques.length === 0) return Swal.fire('Atención', 'No hay ninguna máquina activa.', 'warning');
         window._pesoNuevoLoteBloques = bloques;
         var recordado = _pesoUltimoBloqueUsado[_pesoVistaActual];
         var bloqueActual = (recordado && bloques.find(function(bl) { return bl.id === recordado; })) || bloques[bloques.length - 1];
+        var segActual = _segmentoActualBloque(bloqueActual);
 
         var htmlCont = '<div style="text-align:left;">' +
-            '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
-            bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>' +
-            '<label style="font-weight:bold;">Nuevo Lote</label><input id="peso-nuevolote-lote" class="swal2-input" placeholder="Ej. 1608" style="margin:4px 0 12px 0;" oninput="_previsualizarVenceNuevoLote()">' +
+            '<p style="font-size:0.8rem; color:#6c757d;">Usa esto tanto si solo cambia el lote (mismo producto) como si solo cambia el producto (mismo lote) — edita lo que corresponda y deja lo demás igual. Se marca "FIN" del anterior y sigue en la misma máquina.</p>' +
+            '<label style="font-weight:bold;">Máquina</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="_actualizarSelectorNuevoLote()">' +
+            bloques.map(function(bl) { var s = _segmentoActualBloque(bl); return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' (' + s.producto + ')</option>'; }).join('') + '</select>' +
+            '<label style="font-weight:bold;">Producto</label><select id="peso-nuevolote-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;"></select>' +
+            '<label style="font-weight:bold;">Lote</label><input id="peso-nuevolote-lote" class="swal2-input" value="' + (segActual.lote || '') + '" style="margin:4px 0 12px 0;" oninput="_previsualizarVenceNuevoLote()">' +
             '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-nuevolote-vence" class="swal2-input" style="margin:4px 0 0 0;">' +
             '</div>';
 
         Swal.fire({
-            title: '📦 Nuevo Lote',
+            title: '📦 Nuevo Producto/Lote',
             html: htmlCont,
-            showCancelButton: true, confirmButtonText: 'Registrar Fin de Lote y Continuar',
+            showCancelButton: true, confirmButtonText: 'Marcar FIN y Continuar',
+            didOpen: function() { _actualizarSelectorNuevoLote(); },
             preConfirm: function() {
                 var lote = document.getElementById('peso-nuevolote-lote').value.trim();
+                var producto = document.getElementById('peso-nuevolote-producto').value;
                 var vence = document.getElementById('peso-nuevolote-vence').value.trim();
-                if (!lote) { Swal.showValidationMessage('Ingresa el nuevo lote.'); return false; }
-                return { bloqueId: document.getElementById('peso-nuevolote-bloque').value, lote: { id: 'l' + Date.now(), lote: lote, vence: vence, creadoEn: new Date().toISOString() } };
+                if (!lote || !producto) { Swal.showValidationMessage('Ingresa el producto y el lote.'); return false; }
+                return { bloqueId: document.getElementById('peso-nuevolote-bloque').value, lote: { id: 'l' + Date.now(), producto: producto, lote: lote, vence: vence, creadoEn: new Date().toISOString() } };
             }
         }).then(function(res) {
             if (res.isConfirmed) {
@@ -4315,17 +4340,29 @@
                 var lotesActualizados = (nuevosBloques[idx].lotes || []).concat([res.value.lote]);
                 nuevosBloques[idx] = Object.assign({}, nuevosBloques[idx], { lotes: lotesActualizados });
                 window.actualizarBloquesPeso(_pesoVistaActual, nuevosBloques, _pesoModoSimulacion).catch(function(err) {
-                    Swal.fire('Error', 'No se pudo registrar el nuevo lote: ' + err.message, 'error');
+                    Swal.fire('Error', 'No se pudo registrar: ' + err.message, 'error');
                 });
             }
         });
+    }
+
+    function _actualizarSelectorNuevoLote() {
+        var bloqueId = document.getElementById('peso-nuevolote-bloque').value;
+        var bloque = window._pesoNuevoLoteBloques.find(function(bl) { return bl.id === bloqueId; });
+        var segActual = _segmentoActualBloque(bloque);
+        var info = catalogoMaquinasPeso[_pesoVistaActual][bloque.maquina];
+        var select = document.getElementById('peso-nuevolote-producto');
+        select.innerHTML = info.productos.map(function(p) { return '<option value="' + p.nombre + '" ' + (p.nombre === segActual.producto ? 'selected' : '') + '>' + p.nombre + '</option>'; }).join('');
+        document.getElementById('peso-nuevolote-lote').value = segActual.lote || '';
+        _previsualizarVenceNuevoLote();
     }
 
     function _previsualizarVenceNuevoLote() {
         var bloqueId = document.getElementById('peso-nuevolote-bloque').value;
         var bloque = window._pesoNuevoLoteBloques.find(function(bl) { return bl.id === bloqueId; });
         var lote = document.getElementById('peso-nuevolote-lote').value.trim();
-        document.getElementById('peso-nuevolote-vence').value = calcularVenceParaPeso(lote, _pesoVistaActual, bloque.maquina, bloque.producto) || '';
+        var producto = document.getElementById('peso-nuevolote-producto').value;
+        document.getElementById('peso-nuevolote-vence').value = calcularVenceParaPeso(lote, _pesoVistaActual, bloque.maquina, producto) || '';
     }
 
     function _generarCamposBocasHtml(bloque) {
@@ -4481,10 +4518,9 @@
         var htmlCont = '<div style="text-align:left;">' +
             '<label style="font-weight:bold;">Máquina</label><select id="peso-editbl-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
             opcionesMaquinas.map(function(m) { return '<option value="' + m + '" ' + (m === b.maquina ? 'selected' : '') + '>' + m + '</option>'; }).join('') + '</select>' +
-            '<label style="font-weight:bold;">Producto</label><input id="peso-editbl-producto" class="swal2-input" value="' + b.producto + '" style="margin:4px 0 12px 0;">' +
             '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '" style="margin:4px 0 12px 0;">' +
-            '<label style="font-weight:bold;">Lotes registrados en este bloque</label>' +
-            lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" style="flex:1; margin:0;"></div>'; }).join('') +
+            '<label style="font-weight:bold;">Producto y lote de cada segmento</label>' +
+            lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-producto' + i + '" class="swal2-input" value="' + l.producto + '" placeholder="Producto" style="flex:2; margin:0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" placeholder="Lote" style="flex:1; margin:0;"></div>'; }).join('') +
             '</div>';
 
         Swal.fire({
@@ -4493,14 +4529,13 @@
         }).then(function(res) {
             if (res.isConfirmed) {
                 var maquinaEditada = document.getElementById('peso-editbl-maquina').value;
-                var producto = document.getElementById('peso-editbl-producto').value.trim();
                 var lotesEditados = lotes.map(function(l, i) {
                     var nuevoLote = document.getElementById('peso-editbl-lote' + i).value.trim();
-                    return { id: l.id, lote: nuevoLote, vence: calcularVenceParaPeso(nuevoLote, _pesoVistaActual, maquinaEditada, producto) || l.vence, creadoEn: l.creadoEn };
+                    var nuevoProducto = document.getElementById('peso-editbl-producto' + i).value.trim();
+                    return { id: l.id, producto: nuevoProducto, lote: nuevoLote, vence: calcularVenceParaPeso(nuevoLote, _pesoVistaActual, maquinaEditada, nuevoProducto) || l.vence, creadoEn: l.creadoEn };
                 });
                 bloques[idx] = {
                     id: b.id, maquina: maquinaEditada,
-                    producto: producto,
                     bocas: parseInt(document.getElementById('peso-editbl-bocas').value) || 5,
                     lotes: lotesEditados,
                     creadoPor: b.creadoPor, creadoEn: b.creadoEn
@@ -4561,7 +4596,11 @@
 
     function abrirModalCambiarProductoPeso() {
         var tipo = _pesoVistaActual;
-        var opcionesMaquinas = Object.keys(catalogoMaquinasPeso[tipo]);
+        var maquinasEnUso = _bloquesVisibles(_pesoDatos.bloques).map(function(b) { return b.maquina; });
+        var opcionesMaquinas = Object.keys(catalogoMaquinasPeso[tipo]).filter(function(m) { return maquinasEnUso.indexOf(m) === -1; });
+        if (opcionesMaquinas.length === 0) {
+            return Swal.fire('Todas las máquinas ya están activas', 'Si cambió el producto o el lote en una máquina que ya está trabajando, usa "📦 Nuevo Producto/Lote" en vez de esto.', 'info');
+        }
         var htmlCont = '<div style="text-align:left;">' +
             '<label style="font-weight:bold;">Máquina</label><select id="peso-cambio-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="actualizarProductosCambioPeso()">' +
             '<option value="">-- Seleccione --</option>' + opcionesMaquinas.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select>' +
@@ -4573,15 +4612,15 @@
 
         window._catalogoTipoTemp = tipo;
         Swal.fire({
-            title: '🔄 Cambiar Producto', html: htmlCont, showCancelButton: true, confirmButtonText: 'Abrir Nuevo Bloque',
+            title: '🆕 Nueva Máquina', html: htmlCont, showCancelButton: true, confirmButtonText: 'Empezar',
             preConfirm: function() {
                 var maquina = document.getElementById('peso-cambio-maquina').value;
                 var producto = document.getElementById('peso-cambio-producto').value;
                 var lote = document.getElementById('peso-cambio-lote').value.trim();
                 if (!maquina || !producto || !lote) { Swal.showValidationMessage('Selecciona máquina, producto e ingresa el lote.'); return false; }
                 return {
-                    id: 'b' + Date.now(), maquina: maquina, producto: producto,
-                    lotes: [{ id: 'l' + Date.now(), lote: lote, vence: document.getElementById('peso-cambio-vence').value.trim(), creadoEn: new Date().toISOString() }],
+                    id: 'b' + Date.now(), maquina: maquina,
+                    lotes: [{ id: 'l' + Date.now(), producto: producto, lote: lote, vence: document.getElementById('peso-cambio-vence').value.trim(), creadoEn: new Date().toISOString() }],
                     bocas: parseInt(document.getElementById('peso-cambio-bocas').value) || 5
                 };
             }
@@ -4591,7 +4630,7 @@
                 res.value.creadoPor = user && user.displayName ? user.displayName : 'Analista';
                 res.value.creadoEn = new Date().toISOString();
                 window.agregarBloquePeso(_pesoVistaActual, res.value, _pesoModoSimulacion).catch(function(err) {
-                    Swal.fire('Error', 'No se pudo agregar el bloque: ' + err.message, 'error');
+                    Swal.fire('Error', 'No se pudo agregar la máquina: ' + err.message, 'error');
                 });
             }
         });
@@ -4792,7 +4831,7 @@
             return Swal.fire('Sin Datos', 'Todavía no hay nada registrado en esta hoja.', 'info');
         }
         if (_pesoVistaActual === 'uht') { return descargarExcelPesoConPlantillaUht(); }
-        return descargarExcelPesoGenerico();
+        return descargarExcelPesoConPlantillaDerivados();
     }
 
     // Llena la plantilla OFICIAL SB-ACF-009 tal cual la subiste. Usa los
@@ -4836,14 +4875,14 @@
                     var baseRow = 7 + (idx * 8);
                     var grupos = _agruparRevisionesPorLote(bloque, revisiones);
 
-                    ws.getCell('B' + baseRow).value = bloque.producto + ' — Máquina: ' + bloque.maquina;
+                    ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
 
                     var filaHoras = ws.getRow(baseRow + 1);
                     var col = 2;
                     grupos.forEach(function(g, gi) {
                         if (gi > 0) {
                             if (col <= 25) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
-                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = 'Lote ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
+                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = g.lote.producto + ' — ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
                         }
                         g.revs.forEach(function(r) {
                             if (col > 25) return;
@@ -4906,78 +4945,114 @@
         });
     }
 
-    // Para Derivados todavía no tenemos la plantilla oficial (SB-ACF-071) —
-    // en cuanto la subas, la conectamos igual que la de UHT.
-    function descargarExcelPesoGenerico() {
-        Swal.fire({ title: 'Generando Excel...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+    // Llena la plantilla OFICIAL provisional SB-ACF-071 (Derivados) que
+    // subiste. A diferencia de la de UHT, aquí solo caben 2 bloques de
+    // producto por página, y hasta 9 bocas por bloque (SERAC con sus 16
+    // bocas no cabe completo — se avisa si pasa).
+    function descargarExcelPesoConPlantillaDerivados() {
+        Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
-        var wb = new ExcelJS.Workbook();
-        var ws = wb.addWorksheet('Monitoreo de Peso');
-        ws.properties.defaultColWidth = 9;
+        fetch('./plantilla_peso_derivados.xlsx').then(function(res) {
+            if (!res.ok) throw new Error("No se encontró 'plantilla_peso_derivados.xlsx' en el repositorio.");
+            return res.arrayBuffer();
+        }).then(function(buffer) {
+            var wb = new ExcelJS.Workbook();
+            return wb.xlsx.load(buffer).then(function() {
+                var ws = wb.worksheets[0];
+                var bloques = _bloquesVisibles(_pesoDatos.bloques);
+                var revisiones = _pesoDatos.revisiones || [];
+                var primero = bloques[0];
+                var primerLote = primero ? _segmentoActualBloque(primero) : null;
 
-        var tituloFont = { name: 'Arial', size: 12, bold: true };
-        var headerFont = { name: 'Arial', size: 9, bold: true };
-        var normalFont = { name: 'Arial', size: 9 };
-        var borde = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-        var grisClaro = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+                for (var col = 2; col <= 25; col++) { ws.getColumn(col).width = 7.5; }
 
-        ws.mergeCells('A1:F2');
-        ws.getCell('A1').value = 'DIVISIÓN SAN BENITO NICARAGUA';
-        ws.getCell('A1').font = tituloFont;
-        ws.mergeCells('A3:F3');
-        ws.getCell('A3').value = 'MONITOREO DE PESO DE PRODUCTOS DERIVADOS (aún sin plantilla oficial)';
-        ws.getCell('A3').font = { name: 'Arial', size: 11, bold: true };
+                var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
+                var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
 
-        var fila = 5;
-        _bloquesVisibles(_pesoDatos.bloques).forEach(function(bloque) {
-            var lotesTexto = (bloque.lotes || []).map(function(l) { return l.lote; }).join(' → ');
-            ws.mergeCells('A' + fila + ':F' + fila);
-            var cH = ws.getCell('A' + fila);
-            cH.value = 'Máquina: ' + bloque.maquina + '   |   Producto: ' + bloque.producto + '   |   Lote(s): ' + lotesTexto;
-            cH.font = headerFont; cH.fill = grisClaro; cH.border = borde;
-            fila++;
+                ws.getCell('A6').value = 'FECHA: ' + fechaTxt;
+                ws.getCell('D6').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
+                ws.getCell('J6').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '');
+                ws.getCell('Q6').value = 'MÁQUINA: ' + (primero ? primero.maquina : '');
 
-            var revsBloque = (_pesoDatos.revisiones || []).filter(function(r) { return r.bloqueId === bloque.id; });
+                var normalFont = { name: 'Arial', size: 9 };
+                var finFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF842029' } };
+                var loteFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF664D03' } };
+                var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+                var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
+                var avisoBocas = false;
 
-            var filaHoras = ws.getRow(fila);
-            filaHoras.getCell(1).value = 'Boca'; filaHoras.getCell(1).font = headerFont; filaHoras.getCell(1).border = borde;
-            revsBloque.forEach(function(r, i) {
-                var c = filaHoras.getCell(2 + i);
-                c.value = _formatoHoraCelda(r); c.font = headerFont; c.border = borde; c.fill = grisClaro; c.alignment = { horizontal: 'center' };
+                bloques.slice(0, 2).forEach(function(bloque, idx) {
+                    var baseRow = 7 + (idx * 12); // bloque 1: filas 7-18, bloque 2: filas 19-30
+                    var grupos = _agruparRevisionesPorLote(bloque, revisiones);
+
+                    ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
+
+                    var filaHoras = ws.getRow(baseRow + 1);
+                    var col = 2;
+                    grupos.forEach(function(g, gi) {
+                        if (gi > 0) {
+                            if (col <= 25) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
+                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = g.lote.producto + ' — ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
+                        }
+                        g.revs.forEach(function(r) {
+                            if (col > 25) return;
+                            var c = filaHoras.getCell(col);
+                            c.value = _formatoHoraCelda(r);
+                            c.font = normalFont;
+                            c.alignment = { horizontal: 'center' };
+                            col++;
+                        });
+                    });
+
+                    var bocasAMostrar = Math.min(bloque.bocas, 9); // la plantilla solo trae 9 filas por bloque
+                    if (bloque.bocas > 9) avisoBocas = true;
+                    for (var b = 1; b <= bocasAMostrar; b++) {
+                        var filaB = ws.getRow(baseRow + 2 + b);
+                        filaB.getCell(1).value = 'B' + b;
+                        var col2 = 2;
+                        grupos.forEach(function(g, gi) {
+                            if (gi > 0) {
+                                if (col2 <= 25) { filaB.getCell(col2).fill = finFill; col2++; }
+                                if (col2 <= 25) { filaB.getCell(col2).fill = loteFill; col2++; }
+                            }
+                            g.revs.forEach(function(r) {
+                                if (col2 > 25) return;
+                                var c = filaB.getCell(col2);
+                                c.value = _formatoPesoValor(r, b);
+                                c.font = normalFont;
+                                c.alignment = { horizontal: 'center' };
+                                col2++;
+                            });
+                        });
+                    }
+                });
+
+                // Causas de paro en la tabla de "Hora / Causa / Ajuste / Técnico de línea"
+                var filaCausa = 37;
+                revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
+                    if (filaCausa > 42) return;
+                    ws.getCell('A' + filaCausa).value = p.hora;
+                    ws.getCell('C' + filaCausa).value = p.causaParo || 'Sin especificar';
+                    ws.getCell('G' + filaCausa).value = p.accionCorrectiva || '';
+                    ws.getCell('U' + filaCausa).value = p.tecnicoLinea || '';
+                    filaCausa++;
+                });
+
+                var notasExtra = [];
+                if (bloques.length > 2) notasExtra.push('⚠️ Esta hoja tuvo ' + (bloques.length - 2) + ' máquina(s) adicionales que no caben en esta plantilla (2 por página) — revísalas en la app.');
+                if (avisoBocas) notasExtra.push('⚠️ Alguna máquina tiene más de 9 bocas (ej. SERAC con 16) — esta plantilla provisional solo trae 9 filas por bloque, así que no todas las bocas caben. Revisa el detalle completo en la app.');
+                notasExtra.forEach(function(texto) {
+                    var fila = ws.addRow([texto]);
+                    fila.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
+                });
+
+                return wb.xlsx.writeBuffer();
             });
-            filaHoras.commit();
-            fila++;
-
-            for (var b = 1; b <= bloque.bocas; b++) {
-                var filaB = ws.getRow(fila);
-                filaB.getCell(1).value = 'B' + b; filaB.getCell(1).font = headerFont; filaB.getCell(1).border = borde;
-                revsBloque.forEach(function(r, i) {
-                    var c = filaB.getCell(2 + i);
-                    c.value = _formatoPesoValor(r, b);
-                    c.font = normalFont; c.border = borde; c.alignment = { horizontal: 'center' };
-                });
-                filaB.commit();
-                fila++;
-            }
-
-            var paros = revsBloque.filter(function(r) { return r.esParo; });
-            if (paros.length > 0) {
-                paros.forEach(function(p) {
-                    ws.mergeCells('A' + fila + ':F' + fila);
-                    var cP = ws.getCell('A' + fila);
-                    cP.value = '⏸ ' + p.hora + ' — Causa: ' + (p.causaParo || 'Sin especificar');
-                    cP.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
-                    fila++;
-                });
-            }
-            fila += 2;
-        });
-
-        wb.xlsx.writeBuffer().then(function(buffer) {
+        }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             var a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'VerificacionPeso_derivados_' + Date.now() + '.xlsx';
+            a.download = 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx';
             a.click();
             URL.revokeObjectURL(a.href);
             Swal.close();
@@ -5017,16 +5092,16 @@
             conectarListenersPeso();
 
             // ---------- UHT: turno completo con 3 bloques (llena toda la plantilla oficial) ----------
-            var l1a = { id: 'lsim1a', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
-            var l1b = { id: 'lsim1b', lote: '1608', vence: calcularVenceParaPeso('1608', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
-            var b1 = { id: 'bsim1', maquina: 'THIMONIER', producto: 'Entera Eskimo', bocas: 5, lotes: [l1a, l1b], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var l2 = { id: 'lsim2', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Fortificada Eskimo'), creadoEn: new Date().toISOString() };
-            var b2 = { id: 'bsim2', maquina: 'THIMONIER', producto: 'Fortificada Eskimo', bocas: 5, lotes: [l2], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
-            var l3 = { id: 'lsim3', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Vida+ Fresa (bolsa)'), creadoEn: new Date().toISOString() };
-            var b3 = { id: 'bsim3', maquina: 'THIMONIER', producto: 'Vida+ Fresa (bolsa)', bocas: 5, lotes: [l3], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l1a = { id: 'lsim1a', producto: 'Entera Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
+            var l1b = { id: 'lsim1b', producto: 'Entera Eskimo', lote: '1608', vence: calcularVenceParaPeso('1608', 'uht', 'THIMONIER', 'Entera Eskimo'), creadoEn: new Date().toISOString() };
+            var b1 = { id: 'bsim1', maquina: 'THIMONIER', bocas: 5, lotes: [l1a, l1b], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l2 = { id: 'lsim2', producto: 'Fortificada Eskimo', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Fortificada Eskimo'), creadoEn: new Date().toISOString() };
+            var b2 = { id: 'bsim2', maquina: 'THIMONIER', bocas: 5, lotes: [l2], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            var l3 = { id: 'lsim3', producto: 'Vida+ Fresa', lote: '1508', vence: calcularVenceParaPeso('1508', 'uht', 'THIMONIER', 'Vida+ Fresa'), creadoEn: new Date().toISOString() };
+            var b3 = { id: 'bsim3', maquina: 'THIMONIER', bocas: 5, lotes: [l3], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
 
             var revsUht = [];
-            // Bloque 1, primer lote (1508): 5 revisiones, luego FIN, luego lote nuevo (1608) con 3 revisiones más.
+            // Bloque 1, primer lote (1508): 5 revisiones, luego FIN, luego lote nuevo (1608, mismo producto) con 3 revisiones más.
             _generarHorasCada30(7, 0, 5).forEach(function(hora, i) {
                 revsUht.push({ id: 'ru1a_' + i, bloqueId: 'bsim1', loteId: l1a.id, hora: hora, esParo: false, pesos: _pesosSimulados(5, 450, 2), registradoPor: 'Prueba' });
             });
@@ -5046,12 +5121,19 @@
                 revsUht.push({ id: 'ru3_' + i, bloqueId: 'bsim3', loteId: l3.id, hora: hora, esParo: false, pesos: pesos, registradoPor: 'Prueba' });
             });
 
-            // ---------- Derivados: turno completo con SERAC (16 bocas) ----------
-            var l4 = { id: 'lsim4', lote: '1207', vence: calcularVenceParaPeso('1207', 'derivados', 'SERAC', 'Fresa LALA'), creadoEn: new Date().toISOString() };
-            var bd1 = { id: 'bsim4', maquina: 'SERAC', producto: 'Fresa LALA', bocas: 16, lotes: [l4], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
+            // ---------- Derivados: SERAC (16 bocas), con un cambio de PRODUCTO
+            // manteniendo el mismo lote — exactamente el caso que reportaste
+            // (Fresamoras → Fresa, mismo lote 1808, misma máquina, sin abrir bloque nuevo).
+            var l4a = { id: 'lsim4a', producto: 'Fresamoras LALA', lote: '1808', vence: calcularVenceParaPeso('1808', 'derivados', 'SERAC', 'Fresamoras LALA'), creadoEn: new Date().toISOString() };
+            var l4b = { id: 'lsim4b', producto: 'Fresa LALA', lote: '1808', vence: calcularVenceParaPeso('1808', 'derivados', 'SERAC', 'Fresa LALA'), creadoEn: new Date().toISOString() };
+            var bd1 = { id: 'bsim4', maquina: 'SERAC', bocas: 16, lotes: [l4a, l4b], creadoPor: 'Prueba', creadoEn: new Date().toISOString() };
             var revsDeriv = [];
-            _generarHorasCada30(13, 0, 7).forEach(function(hora, i) {
-                revsDeriv.push({ id: 'rd1_' + i, bloqueId: 'bsim4', loteId: l4.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
+            _generarHorasCada30(13, 0, 4).forEach(function(hora, i) {
+                revsDeriv.push({ id: 'rd1a_' + i, bloqueId: 'bsim4', loteId: l4a.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
+            });
+            revsDeriv.push({ id: 'rd1fin', bloqueId: 'bsim4', loteId: l4a.id, hora: '15:00', esFin: true });
+            _generarHorasCada30(15, 0, 3).forEach(function(hora, i) {
+                revsDeriv.push({ id: 'rd1b_' + i, bloqueId: 'bsim4', loteId: l4b.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
             });
 
             window.crearHojaPeso('uht', b1, 'Prueba', true).then(function() {
