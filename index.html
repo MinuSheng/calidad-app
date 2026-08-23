@@ -1364,7 +1364,22 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.6.0 (Actual) - Revisión General y Correcciones de Fondo</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.6.2 (Actual) - Excel Igual al Formato en Físico</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>El nombre del producto ahora se escribe en vertical en la primera columna del bloque, a lo alto de las filas de boca — tal como se llena a mano.</li>' +
+                      '<li>Las horas y los pesos arrancan una columna más a la derecha para dejarle ese espacio, igual que en el papel.</li>' +
+                      '<li>En máquinas con más bocas que el formato (SERAC, 16 bocas contra 10 filas) se registran las 10 que caben, sin mostrar advertencia: así es como se llena en físico.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.6.1 - Excel Cuadrado con la Plantilla Oficial Real</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> la Fecha, Lote, Vence y Máquina se escribían sobre el membrete (fila 5) en vez de la fila de cabecera (fila 8). Ahora van en su casilla real y ya no tapan las etiquetas impresas.</li>' +
+                      '<li><b>Corregido:</b> todos los bloques de producto estaban corridos 3 filas hacia arriba — las horas y los pesos caían fuera de la tabla.</li>' +
+                      '<li><b>Corregido:</b> se escribía hasta la columna AH, 3 columnas más allá del borde derecho del formato. Ahora termina en AE, como el papel.</li>' +
+                      '<li><b>Corregido:</b> la tabla de Hora/Causa/Acción Correctiva estaba apuntando a filas equivocadas, y el "Técnico de línea" a la columna equivocada.</li>' +
+                      '<li>Las filas de Horas ahora respetan que en la plantilla están combinadas con la fila de abajo.</li>' +
+                      '<li>La cabecera y cada bloque llevan el PRIMER lote (como se llena en físico), no el último.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.6.0 - Revisión General y Correcciones de Fondo</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li><b>Corregido:</b> el botón "Recibir Turno" de Verificación de Peso no funcionaba (chocaba con una función interna de la nube).</li>' +
                       '<li><b>Corregido:</b> el Modo Simulación de Peso escribía el turno de prueba sobre la hoja REAL al crearla. Ahora sí queda aislado.</li>' +
@@ -3900,7 +3915,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.6.0";
+    var APP_VERSION = "3.6.2";
 
     function mostrarAppPrincipal() {
         try {
@@ -4230,8 +4245,10 @@
     function generarHtmlFormatoOficialPeso(d, tipo) {
         var bloques = _bloquesVisibles(d.bloques);
         var revisiones = d.revisiones || [];
-        var primero = bloques[bloques.length - 1];
-        var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[primero.lotes.length - 1] : null;
+        // Igual que en el Excel: la cabecera lleva el PRIMER bloque y su
+        // PRIMER lote (antes tomaba el último y no coincidía con el papel).
+        var primero = bloques[0];
+        var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[0] : null;
         var f = { border: '1px solid #333' };
         var NEGRO = 'color:#000 !important;';
 
@@ -5028,7 +5045,9 @@
         var bloques = _bloquesVisibles(_pesoDatos.bloques);
         var revisiones = _pesoDatos.revisiones || [];
         var primero = bloques[0];
-        var primerLote = primero ? _segmentoActualBloque(primero) : null;
+        // La cabecera del formato físico se llena al ABRIR la hoja, así que
+        // lleva el PRIMER lote del primer bloque (no el último segmento).
+        var primerLote = (primero && primero.lotes && primero.lotes.length) ? primero.lotes[0] : null;
 
         // OJO: nunca tocar el ancho de las columnas — esas mismas columnas
         // las comparten la tabla de causas, las tablas de especificación y
@@ -5039,16 +5058,34 @@
         var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
         var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
 
-        ws.getCell('A5').value = 'FECHA : ' + fechaTxt;
-        ws.getCell('G5').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
-        ws.getCell('M5').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '') + '          MÁQUINA: ' + (primero ? primero.maquina : '');
+        // CABECERA — celdas reales de la plantilla oficial (fila 8):
+        //   A8 "FECHA :"  -> el valor va en B8  (combinada B8:E8)
+        //   F8 "LOTE:"    -> el valor va en H8  (combinada H8:K8)
+        //   L8 "VENCE:"   -> el valor va en N8  (combinada N8:Q8)
+        //   R8 "MÁQUINA:" -> el valor va en T8
+        // Antes se escribía en A5/G5/M5, que es la franja del membrete: se
+        // machacaban las etiquetas impresas y la cabecera quedaba vacía.
+        var cabeceraFont = { name: 'Arial', size: 9, bold: true };
+        var ponerCabecera = function(celda, valor) {
+            var c = ws.getCell(celda);
+            c.value = valor;
+            c.font = cabeceraFont;
+            c.alignment = { horizontal: 'left', vertical: 'center' };
+        };
+        ponerCabecera('B8', fechaTxt);
+        ponerCabecera('H8', primerLote ? primerLote.lote : '');
+        ponerCabecera('N8', primerLote ? (primerLote.vence || '') : '');
+        ponerCabecera('T8', primero ? primero.maquina : '');
 
         var normalFont = { name: 'Arial', size: 7 };
         var finFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF842029' } };
         var loteFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF664D03' } };
         var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
         var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
-        var avisoBocas = false;
+        // Nota: si la máquina tiene más bocas que filas trae el formato
+        // (ej. SERAC, 16 bocas contra 10 filas), se registran solo las que
+        // caben — es exactamente como se llena en físico, no es un error.
+        var etiquetaFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF000000' } };
 
         bloques.slice(0, config.baseRows.length).forEach(function(bloque, idx) {
             var baseRow = config.baseRows[idx];
@@ -5060,17 +5097,38 @@
             // El encabezado de cada bloque lleva su PROPIO lote y vencimiento
             // — no el del primer bloque de toda la hoja, ya que cada máquina
             // puede estar en un producto/lote distinto.
-            ws.getCell('B' + baseRow).value = segActualBloque.producto + ' — Máquina: ' + bloque.maquina + ' — Lote: ' + segActualBloque.lote + (segActualBloque.vence ? (' — Vence: ' + segActualBloque.vence) : '');
+            // Fila "PRODUCTO(s) y presentación" (combinada B:AE). Se escribe
+            // igual que en el formato físico: producto, lote y vence del bloque.
+            var primerLoteBloque = (bloque.lotes && bloque.lotes.length) ? bloque.lotes[0] : segActualBloque;
+            ws.getCell('B' + baseRow).value = primerLoteBloque.producto + '   —   Máquina: ' + bloque.maquina + '   —   Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('   —   Vence: ' + primerLoteBloque.vence) : '');
+            ws.getCell('B' + baseRow).font = { name: 'Arial', size: 9, bold: true };
             ws.getCell('B' + baseRow).alignment = { horizontal: 'left', vertical: 'center' };
 
             var filaHoras = ws.getRow(baseRow + 1);
-            // Si hay un cambio de producto/lote, o un "Fin de Producción"
-            // marcado a mano (que también necesita mostrar su hora), esa
-            // fila necesita más alto — las demás filas conservan su alto
-            // original de la plantilla.
-            if (hayTransicion || hayFinEnBloque) filaHoras.height = 70;
+            // OJO: en la plantilla real, la fila de "Horas" está COMBINADA
+            // verticalmente con la de abajo ("Peso (ml)" en UHT, "Bocas" en
+            // Derivados): B10:B11, C10:C11 ... AE10:AE11. O sea que la celda
+            // de la hora ocupa DOS filas. Por eso, cuando hace falta más alto
+            // (texto vertical del cambio de lote), se le sube a las dos.
+            if (hayTransicion || hayFinEnBloque) {
+                filaHoras.height = 36;
+                ws.getRow(baseRow + 2).height = 36;
+            }
 
-            var col = 2;
+            // NOMBRE DEL PRODUCTO EN VERTICAL, igual que en el formato físico:
+            // ocupa la primera columna de datos a lo alto de todas las filas de
+            // boca del bloque. Por eso las horas y los pesos arrancan una
+            // columna más a la derecha (config.colInicio).
+            var filaBocaIni = baseRow + 3;
+            var filaBocaFin = baseRow + 2 + config.bocasMax;
+            try {
+                ws.mergeCells(filaBocaIni, config.colEtiqueta, filaBocaFin, config.colEtiqueta);
+            } catch (e) { /* si ya venía combinada, se escribe igual abajo */ }
+            var celdaEtiqueta = ws.getCell(filaBocaIni, config.colEtiqueta);
+            celdaEtiqueta.value = primerLoteBloque.producto;
+            celdaEtiqueta.style = { font: etiquetaFont, alignment: { horizontal: 'center', vertical: 'middle', textRotation: 90, wrapText: true } };
+
+            var col = config.colInicio;
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
                     // Si el grupo anterior ya terminó con un "Fin de Producción"
@@ -5114,11 +5172,12 @@
                 });
             });
 
+            // Solo se llenan las filas de boca que trae el formato. Con SERAC
+            // (16 bocas) se registran las 10 que caben, como en físico.
             var bocasAMostrar = Math.min(bloque.bocas, config.bocasMax);
-            if (bloque.bocas > config.bocasMax) avisoBocas = true;
             for (var b = 1; b <= bocasAMostrar; b++) {
                 var filaB = ws.getRow(baseRow + 2 + b);
-                var col2 = 2;
+                var col2 = config.colInicio;
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) {
                         var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
@@ -5153,14 +5212,14 @@
             ws.getCell('B' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
             ws.getCell('F' + filaCausa).value = p.accionCorrectiva || '';
             ws.getCell('F' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
-            ws.getCell('AB' + filaCausa).value = p.tecnicoLinea || '';
-            ws.getCell('AB' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
+            // "Tecnico de linea" está en la columna Z (combinada Z:AE), no en AB.
+            ws.getCell('Z' + filaCausa).value = p.tecnicoLinea || '';
+            ws.getCell('Z' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
             filaCausa++;
         });
 
         var notasExtra = [];
         if (bloques.length > config.baseRows.length) notasExtra.push('⚠️ Esta hoja tuvo ' + (bloques.length - config.baseRows.length) + ' máquina(s) adicionales que no caben en esta plantilla (' + config.baseRows.length + ' por página) — revísalas en la app.');
-        if (avisoBocas) notasExtra.push('⚠️ Alguna máquina tiene más bocas de las que caben en esta plantilla (máximo ' + config.bocasMax + ' filas por bloque). Revisa el detalle completo en la app.');
         notasExtra.forEach(function(texto) {
             var fila = ws.addRow([texto]);
             fila.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
@@ -5178,8 +5237,13 @@
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
                 _rellenarPlantillaOficialPeso(ws, {
-                    baseRows: [6, 14, 22], bocasMax: 5, maxCol: 34,
-                    causaDataStart: 35, causaDataEnd: 39
+                    // SB-ACF-009 real: PRODUCTO en 9/17/25, Horas en la
+                    // siguiente (combinada con la fila de "Peso (ml)"),
+                    // B1..B5 en base+3..base+7. Tabla de causas: 38-43.
+                    // Última columna de la tabla: AE = 31.
+                    baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
+                    colEtiqueta: 2, colInicio: 3,
+                    causaDataStart: 38, causaDataEnd: 43
                 });
                 return wb.xlsx.writeBuffer();
             });
@@ -5207,8 +5271,14 @@
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
                 _rellenarPlantillaOficialPeso(ws, {
-                    baseRows: [6, 20], bocasMax: 10, maxCol: 34,
-                    causaDataStart: 39, causaDataEnd: 43
+                    // SB-ACF-071 real: PRODUCTO en 9 y 23, Horas en la
+                    // siguiente (combinada con la fila de "Bocas"), 10 filas
+                    // de boca por bloque. Tabla de causas: 42-47.
+                    // SERAC tiene 16 bocas pero el formato solo trae 10 filas:
+                    // se registran las 10 que caben, tal como en físico.
+                    baseRows: [9, 23], bocasMax: 10, maxCol: 31,
+                    colEtiqueta: 2, colInicio: 3,
+                    causaDataStart: 42, causaDataEnd: 47
                 });
                 return wb.xlsx.writeBuffer();
             });
