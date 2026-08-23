@@ -1332,7 +1332,12 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.2 (Actual) - Excel Realmente Corregido</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.3 (Actual) - Datos Completos en Cada Bloque del Excel</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Cada bloque de producto en el Excel ahora muestra su propio Lote y Vence — antes solo aparecían en el encabezado del primer bloque de la hoja.</li>' +
+                      '<li>El marcador "FIN" ahora también muestra la hora en la que se terminó, no solo la palabra.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.5.2 - Excel Realmente Corregido</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido de raíz: ya no se ensanchan las columnas de la plantilla (eso desproporcionaba toda la hoja — tabla de causas, firmas, todo). Se respeta el diseño original y se usa letra más pequeña, acorde a esa plantilla.</li>' +
                       '<li>Corregido: la tabla de Hora/Causa/Acción Correctiva ya no corta el texto — se le subió el alto solo a esas filas.</li>' +
@@ -3783,7 +3788,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.5.2";
+    var APP_VERSION = "3.5.3";
 
     function mostrarAppPrincipal() {
         try {
@@ -4885,24 +4890,30 @@
         bloques.slice(0, config.baseRows.length).forEach(function(bloque, idx) {
             var baseRow = config.baseRows[idx];
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
+            var segActualBloque = _segmentoActualBloque(bloque);
             var hayTransicion = grupos.length > 1;
+            var hayFinEnBloque = revisiones.some(function(r) { return r.bloqueId === bloque.id && r.esFin; });
 
-            ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
+            // El encabezado de cada bloque lleva su PROPIO lote y vencimiento
+            // — no el del primer bloque de toda la hoja, ya que cada máquina
+            // puede estar en un producto/lote distinto.
+            ws.getCell('B' + baseRow).value = segActualBloque.producto + ' — Máquina: ' + bloque.maquina + ' — Lote: ' + segActualBloque.lote + (segActualBloque.vence ? (' — Vence: ' + segActualBloque.vence) : '');
             ws.getCell('B' + baseRow).alignment = { horizontal: 'left', vertical: 'center' };
 
             var filaHoras = ws.getRow(baseRow + 1);
-            // Si hay un cambio de producto/lote dentro de este bloque, esa
-            // fila necesita más alto para que el texto en vertical (FIN +
-            // producto/lote) quepa — las demás filas conservan su alto
+            // Si hay un cambio de producto/lote, o un "Fin de Producción"
+            // marcado a mano (que también necesita mostrar su hora), esa
+            // fila necesita más alto — las demás filas conservan su alto
             // original de la plantilla.
-            if (hayTransicion) filaHoras.height = 70;
+            if (hayTransicion || hayFinEnBloque) filaHoras.height = 70;
 
             var col = 2;
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
                     // Si el grupo anterior ya terminó con un "Fin de Producción"
                     // marcado a mano, no hace falta un segundo FIN automático
-                    // (evita el "FIN FIN" duplicado).
+                    // (evita el "FIN FIN" duplicado) — pero si SÍ lo mostramos,
+                    // debe llevar la hora en la que terminó.
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
                     var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
                     if (!yaTerminoConFin && col <= config.maxCol) {
@@ -4927,8 +4938,15 @@
                 g.revs.forEach(function(r) {
                     if (col > config.maxCol) return;
                     var c = filaHoras.getCell(col);
-                    c.value = _formatoHoraCelda(r);
-                    c.style = { font: normalFont, alignment: { horizontal: 'center', vertical: 'center' } };
+                    if (r.esFin) {
+                        // Un "Fin de Producción" muestra la hora en la que
+                        // terminó, no solo la palabra "FIN".
+                        c.value = 'FIN\n' + r.hora;
+                        c.style = { font: finFont, fill: finFill, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
+                    } else {
+                        c.value = _formatoHoraCelda(r);
+                        c.style = { font: normalFont, alignment: { horizontal: 'center', vertical: 'center' } };
+                    }
                     col++;
                 });
             });
