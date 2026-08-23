@@ -882,12 +882,12 @@
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Vence (sugerido automático según la vida útil oficial del producto — puedes corregirlo)</label>
-                    <input type="text" id="input-peso-vence" placeholder="DD/MM/AAAA">
+                    <input type="text" id="input-peso-vence" placeholder="DD/MM/AAAA" style="max-width:180px; box-sizing:border-box;">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Cantidad de Bocas de la Máquina</label>
-                    <input type="number" id="input-peso-bocas" min="1" max="20" value="5">
+                    <input type="number" id="input-peso-bocas" min="1" max="20" value="5" style="max-width:100px; box-sizing:border-box;">
                 </div>
 
                 <button class="btn-action" style="background-color: var(--info); color:white;" onclick="iniciarHojaPeso()">🆕 Iniciar Hoja Nueva</button>
@@ -1332,7 +1332,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.0 (Actual) - Cambios de Producto sin Duplicar Máquina</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.1 (Actual) - Excel Oficial Real y Correcciones de Pantalla</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>El Excel de Verificación de Peso (UHT y Derivados) ahora se genera sobre las plantillas oficiales reales, no las provisionales.</li>' +
+                      '<li>Corregido: en "Añadir Compañero" y "Entregar Turno" el menú se desbordaba fuera de la pantalla.</li>' +
+                      '<li>Corregido: al registrar una revisión, a veces el producto salía como "undefined".</li>' +
+                      '<li>Los campos de Lote y Cantidad de Bocas ya no se ven exageradamente grandes.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.5.0 - Cambios de Producto sin Duplicar Máquina</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Corregido: cambiar de producto en una máquina que sigue con el mismo lote ya no abre una máquina nueva — se marca "FIN" y se continúa en el mismo bloque, como en físico.</li>' +
                       '<li>Nuevo botón "🆕 Nueva Máquina" (para empezar en una máquina distinta) y "📦 Nuevo Producto/Lote" (para cambios dentro de la misma máquina), reemplazando el botón anterior de "Cambiar Producto".</li>' +
@@ -3769,7 +3776,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.5.0";
+    var APP_VERSION = "3.5.1";
 
     function mostrarAppPrincipal() {
         try {
@@ -4312,11 +4319,11 @@
 
         var htmlCont = '<div style="text-align:left;">' +
             '<p style="font-size:0.8rem; color:#6c757d;">Usa esto tanto si solo cambia el lote (mismo producto) como si solo cambia el producto (mismo lote) — edita lo que corresponda y deja lo demás igual. Se marca "FIN" del anterior y sigue en la misma máquina.</p>' +
-            '<label style="font-weight:bold;">Máquina</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="_actualizarSelectorNuevoLote()">' +
+            '<label style="font-weight:bold;">Máquina</label><select id="peso-nuevolote-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;" onchange="_actualizarSelectorNuevoLote()">' +
             bloques.map(function(bl) { var s = _segmentoActualBloque(bl); return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' (' + s.producto + ')</option>'; }).join('') + '</select>' +
-            '<label style="font-weight:bold;">Producto</label><select id="peso-nuevolote-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;"></select>' +
-            '<label style="font-weight:bold;">Lote</label><input id="peso-nuevolote-lote" class="swal2-input" value="' + (segActual.lote || '') + '" style="margin:4px 0 12px 0;" oninput="_previsualizarVenceNuevoLote()">' +
-            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-nuevolote-vence" class="swal2-input" style="margin:4px 0 0 0;">' +
+            '<label style="font-weight:bold;">Producto</label><select id="peso-nuevolote-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;"></select>' +
+            '<label style="font-weight:bold;">Lote</label><input id="peso-nuevolote-lote" class="swal2-input" value="' + (segActual.lote || '') + '" style="margin:4px 0 12px 0; width:140px; box-sizing:border-box;" oninput="_previsualizarVenceNuevoLote()">' +
+            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-nuevolote-vence" class="swal2-input" style="margin:4px 0 0 0; width:180px; box-sizing:border-box;">' +
             '</div>';
 
         Swal.fire({
@@ -4394,8 +4401,8 @@
         var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
 
         var camposHtml = '<div style="text-align:left;">';
-        camposHtml += '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-rev-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="_actualizarCamposRevisionPeso()">' +
-            bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>';
+        camposHtml += '<label style="font-weight:bold;">Máquina / Producto</label><select id="peso-rev-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;" onchange="_actualizarCamposRevisionPeso()">' +
+            bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + _segmentoActualBloque(bl).producto + '</option>'; }).join('') + '</select>';
         camposHtml += '<label style="font-weight:bold;">Hora</label><input id="peso-rev-hora" class="swal2-input" value="' + horaStr + '" style="margin-bottom:12px;">';
         camposHtml += '<label style="display:flex; align-items:center; gap:8px; margin-bottom:12px;"><input type="checkbox" id="peso-rev-paro" onchange="document.getElementById(\'peso-rev-pesos\').style.display = this.checked ? \'none\' : \'block\'; document.getElementById(\'peso-rev-causa-box\').style.display = this.checked ? \'block\' : \'none\';"> Esta revisión fue un Paro (sin pesos)</label>';
         camposHtml += '<div id="peso-rev-causa-box" style="display:none;"><input id="peso-rev-causa" class="swal2-input" placeholder="Causa del paro" style="margin-bottom:8px;"><input id="peso-rev-accion" class="swal2-input" placeholder="Ajuste/Acción Correctiva" style="margin-bottom:8px;"><input id="peso-rev-tecnico" class="swal2-input" placeholder="Técnico de línea (operador)" style="margin-bottom:12px;"></div>';
@@ -4516,9 +4523,9 @@
         var lotes = b.lotes || [];
 
         var htmlCont = '<div style="text-align:left;">' +
-            '<label style="font-weight:bold;">Máquina</label><select id="peso-editbl-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
+            '<label style="font-weight:bold;">Máquina</label><select id="peso-editbl-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;">' +
             opcionesMaquinas.map(function(m) { return '<option value="' + m + '" ' + (m === b.maquina ? 'selected' : '') + '>' + m + '</option>'; }).join('') + '</select>' +
-            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '" style="margin:4px 0 12px 0;">' +
+            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '" style="margin:4px 0 12px 0; width:100px; box-sizing:border-box;">' +
             '<label style="font-weight:bold;">Producto y lote de cada segmento</label>' +
             lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-producto' + i + '" class="swal2-input" value="' + l.producto + '" placeholder="Producto" style="flex:2; margin:0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" placeholder="Lote" style="flex:1; margin:0;"></div>'; }).join('') +
             '</div>';
@@ -4573,8 +4580,8 @@
 
         Swal.fire({
             title: '🏁 Marcar Fin de Producción',
-            html: '<div style="text-align:left;"><label style="font-weight:bold;">Máquina / Producto</label><select id="peso-fin-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;">' +
-                bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + bl.producto + '</option>'; }).join('') + '</select>' +
+            html: '<div style="text-align:left;"><label style="font-weight:bold;">Máquina / Producto</label><select id="peso-fin-bloque" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;">' +
+                bloques.map(function(bl) { return '<option value="' + bl.id + '" ' + (bl.id === bloqueActual.id ? 'selected' : '') + '>' + bl.maquina + ' — ' + _segmentoActualBloque(bl).producto + '</option>'; }).join('') + '</select>' +
                 '<label style="font-weight:bold;">Hora</label><input id="peso-fin-hora" class="swal2-input" value="' + horaStr + '"></div>',
             showCancelButton: true, confirmButtonText: 'Marcar Fin',
             preConfirm: function() {
@@ -4602,12 +4609,12 @@
             return Swal.fire('Todas las máquinas ya están activas', 'Si cambió el producto o el lote en una máquina que ya está trabajando, usa "📦 Nuevo Producto/Lote" en vez de esto.', 'info');
         }
         var htmlCont = '<div style="text-align:left;">' +
-            '<label style="font-weight:bold;">Máquina</label><select id="peso-cambio-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="actualizarProductosCambioPeso()">' +
+            '<label style="font-weight:bold;">Máquina</label><select id="peso-cambio-maquina" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;" onchange="actualizarProductosCambioPeso()">' +
             '<option value="">-- Seleccione --</option>' + opcionesMaquinas.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('') + '</select>' +
-            '<label style="font-weight:bold;">Producto</label><select id="peso-cambio-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px;" onchange="previsualizarVenceCambioPeso()"><option value="">-- Seleccione Máquina Primero --</option></select>' +
-            '<label style="font-weight:bold;">Lote</label><input id="peso-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0;" oninput="previsualizarVenceCambioPeso()">' +
-            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-cambio-vence" class="swal2-input" style="margin:4px 0 12px 0;">' +
-            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-cambio-bocas" type="number" class="swal2-input" value="5">' +
+            '<label style="font-weight:bold;">Producto</label><select id="peso-cambio-producto" class="swal2-select" style="width:100%; margin:4px 0 12px 0; padding:10px; box-sizing:border-box;" onchange="previsualizarVenceCambioPeso()"><option value="">-- Seleccione Máquina Primero --</option></select>' +
+            '<label style="font-weight:bold;">Lote</label><input id="peso-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0; width:140px; box-sizing:border-box;" oninput="previsualizarVenceCambioPeso()">' +
+            '<label style="font-weight:bold;">Vence (sugerido automático — editable)</label><input id="peso-cambio-vence" class="swal2-input" style="margin:4px 0 12px 0; width:180px; box-sizing:border-box;">' +
+            '<label style="font-weight:bold;">Cantidad de Bocas</label><input id="peso-cambio-bocas" type="number" class="swal2-input" value="5" style="width:100px; box-sizing:border-box;">' +
             '</div>';
 
         window._catalogoTipoTemp = tipo;
@@ -4666,7 +4673,7 @@
             html += '<p style="font-weight:bold; margin-bottom:6px;">Bloques eliminados</p>';
             bloquesEliminados.forEach(function(b) {
                 html += '<div style="border:1px solid #ccc; border-radius:8px; padding:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
-                    '<span style="font-size:0.8rem;">' + b.maquina + ' — ' + b.producto + '<br><span style="font-size:0.7rem; color:#888;">Eliminado por ' + (b.eliminadoPor || '—') + '</span></span>' +
+                    '<span style="font-size:0.8rem;">' + b.maquina + ' — ' + _segmentoActualBloque(b).producto + '<br><span style="font-size:0.7rem; color:#888;">Eliminado por ' + (b.eliminadoPor || '—') + '</span></span>' +
                     '<button class="btn-action" style="width:auto; padding:6px 10px; font-size:0.75rem; background-color:#198754; color:white; flex-shrink:0;" onclick="restaurarBloquePeso(\'' + b.id + '\')">↩️ Restaurar</button>' +
                 '</div>';
             });
@@ -4738,7 +4745,7 @@
             }
             Swal.fire({
                 title: '👥 Añadir Compañero',
-                html: '<select id="peso-colab-select" class="swal2-select" style="width:100%; padding:10px;"><option value="">-- Selecciona --</option>' +
+                html: '<select id="peso-colab-select" class="swal2-select" style="width:100%; padding:10px; box-sizing:border-box;"><option value="">-- Selecciona --</option>' +
                     disponibles.map(function(a) { return '<option value="' + a.uid + '" data-nombre="' + a.nombre + '">' + a.nombre + '</option>'; }).join('') + '</select>',
                 showCancelButton: true, confirmButtonText: 'Añadir',
                 preConfirm: function() {
@@ -4768,7 +4775,7 @@
             }
             Swal.fire({
                 title: '🤝 Entregar Turno',
-                html: '<p style="font-size:0.85rem;">Vas a entregarle el turno a la persona que elijas. Tú y tu equipo actual conservan acceso por 40 minutos más, por si hace falta revisar algo.</p><select id="peso-entrega-select" class="swal2-select" style="width:100%; padding:10px;"><option value="">-- Selecciona quién recibe --</option>' +
+                html: '<p style="font-size:0.85rem;">Vas a entregarle el turno a la persona que elijas. Tú y tu equipo actual conservan acceso por 40 minutos más, por si hace falta revisar algo.</p><select id="peso-entrega-select" class="swal2-select" style="width:100%; padding:10px; box-sizing:border-box;"><option value="">-- Selecciona quién recibe --</option>' +
                     disponibles.map(function(a) { return '<option value="' + a.uid + '" data-nombre="' + a.nombre + '">' + a.nombre + '</option>'; }).join('') + '</select>',
                 showCancelButton: true, confirmButtonText: 'Entregar'
             }).then(function(res) {
@@ -4838,6 +4845,99 @@
     // 3 bloques de producto que trae la hoja física; si hay más de 3, los
     // que sobren se listan aparte al final (igual que en físico usarían
     // una página nueva).
+    // Rellena una plantilla oficial de verificación de peso (UHT o
+    // Derivados) — ambas comparten exactamente la misma estructura de
+    // encabezado y de tabla de paros, solo cambian dónde empieza cada
+    // bloque de producto y cuántas filas de boca caben.
+    function _rellenarPlantillaOficialPeso(ws, config) {
+        var bloques = _bloquesVisibles(_pesoDatos.bloques);
+        var revisiones = _pesoDatos.revisiones || [];
+        var primero = bloques[0];
+        var primerLote = primero ? _segmentoActualBloque(primero) : null;
+
+        // Las horas ("07:30", "Paro") no cabían en el ancho original —
+        // se ensanchan todas las columnas de datos (B hasta AH).
+        for (var col = 2; col <= config.maxCol; col++) { ws.getColumn(col).width = 7.5; }
+
+        var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
+        var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
+
+        ws.getCell('A5').value = 'FECHA : ' + fechaTxt;
+        ws.getCell('G5').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
+        ws.getCell('M5').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '') + '          MÁQUINA: ' + (primero ? primero.maquina : '');
+
+        var normalFont = { name: 'Arial', size: 9 };
+        var finFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF842029' } };
+        var loteFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF664D03' } };
+        var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+        var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
+        var avisoBocas = false;
+
+        bloques.slice(0, config.baseRows.length).forEach(function(bloque, idx) {
+            var baseRow = config.baseRows[idx];
+            var grupos = _agruparRevisionesPorLote(bloque, revisiones);
+
+            ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
+
+            var filaHoras = ws.getRow(baseRow + 1);
+            var col = 2;
+            grupos.forEach(function(g, gi) {
+                if (gi > 0) {
+                    if (col <= config.maxCol) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
+                    if (col <= config.maxCol) { var cLote = filaHoras.getCell(col); cLote.value = g.lote.producto + ' — ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
+                }
+                g.revs.forEach(function(r) {
+                    if (col > config.maxCol) return;
+                    var c = filaHoras.getCell(col);
+                    c.value = _formatoHoraCelda(r);
+                    c.font = normalFont;
+                    c.alignment = { horizontal: 'center' };
+                    col++;
+                });
+            });
+
+            var bocasAMostrar = Math.min(bloque.bocas, config.bocasMax);
+            if (bloque.bocas > config.bocasMax) avisoBocas = true;
+            for (var b = 1; b <= bocasAMostrar; b++) {
+                var filaB = ws.getRow(baseRow + 2 + b);
+                var col2 = 2;
+                grupos.forEach(function(g, gi) {
+                    if (gi > 0) {
+                        if (col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
+                        if (col2 <= config.maxCol) { filaB.getCell(col2).fill = loteFill; col2++; }
+                    }
+                    g.revs.forEach(function(r) {
+                        if (col2 > config.maxCol) return;
+                        var c = filaB.getCell(col2);
+                        c.value = _formatoPesoValor(r, b);
+                        c.font = normalFont;
+                        c.alignment = { horizontal: 'center' };
+                        col2++;
+                    });
+                });
+            }
+        });
+
+        // Tabla de "Hora / Causa / Ajuste-Acción Correctiva / Técnico de línea"
+        var filaCausa = config.causaDataStart;
+        revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
+            if (filaCausa > config.causaDataEnd) return;
+            ws.getCell('A' + filaCausa).value = p.hora;
+            ws.getCell('B' + filaCausa).value = p.causaParo || 'Sin especificar';
+            ws.getCell('F' + filaCausa).value = p.accionCorrectiva || '';
+            ws.getCell('AB' + filaCausa).value = p.tecnicoLinea || '';
+            filaCausa++;
+        });
+
+        var notasExtra = [];
+        if (bloques.length > config.baseRows.length) notasExtra.push('⚠️ Esta hoja tuvo ' + (bloques.length - config.baseRows.length) + ' máquina(s) adicionales que no caben en esta plantilla (' + config.baseRows.length + ' por página) — revísalas en la app.');
+        if (avisoBocas) notasExtra.push('⚠️ Alguna máquina tiene más bocas de las que caben en esta plantilla (máximo ' + config.bocasMax + ' filas por bloque). Revisa el detalle completo en la app.');
+        notasExtra.forEach(function(texto) {
+            var fila = ws.addRow([texto]);
+            fila.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
+        });
+    }
+
     function descargarExcelPesoConPlantillaUht() {
         Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
@@ -4848,88 +4948,10 @@
             var wb = new ExcelJS.Workbook();
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
-                var bloques = _bloquesVisibles(_pesoDatos.bloques);
-                var revisiones = _pesoDatos.revisiones || [];
-                var primero = bloques[0];
-                var primerLote = primero && primero.lotes && primero.lotes.length ? primero.lotes[0] : null;
-
-                // Las horas ("07:30", "Paro") no cabían en el ancho original de las
-                // columnas — se ensanchan un poco todas las columnas de datos.
-                for (var col = 2; col <= 25; col++) { ws.getColumn(col).width = 7.5; }
-
-                var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
-                var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
-
-                ws.getCell('A6').value = 'FECHA: ' + fechaTxt;
-                ws.getCell('D6').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
-                ws.getCell('J6').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '');
-                ws.getCell('Q6').value = 'MÁQUINA: ' + (primero ? primero.maquina : '');
-
-                var normalFont = { name: 'Arial', size: 9 };
-                var finFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF842029' } };
-                var loteFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF664D03' } };
-                var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
-                var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
-
-                bloques.slice(0, 3).forEach(function(bloque, idx) {
-                    var baseRow = 7 + (idx * 8);
-                    var grupos = _agruparRevisionesPorLote(bloque, revisiones);
-
-                    ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
-
-                    var filaHoras = ws.getRow(baseRow + 1);
-                    var col = 2;
-                    grupos.forEach(function(g, gi) {
-                        if (gi > 0) {
-                            if (col <= 25) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
-                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = g.lote.producto + ' — ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
-                        }
-                        g.revs.forEach(function(r) {
-                            if (col > 25) return;
-                            var c = filaHoras.getCell(col);
-                            c.value = _formatoHoraCelda(r);
-                            c.font = normalFont;
-                            c.alignment = { horizontal: 'center' };
-                            col++;
-                        });
-                    });
-
-                    for (var b = 1; b <= Math.min(bloque.bocas, 5); b++) {
-                        var filaB = ws.getRow(baseRow + 2 + b);
-                        var col2 = 2;
-                        grupos.forEach(function(g, gi) {
-                            if (gi > 0) {
-                                if (col2 <= 25) { filaB.getCell(col2).fill = finFill; col2++; }
-                                if (col2 <= 25) { filaB.getCell(col2).fill = loteFill; col2++; }
-                            }
-                            g.revs.forEach(function(r) {
-                                if (col2 > 25) return;
-                                var c = filaB.getCell(col2);
-                                c.value = _formatoPesoValor(r, b);
-                                c.font = normalFont;
-                                c.alignment = { horizontal: 'center' };
-                                col2++;
-                            });
-                        });
-                    }
+                _rellenarPlantillaOficialPeso(ws, {
+                    baseRows: [6, 14, 22], bocasMax: 5, maxCol: 34,
+                    causaDataStart: 35, causaDataEnd: 39
                 });
-
-                // Causas de paro en la tabla de "Hora / Causa / Ajuste / Técnico de línea" que ya trae la plantilla
-                var filaCausa = 36;
-                revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
-                    if (filaCausa > 41) return; // la plantilla solo trae 6 filas para esto
-                    ws.getCell('A' + filaCausa).value = p.hora;
-                    ws.getCell('C' + filaCausa).value = p.causaParo || 'Sin especificar';
-                    ws.getCell('G' + filaCausa).value = p.accionCorrectiva || '';
-                    ws.getCell('U' + filaCausa).value = p.tecnicoLinea || '';
-                    filaCausa++;
-                });
-
-                if (bloques.length > 3) {
-                    var notaExtra = ws.addRow(['⚠️ Esta hoja tuvo ' + (bloques.length - 3) + ' bloque(s) de producto adicionales que no caben en esta plantilla (se necesitaría una página más, igual que en físico). Descárgalos revisando la hoja en la app.']);
-                    notaExtra.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
-                }
-
                 return wb.xlsx.writeBuffer();
             });
         }).then(function(buffer) {
@@ -4945,10 +4967,10 @@
         });
     }
 
-    // Llena la plantilla OFICIAL provisional SB-ACF-071 (Derivados) que
-    // subiste. A diferencia de la de UHT, aquí solo caben 2 bloques de
-    // producto por página, y hasta 9 bocas por bloque (SERAC con sus 16
-    // bocas no cabe completo — se avisa si pasa).
+    // Llena la plantilla OFICIAL SB-ACF-071 (Derivados) real. A diferencia
+    // de UHT, aquí solo caben 2 bloques de producto por página, pero cada
+    // uno trae 10 filas de boca (ERCA y PRIMO con 8 bocas caben completos;
+    // SERAC con 16 no cabe completo — se avisa si pasa).
     function descargarExcelPesoConPlantillaDerivados() {
         Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
 
@@ -4959,93 +4981,10 @@
             var wb = new ExcelJS.Workbook();
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
-                var bloques = _bloquesVisibles(_pesoDatos.bloques);
-                var revisiones = _pesoDatos.revisiones || [];
-                var primero = bloques[0];
-                var primerLote = primero ? _segmentoActualBloque(primero) : null;
-
-                for (var col = 2; col <= 25; col++) { ws.getColumn(col).width = 7.5; }
-
-                var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
-                var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
-
-                ws.getCell('A6').value = 'FECHA: ' + fechaTxt;
-                ws.getCell('D6').value = 'LOTE: ' + (primerLote ? primerLote.lote : '');
-                ws.getCell('J6').value = 'VENCE: ' + (primerLote ? (primerLote.vence || '') : '');
-                ws.getCell('Q6').value = 'MÁQUINA: ' + (primero ? primero.maquina : '');
-
-                var normalFont = { name: 'Arial', size: 9 };
-                var finFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF842029' } };
-                var loteFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF664D03' } };
-                var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
-                var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
-                var avisoBocas = false;
-
-                bloques.slice(0, 2).forEach(function(bloque, idx) {
-                    var baseRow = 7 + (idx * 12); // bloque 1: filas 7-18, bloque 2: filas 19-30
-                    var grupos = _agruparRevisionesPorLote(bloque, revisiones);
-
-                    ws.getCell('B' + baseRow).value = _segmentoActualBloque(bloque).producto + ' — Máquina: ' + bloque.maquina;
-
-                    var filaHoras = ws.getRow(baseRow + 1);
-                    var col = 2;
-                    grupos.forEach(function(g, gi) {
-                        if (gi > 0) {
-                            if (col <= 25) { var cFin = filaHoras.getCell(col); cFin.value = 'FIN'; cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center' }; col++; }
-                            if (col <= 25) { var cLote = filaHoras.getCell(col); cLote.value = g.lote.producto + ' — ' + g.lote.lote; cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', textRotation: 90 }; col++; }
-                        }
-                        g.revs.forEach(function(r) {
-                            if (col > 25) return;
-                            var c = filaHoras.getCell(col);
-                            c.value = _formatoHoraCelda(r);
-                            c.font = normalFont;
-                            c.alignment = { horizontal: 'center' };
-                            col++;
-                        });
-                    });
-
-                    var bocasAMostrar = Math.min(bloque.bocas, 9); // la plantilla solo trae 9 filas por bloque
-                    if (bloque.bocas > 9) avisoBocas = true;
-                    for (var b = 1; b <= bocasAMostrar; b++) {
-                        var filaB = ws.getRow(baseRow + 2 + b);
-                        filaB.getCell(1).value = 'B' + b;
-                        var col2 = 2;
-                        grupos.forEach(function(g, gi) {
-                            if (gi > 0) {
-                                if (col2 <= 25) { filaB.getCell(col2).fill = finFill; col2++; }
-                                if (col2 <= 25) { filaB.getCell(col2).fill = loteFill; col2++; }
-                            }
-                            g.revs.forEach(function(r) {
-                                if (col2 > 25) return;
-                                var c = filaB.getCell(col2);
-                                c.value = _formatoPesoValor(r, b);
-                                c.font = normalFont;
-                                c.alignment = { horizontal: 'center' };
-                                col2++;
-                            });
-                        });
-                    }
+                _rellenarPlantillaOficialPeso(ws, {
+                    baseRows: [6, 20], bocasMax: 10, maxCol: 34,
+                    causaDataStart: 39, causaDataEnd: 43
                 });
-
-                // Causas de paro en la tabla de "Hora / Causa / Ajuste / Técnico de línea"
-                var filaCausa = 37;
-                revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
-                    if (filaCausa > 42) return;
-                    ws.getCell('A' + filaCausa).value = p.hora;
-                    ws.getCell('C' + filaCausa).value = p.causaParo || 'Sin especificar';
-                    ws.getCell('G' + filaCausa).value = p.accionCorrectiva || '';
-                    ws.getCell('U' + filaCausa).value = p.tecnicoLinea || '';
-                    filaCausa++;
-                });
-
-                var notasExtra = [];
-                if (bloques.length > 2) notasExtra.push('⚠️ Esta hoja tuvo ' + (bloques.length - 2) + ' máquina(s) adicionales que no caben en esta plantilla (2 por página) — revísalas en la app.');
-                if (avisoBocas) notasExtra.push('⚠️ Alguna máquina tiene más de 9 bocas (ej. SERAC con 16) — esta plantilla provisional solo trae 9 filas por bloque, así que no todas las bocas caben. Revisa el detalle completo en la app.');
-                notasExtra.forEach(function(texto) {
-                    var fila = ws.addRow([texto]);
-                    fila.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
-                });
-
                 return wb.xlsx.writeBuffer();
             });
         }).then(function(buffer) {
