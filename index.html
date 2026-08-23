@@ -897,7 +897,7 @@
             <div id="peso-trabajo" style="display:none;">
                 <div id="peso-equipo-banner" style="background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.85rem;"></div>
                 <div id="peso-recibir-cta" style="display:none; margin-bottom: 12px;">
-                    <button class="btn-action" style="width:100%; background-color: #198754; color:white;" onclick="recibirTurnoPeso()">✅ Recibir Turno</button>
+                    <button class="btn-action" style="width:100%; background-color: #198754; color:white;" onclick="confirmarRecibirTurnoPeso()">✅ Recibir Turno</button>
                 </div>
 
                 <p id="peso-info-actual" style="font-size:0.85rem; color:#6c757d; margin:0 0 15px 0;"></p>
@@ -1045,6 +1045,29 @@
         }
     };
 
+    // Convierte un lote "DDMM" (o "DMM") en la fecha de producción real.
+    // OJO con el año: antes se usaba siempre el año en curso, así que un lote
+    // de diciembre consultado en enero calculaba sobre el diciembre del año
+    // NUEVO y el vencimiento salía un año corrido. Si la fecha resultante cae
+    // más de 2 días en el futuro, se asume que el lote es del año anterior.
+    function _fechaDeLote(loteStr) {
+        if (!loteStr) return null;
+        loteStr = String(loteStr).trim();
+        if (loteStr.length < 3 || loteStr.length > 4) return null;
+        loteStr = loteStr.padStart(4, '0');
+        var day = parseInt(loteStr.substring(0, 2), 10);
+        var month = parseInt(loteStr.substring(2, 4), 10) - 1;
+        var hoy = new Date();
+        var prodDate = new Date(hoy.getFullYear(), month, day);
+        if (isNaN(prodDate.getTime()) || prodDate.getMonth() !== month || prodDate.getDate() !== day) return null;
+        var margenMs = 2 * 24 * 60 * 60 * 1000;
+        if (prodDate.getTime() - hoy.getTime() > margenMs) {
+            prodDate = new Date(hoy.getFullYear() - 1, month, day);
+            if (prodDate.getMonth() !== month) return null; // 29/02 de un año no bisiesto
+        }
+        return prodDate;
+    }
+
     function obtenerDiasProducto(tipo, maquina, producto) {
         var info = catalogoMaquinasPeso[tipo] && catalogoMaquinasPeso[tipo][maquina];
         if (!info) return 62;
@@ -1053,8 +1076,6 @@
     }
 
     var _pesoInicializado = false;
-    var _pesoTipoSeleccionTemp = null;
-    var _pesoTipoActual = null;      // 'uht' o 'derivados' — la hoja que se está trabajando ahora
     var _pesoDatos = null;           // copia local del documento compartido (vivo)
     var _pesoUnsubUht = null;
     var _pesoUnsubDerivados = null;
@@ -1139,6 +1160,11 @@
 
         // 4. Clonar la Tabla de Datos
         var tablaOriginal = document.querySelector('#contenedor-tabla-registros table');
+        if (!tablaOriginal) {
+            // Sin esta salida, si la tabla no existe reventaba aquí y el
+            // "Generando Imagen..." se quedaba girando para siempre.
+            return Swal.fire('Error', 'No se encontró la tabla de registros en pantalla.', 'error');
+        }
         var tablaClon = tablaOriginal.cloneNode(true);
         tablaClon.style.width = '100%';
         tablaClon.style.borderCollapse = 'collapse';
@@ -1179,8 +1205,11 @@
                 var link = document.createElement('a');
                 link.download = `Reporte_Yogurt_Turno${tValue}_${dateStr.replace(/\//g,'-')}.png`;
                 link.href = canvas.toDataURL('image/png');
+                link.style.display = 'none';
+                document.body.appendChild(link);
                 link.click();
-                
+                setTimeout(function() { if (link.parentNode) link.parentNode.removeChild(link); }, 4000);
+
                 document.body.removeChild(container);
                 Swal.fire('¡Captura Lista!', 'La imagen se ha guardado en tu galería.', 'success');
             }).catch(err => {
@@ -1215,7 +1244,10 @@
         
         let opts = dd.querySelectorAll('.drop-opt');
         opts.forEach(o => o.classList.remove('active'));
-        if(event && event.target) event.target.classList.add('active');
+        // "event" global es no estándar; se consulta con cuidado para no
+        // reventar si esta función se llama desde código y no desde un click.
+        var evt = (typeof window !== 'undefined') ? window.event : null;
+        if (evt && evt.target && evt.target.classList) evt.target.classList.add('active');
         
         if (triggerContext === 'producto') {
             detectarCambioManual();
@@ -1332,7 +1364,23 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.5.3 (Actual) - Datos Completos en Cada Bloque del Excel</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.6.0 (Actual) - Revisión General y Correcciones de Fondo</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> el botón "Recibir Turno" de Verificación de Peso no funcionaba (chocaba con una función interna de la nube).</li>' +
+                      '<li><b>Corregido:</b> el Modo Simulación de Peso escribía el turno de prueba sobre la hoja REAL al crearla. Ahora sí queda aislado.</li>' +
+                      '<li><b>Corregido:</b> al cerrar turno se borraba la licencia de Modo Emergencia — el operario quedaba bloqueado de golpe — y se podía reutilizar la emergencia varias veces el mismo mes.</li>' +
+                      '<li><b>Corregido:</b> los vencimientos de un lote de diciembre consultado en enero salían con un año de más (Caducidad y Verificación de Peso).</li>' +
+                      '<li><b>Corregido:</b> en turno C la hoja de Peso desordenaba las revisiones al cruzar la medianoche.</li>' +
+                      '<li><b>Corregido:</b> el "FIN" duplicado ya no aparece tampoco en "Ver Formato" ni en la tabla de trabajo (antes solo estaba arreglado en el Excel).</li>' +
+                      '<li><b>Corregido:</b> al subir varios turnos pendientes salía una alerta de error por cada uno y tapaban el resumen.</li>' +
+                      '<li><b>Corregido:</b> se podía iniciar un Turno Oficial sin haber seleccionado el turno.</li>' +
+                      '<li><b>Corregido:</b> "Deshacer" en Cestas podía dejar los contadores en negativo.</li>' +
+                      '<li><b>Corregido:</b> al editar la hora de inicio de un paro, la duración quedaba descuadrada.</li>' +
+                      '<li>Descargas más confiables en celular (Excel, respaldo e imagen).</li>' +
+                      '<li>El Excel de Cestas ahora avisa si hay revisiones que no caben en la plantilla, en vez de descartarlas en silencio.</li>' +
+                      '<li>Los textos con comillas (motivos de paro, observaciones) ya no rompen las ventanas de edición.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.5.3 - Datos Completos en Cada Bloque del Excel</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Cada bloque de producto en el Excel ahora muestra su propio Lote y Vence — antes solo aparecían en el encabezado del primer bloque de la hoja.</li>' +
                       '<li>El marcador "FIN" ahora también muestra la hora en la que se terminó, no solo la palabra.</li>' +
@@ -1506,13 +1554,8 @@
             return Swal.fire('Error de Lote', 'Ingresa el lote en formato de 3 o 4 dígitos (Ej. 107 para 1 de julio, o 1507 para 15 de julio).', 'warning');
         }
 
-        loteStr = loteStr.padStart(4, '0');
-        let day = parseInt(loteStr.substring(0, 2));
-        let month = parseInt(loteStr.substring(2, 4)) - 1; 
-        let year = new Date().getFullYear(); 
-
-        let prodDate = new Date(year, month, day);
-        if (isNaN(prodDate.getTime()) || prodDate.getMonth() !== month) {
+        let prodDate = _fechaDeLote(loteStr);
+        if (!prodDate) {
             return Swal.fire('Fecha Inválida', 'El lote ingresado no corresponde a una fecha real del calendario.', 'error');
         }
 
@@ -1575,13 +1618,8 @@
         };
         var dataStr = JSON.stringify(exportData, null, 2);
         var blob = new Blob([dataStr], {type: "text/plain;charset=utf-8"});
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        
         var fechaObj = new Date(); var dd = String(fechaObj.getDate()).padStart(2, '0'); var mm = String(fechaObj.getMonth() + 1).padStart(2, '0');
-        a.download = "SNDRLABS_MemoriaInterna_" + dd + mm + ".txt";
-        a.click();
-        URL.revokeObjectURL(a.href);
+        _descargarBlob(blob, "SNDRLABS_MemoriaInterna_" + dd + mm + ".txt");
         Swal.fire('Guardado', 'Archivo de respaldo creado en tus Descargas.', 'success');
     }
 
@@ -1710,14 +1748,19 @@
                 if (!silencioso) {
                     Swal.fire({ icon: 'success', title: 'Turno sincronizado con la nube', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
                 }
-            } else {
+            } else if (!silencioso) {
+                // "silencioso" ahora también calla los fallos: antes, al subir
+                // varios pendientes de un jalón (o al volver la señal), salía
+                // una alerta por cada turno fallido y tapaban el resumen final.
                 Swal.fire({ icon: 'warning', title: 'No se pudo sincronizar con la nube', text: 'El turno quedó guardado en este dispositivo, pero no llegó a la nube. Puedes reintentarlo desde "Historial Turnos Pasados" o "Sincronización" cuando tengas mejor señal.', confirmButtonText: 'Entendido' });
             }
             if (document.getElementById('sincronizacion-overlay').style.display === 'flex') { renderizarPanelSincronizacion(); }
             return exito;
         }).catch(function() {
             marcarSincronizacionTurno(turno.id, false);
-            Swal.fire({ icon: 'warning', title: 'No se pudo sincronizar con la nube', text: 'El turno quedó guardado en este dispositivo, pero no llegó a la nube. Puedes reintentarlo desde "Historial Turnos Pasados" o "Sincronización" cuando tengas mejor señal.', confirmButtonText: 'Entendido' });
+            if (!silencioso) {
+                Swal.fire({ icon: 'warning', title: 'No se pudo sincronizar con la nube', text: 'El turno quedó guardado en este dispositivo, pero no llegó a la nube. Puedes reintentarlo desde "Historial Turnos Pasados" o "Sincronización" cuando tengas mejor señal.', confirmButtonText: 'Entendido' });
+            }
             if (document.getElementById('sincronizacion-overlay').style.display === 'flex') { renderizarPanelSincronizacion(); }
             return false;
         });
@@ -2409,6 +2452,13 @@
     }
 
     function inicializarNuevoTurnoOficial() {
+        // Sin esta validación, si nadie elegía turno quedaba turnoActivo = ""
+        // y la app se comportaba como si NO hubiera turno iniciado (contadores
+        // bloqueados, sin cortes automáticos), pero ya había escrito la primera fila.
+        var turnoElegido = document.getElementById('select-turno').value;
+        if (!turnoElegido) {
+            return Swal.fire('Falta el Turno', 'Selecciona primero tu turno (A, B, C, A+ o A+B) antes de iniciar.', 'warning');
+        }
         Swal.fire({
             title: '¿Iniciar Turno Oficial?', text: "Se registrará la primera fila con los datos actuales.", icon: 'info', showCancelButton: true, confirmButtonText: 'Sí, Iniciar', cancelButtonText: 'Cancelar'
         }).then(function(result) {
@@ -2517,24 +2567,27 @@
         Swal.fire({
             title: 'Editar Paro',
             html: `<label>Hora Inicio:</label> <input id="swal-hora-inicio" type="time" class="swal2-input" value="${horaStr}">
-                   <input id="swal-maquina" class="swal2-input" value="${paro.maquina}" placeholder="Máquina">
-                   <input id="swal-motivo" class="swal2-input" value="${paro.motivo}" placeholder="Motivo">
-                   <input id="swal-minutos" type="number" class="swal2-input" value="${paro.minutos}" placeholder="Minutos">`,
+                   <input id="swal-maquina" class="swal2-input" value="${_esc(paro.maquina)}" placeholder="Máquina">
+                   <input id="swal-motivo" class="swal2-input" value="${_esc(paro.motivo)}" placeholder="Motivo">
+                   <input id="swal-minutos" type="number" class="swal2-input" value="${paro.minutos || 0}" placeholder="Minutos">`,
             confirmButtonText: 'Guardar',
             focusConfirm: false,
             preConfirm: () => {
                 const nuevaHoraStr = document.getElementById('swal-hora-inicio').value;
                 const [horas, minutos] = nuevaHoraStr.split(':');
                 const nuevaHoraInicio = new Date(paro.hora_inicio);
-                nuevaHoraInicio.setHours(horas, minutos);
+                nuevaHoraInicio.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0, 0);
                 parosRegistrados[index].hora_inicio = nuevaHoraInicio.toISOString();
-                if (parosRegistrados[index].hora_fin) {
-                    const horaFin = new Date(parosRegistrados[index].hora_fin);
-                    parosRegistrados[index].minutos = Math.round((horaFin - nuevaHoraInicio) / 60000);
-                }
                 parosRegistrados[index].maquina = document.getElementById('swal-maquina').value;
                 parosRegistrados[index].motivo = document.getElementById('swal-motivo').value;
+                // Los minutos que se escriben aquí mandan, y la hora de fin se
+                // recalcula a partir de ellos. Antes se calculaba la duración
+                // desde hora_fin y una línea después se pisaba con este input,
+                // así que cambiar la hora de inicio dejaba todo descuadrado.
                 parosRegistrados[index].minutos = parseInt(document.getElementById('swal-minutos').value) || 0;
+                if (parosRegistrados[index].hora_fin) {
+                    parosRegistrados[index].hora_fin = new Date(nuevaHoraInicio.getTime() + parosRegistrados[index].minutos * 60000).toISOString();
+                }
                 guardarParosEnMemoria();
                 actualizarBotonParoUI();
                 Swal.close();
@@ -2933,20 +2986,10 @@
         });
     }
 
-    function renderizarTabla() {
-        var tbody = document.getElementById('tabla-cuerpo'); if(!tbody) return; 
-        tbody.innerHTML = "";
-        
-        var totalPack = 0; 
-        var totalMal = 0; 
-        var totalSobre = 0; 
-        var totalBajo = 0; 
-        var totalBaldesMerma = 0; 
-        var totalLitrosMerma = 0;
-        var lastHeaderSignature = "";
-
-        // Función para editar el texto de la cabecera de sección
-        window.editarCabeceraSeccion = function(index) {
+    // Editar/eliminar la cabecera de un cambio de sabor. Antes se redefinía
+    // dentro de renderizarTabla(), o sea que se volvía a crear en cada
+    // repintado de la tabla sin ninguna necesidad.
+    function editarCabeceraSeccion(index) {
             var r = registros[index];
             Swal.fire({
                 title: 'Cambio de Sabor (' + r.hora + ')',
@@ -2986,6 +3029,18 @@
                 }
             });
         }
+
+    function renderizarTabla() {
+        var tbody = document.getElementById('tabla-cuerpo'); if(!tbody) return; 
+        tbody.innerHTML = "";
+        
+        var totalPack = 0; 
+        var totalMal = 0; 
+        var totalSobre = 0; 
+        var totalBajo = 0; 
+        var totalBaldesMerma = 0; 
+        var totalLitrosMerma = 0;
+        var lastHeaderSignature = "";
 
         for (var i = 0; i < registros.length; i++) {
             var reg = registros[i];
@@ -3037,6 +3092,34 @@
 
         document.getElementById('conversion-box').innerHTML = "📦 Equivalencia de producción: <b>" + equivPaquetes + " paquetes</b> (~" + equivPolines + " polines)";
         document.getElementById('merma-box').innerHTML = '<span>🪣 Total merma: <b>' + totalBaldesMerma + ' baldes</b> | ~' + mermaTotalLitros + ' Litros</span><span style="font-size: 0.75rem; text-decoration: underline; color:var(--purple);">Ver detalles 🔍</span>';
+    }
+
+    // Descarga un archivo de forma segura en celulares. Antes cada descarga
+    // creaba un <a> suelto (sin insertarlo en la página) y revocaba el enlace
+    // inmediatamente después del click — en Chrome Android y en iOS eso a veces
+    // cancela la descarga antes de que arranque. Aquí se inserta, se hace click
+    // y se libera la memoria un momento después.
+    // Escapa comillas y signos para meter texto libre dentro de un atributo
+    // HTML. Sin esto, un motivo de paro u observación con comillas rompía el
+    // formulario de edición (los campos salían vacíos o cortados).
+    function _esc(txt) {
+        return String(txt === undefined || txt === null ? '' : txt)
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function _descargarBlob(blob, nombreArchivo) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+            URL.revokeObjectURL(url);
+            if (a.parentNode) a.parentNode.removeChild(a);
+        }, 4000);
     }
 
     function arrayBufferToBase64(buffer) {
@@ -3155,9 +3238,7 @@
                     }
 
                     var blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombreArchivo;
-                    a.click();
-                    URL.revokeObjectURL(a.href);
+                    _descargarBlob(blob, nombreArchivo);
 
                     Swal.fire({ title: '¡Excel Generado!', text: 'El reporte de Yogurt está listo.', icon: 'success' });
                 });
@@ -3205,9 +3286,19 @@
         }).then(function(res) {
             if (res.isConfirmed) {
                 guardarTurnoPasado();
-                var idSafe = localStorage.getItem('lala_device_id'); var passSafe = localStorage.getItem('lala_seguridad'); var tpSafe = localStorage.getItem('lala_turnos_pasados'); var dmSafe = localStorage.getItem('lala_dark_mode');
+                // Se conservan TODAS las llaves que no son del turno. Antes solo se
+                // salvaban 4 y el localStorage.clear() se llevaba por delante:
+                //  - lala_emergencia_activa  -> el operario en Modo Emergencia quedaba
+                //    bloqueado de golpe al cerrar su turno.
+                //  - lala_emergencia_usada   -> se podía volver a usar la emergencia
+                //    varias veces en el mismo mes.
+                //  - lala_ultima_version_vista -> el historial de versiones volvía a
+                //    saltar en cada cierre de turno.
+                var LLAVES_PERMANENTES = ['lala_device_id', 'lala_seguridad', 'lala_turnos_pasados', 'lala_dark_mode', 'lala_emergencia_activa', 'lala_emergencia_usada', 'lala_ultima_version_vista'];
+                var respaldoLlaves = {};
+                LLAVES_PERMANENTES.forEach(function(k) { var v = localStorage.getItem(k); if (v !== null) respaldoLlaves[k] = v; });
                 try { localStorage.clear(); } catch(e){}
-                if(idSafe) localStorage.setItem('lala_device_id', idSafe); if(passSafe) localStorage.setItem('lala_seguridad', passSafe); if(tpSafe) localStorage.setItem('lala_turnos_pasados', tpSafe); if(dmSafe) localStorage.setItem('lala_dark_mode', dmSafe);
+                Object.keys(respaldoLlaves).forEach(function(k) { localStorage.setItem(k, respaldoLlaves[k]); });
 
                 contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 }; registros = []; ultimoBloqueProcesado = ""; turnoActivo = ""; modoLavadoActivo = false; alertaCestasMostrada = false;
 
@@ -3274,7 +3365,9 @@
             ultimoCorteCestas = String(ahora.getHours()).padStart(2, '0') + ":00"; 
             guardarCestas();
         }
-        historialAccionesCestas.push(tipo);
+        // Se guarda también CUÁNTO se sumó, para que "Deshacer" reste
+        // exactamente eso y no un número fijo desacoplado del botón.
+        historialAccionesCestas.push({ tipo: tipo, valor: valor });
         contadoresCestas[tipo] += valor;
         if (navigator.vibrate) navigator.vibrate(20);
         actualizarPantallaCestas();
@@ -3284,10 +3377,12 @@
     function deshacerUltimoCestas() {
         if(historialAccionesCestas.length === 0) return;
         var ultimo = historialAccionesCestas.pop();
-        if(ultimo === 'bloques') contadoresCestas.bloques -= 8;
-        if(ultimo === 'sueltas') contadoresCestas.sueltas -= 1;
-        if(ultimo === 'sucias') contadoresCestas.sucias -= 1;
-        if(ultimo === 'quebradas') contadoresCestas.quebradas -= 1;
+        // Compatibilidad: las entradas viejas eran solo el texto del tipo.
+        var tipo = (typeof ultimo === 'string') ? ultimo : (ultimo && ultimo.tipo);
+        var valor = (typeof ultimo === 'string') ? (ultimo === 'bloques' ? 8 : 1) : (ultimo && ultimo.valor) || 1;
+        if (!tipo || contadoresCestas[tipo] === undefined) return;
+        // Nunca dejar el contador en negativo.
+        contadoresCestas[tipo] = Math.max(0, contadoresCestas[tipo] - valor);
         actualizarPantallaCestas();
         guardarCestas();
     }
@@ -3344,7 +3439,7 @@
             '<label><b>Rechazadas:</b></label><input id="edit-c-rech" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.rechazadas + '">' +
             '<label><b>Sucias:</b></label><input id="edit-c-suc" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.sucias + '">' +
             '<label><b>Quebradas:</b></label><input id="edit-c-que" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.quebradas + '">' +
-            '<label><b>Obs:</b></label><input id="edit-c-obs" type="text" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.obs + '">' +
+            '<label><b>Obs:</b></label><input id="edit-c-obs" type="text" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + _esc(r.obs) + '">' +
         '</div>';
 
         Swal.fire({ title: 'Modificar Cestas', html: htmlCont, showCancelButton: true, showDenyButton: true, denyButtonText: '🗑️ Borrar', confirmButtonText: 'Guardar' }).then(res => {
@@ -3417,7 +3512,12 @@
         if(rTarget.length === 0) return Swal.fire('Vacío', 'No hay registros.', 'info');
         Swal.fire({ title: 'Generando Excel...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-        fetch('./plantilla_cestas.xlsx').then(res => res.arrayBuffer()).then(buffer => {
+        fetch('./plantilla_cestas.xlsx').then(res => {
+            // Sin este chequeo, un 404 de GitHub Pages devuelve una página HTML
+            // que ExcelJS intenta abrir como Excel y el error resulta confuso.
+            if (!res.ok) throw new Error("No se encontró 'plantilla_cestas.xlsx' en el repositorio.");
+            return res.arrayBuffer();
+        }).then(buffer => {
             var workbook = new ExcelJS.Workbook();
             return workbook.xlsx.load(buffer).then(() => {
                 var worksheet = workbook.worksheets[0];                worksheet.getCell('C6').value = "Planta San Benito";
@@ -3439,11 +3539,17 @@
 
                 worksheet.getCell('D22').value = tRev; worksheet.getCell('E22').value = tRech; worksheet.getCell('F22').value = tSuc; worksheet.getCell('G22').value = tQue;
 
+                // La plantilla solo tiene filas de la 10 a la 21 (12 revisiones).
+                // Antes, lo que pasaba de ahí se descartaba en silencio.
+                var filasQueNoCaben = Math.max(0, rTarget.length - 12);
+                if (filasQueNoCaben > 0) {
+                    var avisoCestas = worksheet.addRow(['⚠️ ' + filasQueNoCaben + ' revisión(es) no caben en esta plantilla (12 por hoja). Los totales sí las incluyen; el detalle completo está en la app.']);
+                    avisoCestas.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
+                }
+
                 return workbook.xlsx.writeBuffer().then(buf => {
                     var blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); 
-                    a.download = `Cestas_${fStrTarget}_Turno${tTarget}_${vTarget}.xlsx`; 
-                    a.click(); URL.revokeObjectURL(a.href);
+                    _descargarBlob(blob, `Cestas_${fStrTarget}_Turno${tTarget}_${vTarget}.xlsx`);
                     Swal.fire('¡Excel Generado!', '', 'success');
                 });
             });
@@ -3627,6 +3733,7 @@
 
     var _relojGlobalIniciado = false;
     var _esperandoAuthOperario = false;
+    var _authSuscrito = false;
 
     function iniciarAplicacionNormal() {
         // Espera a que el módulo de Firebase esté listo (por si la red va lenta)
@@ -3648,6 +3755,11 @@
             }
             return;
         }
+        // Guarda contra suscripciones repetidas: iniciarAplicacionNormal() se
+        // llama desde tres sitios distintos (chequeo mensual, validar clave y
+        // modo emergencia) y cada llamada registraba otro listener de Firebase.
+        if (_authSuscrito) return;
+        _authSuscrito = true;
         window.suscribirseAuthOperario(manejarEstadoAuthOperario);
     }
 
@@ -3788,7 +3900,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.5.3";
+    var APP_VERSION = "3.6.0";
 
     function mostrarAppPrincipal() {
         try {
@@ -3917,13 +4029,8 @@
     var _pesoModoSimulacion = false; // true = usar colección de pruebas, nunca la real
 
     function calcularVenceParaPeso(loteStr, tipo, maquina, producto) {
-        if (!loteStr || loteStr.length < 3 || loteStr.length > 4) return '';
-        loteStr = loteStr.padStart(4, '0');
-        var day = parseInt(loteStr.substring(0, 2));
-        var month = parseInt(loteStr.substring(2, 4)) - 1;
-        var year = new Date().getFullYear();
-        var prodDate = new Date(year, month, day);
-        if (isNaN(prodDate.getTime()) || prodDate.getMonth() !== month) return '';
+        var prodDate = _fechaDeLote(loteStr);
+        if (!prodDate) return '';
         var dias = obtenerDiasProducto(tipo, maquina, producto);
         var expDate = new Date(prodDate);
         expDate.setDate(expDate.getDate() + dias);
@@ -3937,10 +4044,15 @@
         document.getElementById('input-peso-vence').value = calcularVenceParaPeso(lote, _pesoVistaActual, maquina, producto) || '';
     }
 
+    var _pesoReintentoTimer = null;
+
     function inicializarTabPeso() {
         _pesoInicializado = true;
         if (typeof window.suscribirseHojaPeso !== 'function') {
-            setTimeout(inicializarTabPeso, 300);
+            // Un solo reintento pendiente a la vez: antes, cada entrada a la
+            // pestaña encolaba otro setTimeout y se acumulaban.
+            if (_pesoReintentoTimer) clearTimeout(_pesoReintentoTimer);
+            _pesoReintentoTimer = setTimeout(function() { _pesoReintentoTimer = null; inicializarTabPeso(); }, 300);
             _pesoInicializado = false;
             return;
         }
@@ -4106,9 +4218,7 @@
             document.getElementById('peso-info-actual').innerHTML = bannerSim + '🔧 ' + ultimoBloque.maquina + ' — ' + ultimoLote.producto + ' — Lote ' + ultimoLote.lote + (ultimoLote.vence ? (' — Vence ' + ultimoLote.vence) : '');
         }
 
-        var revisiones = d.revisiones || [];
-        var html = generarHtmlFormatoPeso(d, true);
-        document.getElementById('peso-tabla-container').innerHTML = html;
+        document.getElementById('peso-tabla-container').innerHTML = generarHtmlFormatoPeso(d, true);
     }
 
     // Genera el HTML de la tabla. Si editable=true, cada celda de peso y cada
@@ -4151,19 +4261,28 @@
             html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.65rem; border-collapse:collapse; ' + NEGRO + '">';
             html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Horas</td>';
             grupos.forEach(function(g, gi) {
-                if (gi > 0) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td><td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#ffe9a8; writing-mode:vertical-rl; ' + NEGRO + '">' + g.lote.producto + ' — Lote ' + g.lote.lote + '</td>';
+                if (gi > 0) {
+                    if (!_finYaMarcado(grupos, gi)) html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#f8d7da; ' + NEGRO + '">FIN</td>';
+                    html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; background:#ffe9a8; writing-mode:vertical-rl; ' + NEGRO + '">' + g.lote.producto + ' — Lote ' + g.lote.lote + '</td>';
+                }
                 g.revs.forEach(function(r) { html += '<td style="border:' + f.border + '; padding:3px; text-align:center; font-weight:bold; ' + NEGRO + '">' + _formatoHoraCelda(r) + '</td>'; });
             });
             html += '</tr><tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; background:#fafafa; ' + NEGRO + '">Peso (' + (tipo === 'uht' ? 'ml' : 'g') + ')</td>';
             grupos.forEach(function(g, gi) {
-                if (gi > 0) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td><td style="border:' + f.border + '; background:#ffe9a8;"></td>';
+                if (gi > 0) {
+                    if (!_finYaMarcado(grupos, gi)) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td>';
+                    html += '<td style="border:' + f.border + '; background:#ffe9a8;"></td>';
+                }
                 g.revs.forEach(function() { html += '<td style="border:' + f.border + ';"></td>'; });
             });
             html += '</tr>';
             for (var b = 1; b <= bloque.bocas; b++) {
                 html += '<tr><td style="border:' + f.border + '; padding:3px; font-weight:bold; ' + NEGRO + '">B' + b + '</td>';
                 grupos.forEach(function(g, gi) {
-                    if (gi > 0) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td><td style="border:' + f.border + '; background:#ffe9a8;"></td>';
+                    if (gi > 0) {
+                        if (!_finYaMarcado(grupos, gi)) html += '<td style="border:' + f.border + '; background:#f8d7da;"></td>';
+                        html += '<td style="border:' + f.border + '; background:#ffe9a8;"></td>';
+                    }
                     g.revs.forEach(function(r) {
                         html += '<td style="border:' + f.border + '; padding:3px; text-align:center; ' + NEGRO + '">' + _formatoPesoValor(r, b) + '</td>';
                     });
@@ -4226,10 +4345,21 @@
         return r.hora;
     }
 
+    // Si el grupo anterior ya cierra con un "Fin de Producción" marcado a mano,
+    // no hay que dibujar el FIN automático del cambio de lote — si no, salen
+    // dos "FIN" seguidos. (En el Excel ya estaba corregido desde la v3.5.2;
+    // faltaba aplicarlo a la vista en pantalla.)
+    function _finYaMarcado(grupos, gi) {
+        var anterior = grupos[gi - 1];
+        if (!anterior || !anterior.revs || anterior.revs.length === 0) return false;
+        var ultima = anterior.revs[anterior.revs.length - 1];
+        return !!(ultima && ultima.esFin);
+    }
+
     function generarHtmlFormatoPeso(d, editable) {
         var bloques = _bloquesVisibles(d.bloques);
         var revisiones = d.revisiones || [];
-        var html = '<div id="peso-formato-visual" style="color:#000;">';
+        var html = '<div id="peso-tabla-trabajo" style="color:#000;">';
         bloques.forEach(function(bloque) {
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
             html += '<div style="margin-bottom:18px; border:1px solid #999; border-radius:6px; overflow:hidden;">';
@@ -4239,14 +4369,20 @@
             } else {
                 html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid #ccc; padding:4px;">Boca</th>';
                 grupos.forEach(function(g, gi) {
-                    if (gi > 0) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th><th style="border:1px solid #ccc; padding:4px; background:#ffe9a8;">' + g.lote.producto + ' — ' + g.lote.lote + '</th>';
+                    if (gi > 0) {
+                        if (!_finYaMarcado(grupos, gi)) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th>';
+                        html += '<th style="border:1px solid #ccc; padding:4px; background:#ffe9a8;">' + g.lote.producto + ' — ' + g.lote.lote + '</th>';
+                    }
                     g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoHoraCelda(r) + (editable ? ' ✏️' : '') + '</th>'; });
                 });
                 html += '</tr></thead><tbody>';
                 for (var b = 1; b <= bloque.bocas; b++) {
                     html += '<tr><td style="border:1px solid #ccc; padding:4px; font-weight:bold;">B' + b + '</td>';
                     grupos.forEach(function(g, gi) {
-                        if (gi > 0) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td><td style="border:1px solid #ccc; background:#ffe9a8; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? (g.lote.producto + ' — ' + g.lote.lote) : '') + '</td>';
+                        if (gi > 0) {
+                            if (!_finYaMarcado(grupos, gi)) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td>';
+                            html += '<td style="border:1px solid #ccc; background:#ffe9a8; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? (g.lote.producto + ' — ' + g.lote.lote) : '') + '</td>';
+                        }
                         g.revs.forEach(function(r) {
                             html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoPesoValor(r, b) + '</td>';
                         });
@@ -4279,6 +4415,13 @@
         return String(m[1]).padStart(2, '0') + ':' + m[2];
     }
 
+    // "22:30" -> 1350 minutos desde medianoche. null si no es una hora válida.
+    function _horaAMinutos(str) {
+        var m = String(str || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return null;
+        return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+
     // "Papelero de reciclaje": nunca se borra de verdad, solo se marca —
     // así un admin puede recuperarlo desde la Papelera si hizo falta.
     function _marcarEliminadoPeso(obj) {
@@ -4305,8 +4448,23 @@
         var lotesMap = {};
         (bloque.lotes || []).forEach(function(l) { lotesMap[l.id] = l; });
         var revsBloque = revisiones.filter(function(r) { return r.bloqueId === bloque.id && !r.eliminado; });
-        // Ordena por hora aunque se hayan registrado fuera de orden.
-        revsBloque = revsBloque.slice().sort(function(a, b) { return _normalizarHora(a.hora).localeCompare(_normalizarHora(b.hora)); });
+        // Ordena por hora aunque se hayan registrado fuera de orden, PERO sin
+        // romperse al cruzar la medianoche: la hoja compartida no se reinicia
+        // por día, así que un turno C tiene 22:00 y luego 00:30. Ordenar solo
+        // por el texto "HH:MM" mandaba las de la madrugada al principio.
+        // Se recorre en el orden en que se registraron y, cada vez que la hora
+        // "retrocede" mucho (más de 12 h), se cuenta como día siguiente.
+        var dia = 0, horaPrevia = null;
+        revsBloque = revsBloque.map(function(r, i) {
+            var hhmm = _normalizarHora(r.hora);
+            var mins = _horaAMinutos(hhmm);
+            if (horaPrevia !== null && mins !== null && (horaPrevia - mins) > 720) dia++;
+            if (mins !== null) horaPrevia = mins;
+            return { rev: r, orden: dia * 1440 + (mins === null ? 0 : mins), idx: i };
+        }).sort(function(a, b) {
+            if (a.orden !== b.orden) return a.orden - b.orden;
+            return a.idx - b.idx;
+        }).map(function(x) { return x.rev; });
         var grupos = [];
         revsBloque.forEach(function(r) {
             var loteObj = lotesMap[r.loteId] || (bloque.lotes && bloque.lotes[0]) || { lote: bloque.lote || '', vence: bloque.vence || '' };
@@ -4539,7 +4697,7 @@
             opcionesMaquinas.map(function(m) { return '<option value="' + m + '" ' + (m === b.maquina ? 'selected' : '') + '>' + m + '</option>'; }).join('') + '</select>' +
             '<label style="font-weight:bold; display:block; margin-bottom:4px;">Cantidad de Bocas</label><input id="peso-editbl-bocas" type="number" class="swal2-input" value="' + b.bocas + '" style="display:block; margin:0 0 12px 0; width:100px; box-sizing:border-box;">' +
             '<label style="font-weight:bold;">Producto y lote de cada segmento</label>' +
-            lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-producto' + i + '" class="swal2-input" value="' + l.producto + '" placeholder="Producto" style="flex:2; margin:0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + l.lote + '" placeholder="Lote" style="flex:1; margin:0;"></div>'; }).join('') +
+            lotes.map(function(l, i) { return '<div style="display:flex; gap:6px; margin:4px 0;"><input id="peso-editbl-producto' + i + '" class="swal2-input" value="' + _esc(l.producto) + '" placeholder="Producto" style="flex:2; margin:0;"><input id="peso-editbl-lote' + i + '" class="swal2-input" value="' + _esc(l.lote) + '" placeholder="Lote" style="flex:1; margin:0;"></div>'; }).join('') +
             '</div>';
 
         Swal.fire({
@@ -4758,7 +4916,7 @@
             Swal.fire({
                 title: '👥 Añadir Compañero',
                 html: '<select id="peso-colab-select" class="swal2-select" style="width:100% !important; max-width:100% !important; padding:10px; box-sizing:border-box !important; display:block !important; margin:0 !important;"><option value="">-- Selecciona --</option>' +
-                    disponibles.map(function(a) { return '<option value="' + a.uid + '" data-nombre="' + a.nombre + '">' + a.nombre + '</option>'; }).join('') + '</select>',
+                    disponibles.map(function(a) { return '<option value="' + _esc(a.uid) + '" data-nombre="' + _esc(a.nombre) + '">' + _esc(a.nombre) + '</option>'; }).join('') + '</select>',
                 showCancelButton: true, confirmButtonText: 'Añadir',
                 preConfirm: function() {
                     var sel = document.getElementById('peso-colab-select');
@@ -4788,7 +4946,7 @@
             Swal.fire({
                 title: '🤝 Entregar Turno',
                 html: '<p style="font-size:0.85rem;">Vas a entregarle el turno a la persona que elijas. Tú y tu equipo actual conservan acceso por 40 minutos más, por si hace falta revisar algo.</p><select id="peso-entrega-select" class="swal2-select" style="width:100% !important; max-width:100% !important; padding:10px; box-sizing:border-box !important; display:block !important; margin:0 !important;"><option value="">-- Selecciona quién recibe --</option>' +
-                    disponibles.map(function(a) { return '<option value="' + a.uid + '" data-nombre="' + a.nombre + '">' + a.nombre + '</option>'; }).join('') + '</select>',
+                    disponibles.map(function(a) { return '<option value="' + _esc(a.uid) + '" data-nombre="' + _esc(a.nombre) + '">' + _esc(a.nombre) + '</option>'; }).join('') + '</select>',
                 showCancelButton: true, confirmButtonText: 'Entregar'
             }).then(function(res) {
                 if (res.isConfirmed) {
@@ -4809,7 +4967,12 @@
         });
     }
 
-    function recibirTurnoPeso() {
+    // OJO: esta función NO se puede llamar "recibirTurnoPeso" — el módulo de
+    // Firebase (el <script type="module"> de abajo) define window.recibirTurnoPeso
+    // y, como los módulos se ejecutan DESPUÉS de este script, terminaba
+    // sobreescribiendo esta función y el botón "Recibir Turno" llamaba
+    // directamente a Firestore sin datos. Por eso lleva otro nombre.
+    function confirmarRecibirTurnoPeso() {
         var user = window.obtenerUsuarioActual ? window.obtenerUsuarioActual() : null;
         if (!user) return;
         Swal.fire({
@@ -5022,11 +5185,7 @@
             });
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx';
-            a.click();
-            URL.revokeObjectURL(a.href);
+            _descargarBlob(blob, 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx');
             Swal.close();
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
@@ -5055,11 +5214,7 @@
             });
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx';
-            a.click();
-            URL.revokeObjectURL(a.href);
+            _descargarBlob(blob, 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx');
             Swal.close();
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
@@ -5141,14 +5296,17 @@
                 revsDeriv.push({ id: 'rd1b_' + i, bloqueId: 'bsim4', loteId: l4b.id, hora: hora, esParo: false, pesos: _pesosSimulados(16, 40, 1), registradoPor: 'Prueba' });
             });
 
-            window.crearHojaPeso('uht', b1, 'Prueba', true).then(function() {
+            // OJO: la firma es crearHojaPeso(tipo, primerBloque, uid, nombreAutor, simulacion).
+            // Antes se llamaba con 4 argumentos, así que "simulacion" quedaba undefined
+            // y el turno de PRUEBA se escribía sobre la hoja REAL (verificacion_peso).
+            window.crearHojaPeso('uht', b1, 'uid-simulacion', 'Prueba', true).then(function() {
                 return window.agregarBloquePeso('uht', b2, true);
             }).then(function() {
                 return window.agregarBloquePeso('uht', b3, true);
             }).then(function() {
                 return window.actualizarRevisionesPeso('uht', revsUht, true);
             }).then(function() {
-                return window.crearHojaPeso('derivados', bd1, 'Prueba', true);
+                return window.crearHojaPeso('derivados', bd1, 'uid-simulacion', 'Prueba', true);
             }).then(function() {
                 return window.actualizarRevisionesPeso('derivados', revsDeriv, true);
             }).then(function() {
