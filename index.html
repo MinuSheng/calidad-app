@@ -1364,7 +1364,15 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.6.2 (Actual) - Excel Igual al Formato en Físico</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.7.0 (Actual) - El Formato Oficial ya NO se Deforma</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> el Excel salía con las columnas más angostas que el formato original (la librería perdía el ancho base de la plantilla). Por eso "PRODUCTO(s) y presentación" aparecía cortado.</li>' +
+                      '<li><b>Corregido:</b> las filas se estiraban solas. Ahora a cada fila que se llena se le fija su alto original, así Excel no la reajusta.</li>' +
+                      '<li>En el cambio de lote ya solo va el número de lote en vertical (letra chica). El detalle completo del cambio se anota en la fila de PRODUCTO(s), como en el papel.</li>' +
+                      '<li>La tabla de Causas ya no ajusta el texto: si es largo se desborda sobre las celdas de al lado, como la letra a mano, en vez de agrandar la fila.</li>' +
+                      '<li>Ya no se agregan filas de aviso al final de la hoja. Si algo no cupo, se avisa dentro de la app al terminar la descarga.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.6.2 - Excel Igual al Formato en Físico</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>El nombre del producto ahora se escribe en vertical en la primera columna del bloque, a lo alto de las filas de boca — tal como se llena a mano.</li>' +
                       '<li>Las horas y los pesos arrancan una columna más a la derecha para dejarle ese espacio, igual que en el papel.</li>' +
@@ -3915,7 +3923,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.6.2";
+    var APP_VERSION = "3.7.0";
 
     function mostrarAppPrincipal() {
         try {
@@ -5025,6 +5033,23 @@
     }
 
     // ---------- EXCEL OFICIAL ----------
+    // Avisos que deja el relleno de la plantilla (datos que no cupieron). Se
+    // muestran en la app al terminar — NUNCA dentro de la hoja, porque el
+    // formato es oficial y no se le pueden agregar filas.
+    var _avisosExcelPeso = [];
+
+    function _avisarDescargaPeso(nombreLinea) {
+        if (!_avisosExcelPeso || _avisosExcelPeso.length === 0) {
+            return Swal.fire('¡Excel Generado!', 'El formato oficial de ' + nombreLinea + ' está listo en tus Descargas.', 'success');
+        }
+        Swal.fire({
+            icon: 'warning',
+            title: 'Excel generado con avisos',
+            html: '<div style="text-align:left; font-size:0.85rem;"><p>El formato se descargó bien, pero hay datos que no caben en la hoja oficial:</p><ul style="padding-left:18px;">' +
+                _avisosExcelPeso.map(function(a) { return '<li style="margin-bottom:6px;">' + a + '</li>'; }).join('') + '</ul></div>'
+        });
+    }
+
     function descargarExcelPeso() {
         if (!_pesoDatos || !_pesoDatos.bloques || _pesoDatos.bloques.length === 0) {
             return Swal.fire('Sin Datos', 'Todavía no hay nada registrado en esta hoja.', 'info');
@@ -5033,27 +5058,66 @@
         return descargarExcelPesoConPlantillaDerivados();
     }
 
-    // Llena la plantilla OFICIAL SB-ACF-009 tal cual la subiste. Usa los
-    // 3 bloques de producto que trae la hoja física; si hay más de 3, los
-    // que sobren se listan aparte al final (igual que en físico usarían
-    // una página nueva).
     // Rellena una plantilla oficial de verificación de peso (UHT o
     // Derivados) — ambas comparten exactamente la misma estructura de
     // encabezado y de tabla de paros, solo cambian dónde empieza cada
     // bloque de producto y cuántas filas de boca caben.
+    // Rellena una plantilla oficial de verificación de peso (UHT o Derivados).
+    //
+    // REGLA DE ORO: la plantilla es un formato oficial y auditable. NO se
+    // modifica su estructura por ningún motivo — ni altos de fila, ni anchos
+    // de columna, ni filas nuevas al final. Todo lo que se escribe tiene que
+    // caber dentro de la cuadrícula tal como viene. Si un texto no cabe, se
+    // achica la letra o se acorta el texto; nunca se agranda la celda.
+    //
+    // Devuelve un arreglo de avisos (para mostrarlos en la app, NUNCA dentro
+    // de la hoja).
     function _rellenarPlantillaOficialPeso(ws, config) {
         var bloques = _bloquesVisibles(_pesoDatos.bloques);
         var revisiones = _pesoDatos.revisiones || [];
+        var avisos = [];
         var primero = bloques[0];
         // La cabecera del formato físico se llena al ABRIR la hoja, así que
         // lleva el PRIMER lote del primer bloque (no el último segmento).
         var primerLote = (primero && primero.lotes && primero.lotes.length) ? primero.lotes[0] : null;
 
-        // OJO: nunca tocar el ancho de las columnas — esas mismas columnas
-        // las comparten la tabla de causas, las tablas de especificación y
-        // las firmas, así que ensancharlas de golpe desproporciona TODA la
-        // hoja. La plantilla ya viene ajustada para su letra pequeña
-        // original — aquí usamos una fuente igual de pequeña para respetar eso.
+        // --------------------------------------------------------------
+        // CANDADO DE ALTURAS
+        // --------------------------------------------------------------
+        // Esta era la causa real de que el formato se deformara. En la
+        // plantilla, solo las filas de "PRODUCTO(s) y presentación" traen un
+        // alto fijo guardado; todas las demás (Horas, bocas, causas) vienen
+        // SIN alto propio. Cuando Excel abre una hoja y encuentra en una de
+        // esas filas texto rotado o con ajuste de línea, le calcula el alto
+        // solo y la estira — y ahí se descuadra toda la hoja.
+        // Fijándole el alto explícitamente a cada fila que tocamos, Excel la
+        // deja tal cual y el formato conserva su tamaño original.
+        // Celdas con basura que quedó al desproteger la plantilla original
+        // (un espacio en J15 y un punto en J18 en el formato de Derivados).
+        // Se limpian aquí y no en el archivo, porque volver a guardar la
+        // plantilla con otra herramienta le rompe el logo de LALA.
+        (config.limpiar || []).forEach(function(celda) { ws.getCell(celda).value = null; });
+
+        // --------------------------------------------------------------
+        // CANDADO DE ANCHOS
+        // --------------------------------------------------------------
+        // La plantilla guarda su ancho de columna como baseColWidth="10",
+        // pero ExcelJS pierde ese atributo al volver a guardar el archivo.
+        // Sin él, Excel cae en su ancho por defecto (8.43) y TODAS las
+        // columnas de la hoja salen más angostas que el formato original:
+        // por eso la etiqueta "PRODUCTO(s) y presentación" aparecía cortada.
+        // Se vuelve a fijar el ancho equivalente para que la hoja conserve
+        // exactamente sus proporciones.
+        ws.properties.defaultColWidth = config.anchoColumna || 10.71;
+
+        var ALTO_BASE = config.altoFila || 15;
+        function fijarAlto(numFila) {
+            var f = ws.getRow(numFila);
+            // Si la fila ya traía un alto propio en la plantilla, se respeta
+            // tal cual; solo se le pone el de por defecto a las que no tenían.
+            f.height = f.height || ALTO_BASE;
+            return f;
+        }
 
         var fechaObj = primero && primero.creadoEn ? new Date(primero.creadoEn) : new Date();
         var fechaTxt = String(fechaObj.getDate()).padStart(2, '0') + '/' + String(fechaObj.getMonth() + 1).padStart(2, '0') + '/' + fechaObj.getFullYear();
@@ -5063,8 +5127,6 @@
         //   F8 "LOTE:"    -> el valor va en H8  (combinada H8:K8)
         //   L8 "VENCE:"   -> el valor va en N8  (combinada N8:Q8)
         //   R8 "MÁQUINA:" -> el valor va en T8
-        // Antes se escribía en A5/G5/M5, que es la franja del membrete: se
-        // machacaban las etiquetas impresas y la cabecera quedaba vacía.
         var cabeceraFont = { name: 'Arial', size: 9, bold: true };
         var ponerCabecera = function(celda, valor) {
             var c = ws.getCell(celda);
@@ -5072,55 +5134,54 @@
             c.font = cabeceraFont;
             c.alignment = { horizontal: 'left', vertical: 'center' };
         };
+        fijarAlto(8);
         ponerCabecera('B8', fechaTxt);
         ponerCabecera('H8', primerLote ? primerLote.lote : '');
         ponerCabecera('N8', primerLote ? (primerLote.vence || '') : '');
         ponerCabecera('T8', primero ? primero.maquina : '');
 
+        // Letras pequeñas a propósito: es la única forma de que quepa todo sin
+        // agrandar ninguna celda.
         var normalFont = { name: 'Arial', size: 7 };
-        var finFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF842029' } };
-        var loteFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF664D03' } };
+        var finFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF842029' } };
+        var loteFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF664D03' } };
         var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
         var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
-        // Nota: si la máquina tiene más bocas que filas trae el formato
-        // (ej. SERAC, 16 bocas contra 10 filas), se registran solo las que
-        // caben — es exactamente como se llena en físico, no es un error.
-        var etiquetaFont = { name: 'Arial', size: 8, bold: true, color: { argb: 'FF000000' } };
+        var etiquetaFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF000000' } };
+        var productoFont = { name: 'Arial', size: 8, bold: true };
 
         bloques.slice(0, config.baseRows.length).forEach(function(bloque, idx) {
             var baseRow = config.baseRows[idx];
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
-            var segActualBloque = _segmentoActualBloque(bloque);
-            var hayTransicion = grupos.length > 1;
-            var hayFinEnBloque = revisiones.some(function(r) { return r.bloqueId === bloque.id && r.esFin; });
+            var primerLoteBloque = (bloque.lotes && bloque.lotes.length) ? bloque.lotes[0] : _segmentoActualBloque(bloque);
 
-            // El encabezado de cada bloque lleva su PROPIO lote y vencimiento
-            // — no el del primer bloque de toda la hoja, ya que cada máquina
-            // puede estar en un producto/lote distinto.
-            // Fila "PRODUCTO(s) y presentación" (combinada B:AE). Se escribe
-            // igual que en el formato físico: producto, lote y vence del bloque.
-            var primerLoteBloque = (bloque.lotes && bloque.lotes.length) ? bloque.lotes[0] : segActualBloque;
-            ws.getCell('B' + baseRow).value = primerLoteBloque.producto + '   —   Máquina: ' + bloque.maquina + '   —   Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('   —   Vence: ' + primerLoteBloque.vence) : '');
-            ws.getCell('B' + baseRow).font = { name: 'Arial', size: 9, bold: true };
-            ws.getCell('B' + baseRow).alignment = { horizontal: 'left', vertical: 'center' };
+            // Fila "PRODUCTO(s) y presentación" (combinada B:AE). Igual que en
+            // el formato físico, aquí va el producto, lote y vence del bloque —
+            // y si dentro del mismo bloque hubo cambios de producto/lote, se
+            // anotan seguidos, que es donde los escriben a mano.
+            var textoProducto = primerLoteBloque.producto + '  —  Máquina: ' + bloque.maquina + '  —  Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('  —  Vence: ' + primerLoteBloque.vence) : '');
+            (bloque.lotes || []).slice(1).forEach(function(l) {
+                textoProducto += '   //   FIN  →  ' + l.producto + '  —  Lote: ' + l.lote + (l.vence ? ('  —  Vence: ' + l.vence) : '');
+            });
+            var celdaProducto = ws.getCell('B' + baseRow);
+            celdaProducto.value = textoProducto;
+            celdaProducto.font = productoFont;
+            // Sin wrapText: si el texto es largo se desborda sobre las celdas
+            // vacías de la derecha (como la letra a mano), en vez de crecer.
+            celdaProducto.alignment = { horizontal: 'left', vertical: 'center' };
 
-            var filaHoras = ws.getRow(baseRow + 1);
-            // OJO: en la plantilla real, la fila de "Horas" está COMBINADA
-            // verticalmente con la de abajo ("Peso (ml)" en UHT, "Bocas" en
-            // Derivados): B10:B11, C10:C11 ... AE10:AE11. O sea que la celda
-            // de la hora ocupa DOS filas. Por eso, cuando hace falta más alto
-            // (texto vertical del cambio de lote), se le sube a las dos.
-            if (hayTransicion || hayFinEnBloque) {
-                filaHoras.height = 36;
-                ws.getRow(baseRow + 2).height = 36;
-            }
+            // La fila de "Horas" está COMBINADA verticalmente con la de abajo
+            // ("Peso (ml)" en UHT, "Bocas" en Derivados): B10:B11 ... AE10:AE11.
+            // Se le fija el alto a las dos para que Excel no las estire.
+            var filaHoras = fijarAlto(baseRow + 1);
+            fijarAlto(baseRow + 2);
 
-            // NOMBRE DEL PRODUCTO EN VERTICAL, igual que en el formato físico:
-            // ocupa la primera columna de datos a lo alto de todas las filas de
-            // boca del bloque. Por eso las horas y los pesos arrancan una
-            // columna más a la derecha (config.colInicio).
+            // Nombre del producto en vertical, en la primera columna de datos,
+            // a lo alto de las filas de boca — como se hace a mano. La letra va
+            // en 6 para que quepa en el alto que ya trae el formato.
             var filaBocaIni = baseRow + 3;
             var filaBocaFin = baseRow + 2 + config.bocasMax;
+            for (var fb = filaBocaIni; fb <= filaBocaFin; fb++) { fijarAlto(fb); }
             try {
                 ws.mergeCells(filaBocaIni, config.colEtiqueta, filaBocaFin, config.colEtiqueta);
             } catch (e) { /* si ya venía combinada, se escribe igual abajo */ }
@@ -5131,10 +5192,8 @@
             var col = config.colInicio;
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
-                    // Si el grupo anterior ya terminó con un "Fin de Producción"
-                    // marcado a mano, no hace falta un segundo FIN automático
-                    // (evita el "FIN FIN" duplicado) — pero si SÍ lo mostramos,
-                    // debe llevar la hora en la que terminó.
+                    // Si el grupo anterior ya cerró con un "Fin de Producción"
+                    // marcado a mano, no se dibuja un segundo FIN automático.
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
                     var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
                     if (!yaTerminoConFin && col <= config.maxCol) {
@@ -5144,14 +5203,17 @@
                         col++;
                     }
                     if (col <= config.maxCol) {
+                        // Aquí SOLO va el número de lote nuevo. Antes iba
+                        // "Producto — Lote" en vertical, y ese texto no cabe en
+                        // el alto de la celda: obligaba a estirar la fila y
+                        // descuadraba el formato. El detalle completo del cambio
+                        // ya queda escrito arriba, en la fila de PRODUCTO(s).
                         var cLote = filaHoras.getCell(col);
-                        cLote.value = g.lote.producto + ' — ' + g.lote.lote;
-                        // OJO: se asigna todo el estilo de una sola vez (.style, no
-                        // .font/.fill/.alignment por separado) — ExcelJS tiene una
-                        // rareza donde, si se asignan por separado, la rotación de
-                        // esta celda se le puede "contagiar" a las demás celdas de
-                        // la misma fila (o perderse) según en qué orden se escriban.
-                        // Asignar el objeto de estilo completo de un jalón evita eso.
+                        cLote.value = g.lote.lote;
+                        // El estilo se asigna completo de un jalón (.style y no
+                        // .font/.fill/.alignment por separado): ExcelJS tiene una
+                        // rareza por la que, asignado por partes, la rotación se
+                        // le "contagia" al resto de la fila.
                         cLote.style = { font: loteFont, fill: loteFill, alignment: { horizontal: 'center', vertical: 'center', textRotation: 90 } };
                         col++;
                     }
@@ -5160,10 +5222,11 @@
                     if (col > config.maxCol) return;
                     var c = filaHoras.getCell(col);
                     if (r.esFin) {
-                        // Un "Fin de Producción" muestra la hora en la que
-                        // terminó, no solo la palabra "FIN".
-                        c.value = 'FIN\n' + r.hora;
-                        c.style = { font: finFont, fill: finFill, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
+                        // El "Fin de Producción" lleva la hora en que terminó.
+                        // Sin wrapText (haría crecer la fila): la hora va pegada
+                        // con un espacio y en letra chica.
+                        c.value = 'FIN ' + r.hora;
+                        c.style = { font: finFont, fill: finFill, alignment: { horizontal: 'center', vertical: 'center', textRotation: 90 } };
                     } else {
                         c.value = _formatoHoraCelda(r);
                         c.style = { font: normalFont, alignment: { horizontal: 'center', vertical: 'center' } };
@@ -5171,6 +5234,10 @@
                     col++;
                 });
             });
+
+            if (col > config.maxCol) {
+                avisos.push('En ' + bloque.maquina + ' hubo más revisiones de las que caben a lo ancho del formato (' + (config.maxCol - config.colInicio + 1) + ' columnas). Las últimas no salieron en el Excel — están completas en la app.');
+            }
 
             // Solo se llenan las filas de boca que trae el formato. Con SERAC
             // (16 bocas) se registran las 10 que caben, como en físico.
@@ -5180,9 +5247,9 @@
                 var col2 = config.colInicio;
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) {
-                        var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
-                        var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
-                        if (!yaTerminoConFin && col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
+                        var ultimoRevAnterior2 = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
+                        var yaTerminoConFin2 = ultimoRevAnterior2 && ultimoRevAnterior2.esFin;
+                        if (!yaTerminoConFin2 && col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
                         if (col2 <= config.maxCol) { filaB.getCell(col2).fill = loteFill; col2++; }
                     }
                     g.revs.forEach(function(r) {
@@ -5197,34 +5264,39 @@
         });
 
         // Tabla de "Hora / Causa / Ajuste-Acción Correctiva / Técnico de línea".
-        // Estas filas venían diseñadas para una marca corta a mano — muy
-        // bajitas (8-9 puntos) — así que si va una frase real ahí, hace
-        // falta subirles el alto o el texto se ve cortado.
+        // Son filas bajitas y no se pueden agrandar. Se usa letra chica y SIN
+        // ajuste de línea, para que un texto largo se desborde sobre las celdas
+        // vacías de al lado (igual que la letra a mano) en vez de estirar la fila.
         var causaFont = { name: 'Arial', size: 7 };
         var filaCausa = config.causaDataStart;
-        revisiones.filter(function(r) { return r.esParo; }).forEach(function(p) {
+        var paros = revisiones.filter(function(r) { return r.esParo && !r.eliminado; });
+        paros.forEach(function(p) {
             if (filaCausa > config.causaDataEnd) return;
-            var fila = ws.getRow(filaCausa);
-            fila.height = 24;
-            ws.getCell('A' + filaCausa).value = p.hora;
-            ws.getCell('A' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center' } };
-            ws.getCell('B' + filaCausa).value = p.causaParo || 'Sin especificar';
-            ws.getCell('B' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
-            ws.getCell('F' + filaCausa).value = p.accionCorrectiva || '';
-            ws.getCell('F' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
+            fijarAlto(filaCausa);
+            var ponerCausa = function(celda, valor) {
+                var c = ws.getCell(celda);
+                c.value = valor;
+                c.style = { font: causaFont, alignment: { vertical: 'center', wrapText: false } };
+            };
+            ponerCausa('A' + filaCausa, p.hora);
+            ponerCausa('B' + filaCausa, p.causaParo || 'Sin especificar');
+            ponerCausa('F' + filaCausa, p.accionCorrectiva || '');
             // "Tecnico de linea" está en la columna Z (combinada Z:AE), no en AB.
-            ws.getCell('Z' + filaCausa).value = p.tecnicoLinea || '';
-            ws.getCell('Z' + filaCausa).style = { font: causaFont, alignment: { vertical: 'center', wrapText: true } };
+            ponerCausa('Z' + filaCausa, p.tecnicoLinea || '');
             filaCausa++;
         });
 
-        var notasExtra = [];
-        if (bloques.length > config.baseRows.length) notasExtra.push('⚠️ Esta hoja tuvo ' + (bloques.length - config.baseRows.length) + ' máquina(s) adicionales que no caben en esta plantilla (' + config.baseRows.length + ' por página) — revísalas en la app.');
-        notasExtra.forEach(function(texto) {
-            var fila = ws.addRow([texto]);
-            fila.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
-        });
+        var cabenParos = config.causaDataEnd - config.causaDataStart + 1;
+        if (paros.length > cabenParos) {
+            avisos.push('Se registraron ' + paros.length + ' paros y en el formato solo caben ' + cabenParos + '. Los demás quedaron guardados en la app.');
+        }
+        if (bloques.length > config.baseRows.length) {
+            avisos.push('Esta hoja tuvo ' + (bloques.length - config.baseRows.length) + ' máquina(s) más de las que caben en el formato (' + config.baseRows.length + ' por página). Revísalas en la app.');
+        }
+
+        return avisos;
     }
+
 
     function descargarExcelPesoConPlantillaUht() {
         Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
@@ -5236,13 +5308,13 @@
             var wb = new ExcelJS.Workbook();
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
-                _rellenarPlantillaOficialPeso(ws, {
+                _avisosExcelPeso = _rellenarPlantillaOficialPeso(ws, {
                     // SB-ACF-009 real: PRODUCTO en 9/17/25, Horas en la
                     // siguiente (combinada con la fila de "Peso (ml)"),
                     // B1..B5 en base+3..base+7. Tabla de causas: 38-43.
                     // Última columna de la tabla: AE = 31.
                     baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
-                    colEtiqueta: 2, colInicio: 3,
+                    colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
                     causaDataStart: 38, causaDataEnd: 43
                 });
                 return wb.xlsx.writeBuffer();
@@ -5250,7 +5322,7 @@
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             _descargarBlob(blob, 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx');
-            Swal.close();
+            _avisarDescargaPeso('UHT');
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
         });
@@ -5270,14 +5342,15 @@
             var wb = new ExcelJS.Workbook();
             return wb.xlsx.load(buffer).then(function() {
                 var ws = wb.worksheets[0];
-                _rellenarPlantillaOficialPeso(ws, {
+                _avisosExcelPeso = _rellenarPlantillaOficialPeso(ws, {
                     // SB-ACF-071 real: PRODUCTO en 9 y 23, Horas en la
                     // siguiente (combinada con la fila de "Bocas"), 10 filas
                     // de boca por bloque. Tabla de causas: 42-47.
                     // SERAC tiene 16 bocas pero el formato solo trae 10 filas:
                     // se registran las 10 que caben, tal como en físico.
                     baseRows: [9, 23], bocasMax: 10, maxCol: 31,
-                    colEtiqueta: 2, colInicio: 3,
+                    colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
+                    limpiar: ['J15', 'J18'],
                     causaDataStart: 42, causaDataEnd: 47
                 });
                 return wb.xlsx.writeBuffer();
@@ -5285,7 +5358,7 @@
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             _descargarBlob(blob, 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx');
-            Swal.close();
+            _avisarDescargaPeso('Derivados');
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
         });
