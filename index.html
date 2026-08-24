@@ -1364,7 +1364,17 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.7.0 (Actual) - El Formato Oficial ya NO se Deforma</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.7.2 (Actual) - Impresión Idéntica al Formato en Papel</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Se les devolvió a las columnas la proporción del formato físico. Al desproteger la plantilla se habían perdido los anchos originales y Excel las dejó casi al doble de anchas, por eso al imprimir en una hoja la letra salía diminuta.</li>' +
+                      '<li>Ahora la hoja llena la página horizontal completa y se lee igual que el formato en papel. Las filas, la cuadrícula y el contenido quedan exactamente iguales.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.7.1 - El Excel de Peso ya Imprime en Una Sola Hoja</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> al imprimir el Excel salían 5 hojas. La plantilla no traía ninguna configuración de impresión (se perdió al desprotegerla).</li>' +
+                      '<li>Ahora el archivo se descarga ya listo para imprimir: horizontal, ajustado a UNA hoja, centrado y con el área de impresión exacta del formato. Ya no hay que cambiarle nada antes de mandarlo a la impresora.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.7.0 - El Formato Oficial ya NO se Deforma</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li><b>Corregido:</b> el Excel salía con las columnas más angostas que el formato original (la librería perdía el ancho base de la plantilla). Por eso "PRODUCTO(s) y presentación" aparecía cortado.</li>' +
                       '<li><b>Corregido:</b> las filas se estiraban solas. Ahora a cada fila que se llena se le fija su alto original, así Excel no la reajusta.</li>' +
@@ -3923,7 +3933,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.7.0";
+    var APP_VERSION = "3.7.2";
 
     function mostrarAppPrincipal() {
         try {
@@ -5110,6 +5120,43 @@
         // exactamente sus proporciones.
         ws.properties.defaultColWidth = config.anchoColumna || 10.71;
 
+        // Ancho de cada columna. Al desproteger la plantilla (copiar y pegar
+        // en un libro nuevo) se perdieron los anchos del formato original y
+        // Excel las creó todas con su ancho por defecto — casi el doble de
+        // anchas que en el papel. Como son 31 columnas, la hoja quedaba
+        // desproporcionadamente ancha y al imprimirla en una página había
+        // que encogerla tanto que la letra salía diminuta.
+        // Aquí se les devuelve una proporción parecida a la del formato
+        // físico: la columna de etiquetas ancha y las de datos angostas.
+        // No cambia ninguna fila, ni el contenido, ni la cuadrícula: solo
+        // hace que la hoja tenga la forma de una hoja horizontal.
+        if (config.anchoColEtiqueta) ws.getColumn(1).width = config.anchoColEtiqueta;
+        if (config.anchoColDatos) {
+            for (var ci = 2; ci <= config.maxCol; ci++) { ws.getColumn(ci).width = config.anchoColDatos; }
+        }
+
+        // --------------------------------------------------------------
+        // CONFIGURACIÓN DE IMPRESIÓN
+        // --------------------------------------------------------------
+        // La plantilla se perdió su configuración de impresión cuando hubo
+        // que desprotegerla (copiar y pegar en un libro nuevo). Por eso al
+        // imprimirla salían 5 hojas: Excel la partía por donde le tocara.
+        // El formato oficial dice "Página: 1 de 1", así que aquí se deja
+        // lista para imprimir: horizontal, ajustada a UNA sola hoja, con el
+        // área de impresión exacta del formato y márgenes chicos.
+        // Esto NO cambia el contenido ni las medidas de la hoja: solo le
+        // dice a la impresora cómo sacarla.
+        ws.pageSetup = {
+            orientation: 'landscape',
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 1,
+            horizontalCentered: true,
+            verticalCentered: false,
+            printArea: config.areaImpresion,
+            margins: { left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0.15, footer: 0.15 }
+        };
+
         var ALTO_BASE = config.altoFila || 15;
         function fijarAlto(numFila) {
             var f = ws.getRow(numFila);
@@ -5315,6 +5362,8 @@
                     // Última columna de la tabla: AE = 31.
                     baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
                     colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
+                    areaImpresion: 'A1:AE48',
+                    anchoColEtiqueta: 15, anchoColDatos: 5.4,
                     causaDataStart: 38, causaDataEnd: 43
                 });
                 return wb.xlsx.writeBuffer();
@@ -5350,7 +5399,8 @@
                     // se registran las 10 que caben, tal como en físico.
                     baseRows: [9, 23], bocasMax: 10, maxCol: 31,
                     colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
-                    limpiar: ['J15', 'J18'],
+                    limpiar: ['J15', 'J18'], areaImpresion: 'A1:AE52',
+                    anchoColEtiqueta: 15, anchoColDatos: 5.85,
                     causaDataStart: 42, causaDataEnd: 47
                 });
                 return wb.xlsx.writeBuffer();
