@@ -1202,16 +1202,23 @@
                 backgroundColor: esTemaOscuro() ? '#000000' : '#ffffff',
                 scale: 2 // Escala doble HD
             }).then(canvas => {
-                var link = document.createElement('a');
-                link.download = `Reporte_Yogurt_Turno${tValue}_${dateStr.replace(/\//g,'-')}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(function() { if (link.parentNode) link.parentNode.removeChild(link); }, 4000);
-
                 document.body.removeChild(container);
-                Swal.fire('¡Captura Lista!', 'La imagen se ha guardado en tu galería.', 'success');
+                var nombreImagen = `Reporte_Yogurt_Turno${tValue}_${dateStr.replace(/\//g,'-')}.png`;
+                // Se pasa por toBlob y no por toDataURL: el enlace "data:" con
+                // atributo download nunca funcionó en Safari de iPhone, y
+                // además genera una cadena enorme. Con un blob y
+                // _entregarArchivo, en iOS sale el botón para guardar en Fotos.
+                if (canvas.toBlob) {
+                    canvas.toBlob(function(blob) {
+                        if (!blob) return Swal.fire('Error', 'No se pudo preparar la imagen.', 'error');
+                        _entregarArchivo(blob, nombreImagen, function() {
+                            Swal.fire('¡Captura Lista!', 'La imagen se guardó en tu dispositivo.', 'success');
+                        });
+                    }, 'image/png');
+                } else {
+                    _descargarBlob(_dataUrlABlob(canvas.toDataURL('image/png')), nombreImagen);
+                    Swal.fire('¡Captura Lista!', 'La imagen se guardó en tu dispositivo.', 'success');
+                }
             }).catch(err => {
                 document.body.removeChild(container);
                 console.error(err);
@@ -1364,7 +1371,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.7.2 (Actual) - Impresión Idéntica al Formato en Papel</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.0 (Actual) - Descargas Arregladas en iPhone y iPad</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> en iPhone/iPad no se descargaba nada al usar "Captura Reporte" — Safari bloqueaba la descarga en silencio, sin mostrar ningún error.</li>' +
+                      '<li>Ahora en iPhone/iPad aparece un botón "Guardar archivo" que abre el menú del sistema, para guardar en Fotos o en Archivos.</li>' +
+                      '<li>Lo mismo aplica a los Excel de Yogurt, Cestas y Verificación de Peso, y al respaldo de la memoria interna.</li>' +
+                      '<li>En Android y computadora todo sigue funcionando exactamente igual que antes.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.7.2 - Impresión Idéntica al Formato en Papel</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Se les devolvió a las columnas la proporción del formato físico. Al desproteger la plantilla se habían perdido los anchos originales y Excel las dejó casi al doble de anchas, por eso al imprimir en una hoja la letra salía diminuta.</li>' +
                       '<li>Ahora la hoja llena la página horizontal completa y se lee igual que el formato en papel. Las filas, la cuadrícula y el contenido quedan exactamente iguales.</li>' +
@@ -1652,8 +1666,9 @@
         var dataStr = JSON.stringify(exportData, null, 2);
         var blob = new Blob([dataStr], {type: "text/plain;charset=utf-8"});
         var fechaObj = new Date(); var dd = String(fechaObj.getDate()).padStart(2, '0'); var mm = String(fechaObj.getMonth() + 1).padStart(2, '0');
-        _descargarBlob(blob, "SNDRLABS_MemoriaInterna_" + dd + mm + ".txt");
-        Swal.fire('Guardado', 'Archivo de respaldo creado en tus Descargas.', 'success');
+        _entregarArchivo(blob, "SNDRLABS_MemoriaInterna_" + dd + mm + ".txt", function() {
+            Swal.fire('Guardado', 'Archivo de respaldo creado en tus Descargas.', 'success');
+        });
     }
 
     function importarRespaldoLocal(event) {
@@ -3141,6 +3156,80 @@
             .replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    // ¿Estamos en un iPhone o iPad? (los iPad recientes se hacen pasar por Mac,
+    // por eso también se mira si la pantalla es táctil).
+    // Respaldo para navegadores viejos que no traen canvas.toBlob.
+    function _dataUrlABlob(dataUrl) {
+        var partes = dataUrl.split(',');
+        var tipo = partes[0].match(/:(.*?);/)[1];
+        var binario = atob(partes[1]);
+        var bytes = new Uint8Array(binario.length);
+        for (var i = 0; i < binario.length; i++) { bytes[i] = binario.charCodeAt(i); }
+        return new Blob([bytes], { type: tipo });
+    }
+
+    function _esIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent || '') ||
+               ((navigator.platform === 'MacIntel') && navigator.maxTouchPoints > 1);
+    }
+
+    // Entrega un archivo ya generado al usuario.
+    //
+    // En Android y PC se descarga directo, como siempre.
+    //
+    // En iPhone/iPad NO se puede: Safari solo permite descargar cuando la
+    // acción sale de un toque directo del usuario, y aquí el archivo se
+    // termina de armar segundos después (hay que generar la imagen o leer
+    // la plantilla de Excel), así que para cuando se dispara la descarga
+    // Safari ya la considera automática y la bloquea EN SILENCIO — no sale
+    // error, no sale nada. Por eso en iOS se muestra un botón para que el
+    // usuario toque y ahí sí se guarda, usando el menú de compartir del
+    // sistema (que en el iPhone permite "Guardar en Fotos" o "Guardar en
+    // Archivos").
+    //
+    // alTerminar: función opcional que se ejecuta una vez entregado.
+    function _entregarArchivo(blob, nombreArchivo, alTerminar) {
+        var archivo = null;
+        try { archivo = new File([blob], nombreArchivo, { type: blob.type }); } catch (e) { archivo = null; }
+        var puedeCompartir = !!(archivo && navigator.canShare && navigator.share && navigator.canShare({ files: [archivo] }));
+
+        if (!_esIOS()) {
+            _descargarBlob(blob, nombreArchivo);
+            if (alTerminar) alTerminar();
+            return;
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Archivo listo',
+            html: '<p style="font-size:0.9rem; margin-bottom:14px;">Toca el botón para guardarlo en tu iPhone.</p>' +
+                  '<button id="btn-entregar-archivo" class="swal2-confirm swal2-styled" style="margin:0;">' +
+                  (puedeCompartir ? 'Guardar archivo' : 'Descargar') + '</button>' +
+                  '<p style="font-size:0.75rem; color:#6c757d; margin-top:14px;">' + nombreArchivo + '</p>',
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Cerrar',
+            allowOutsideClick: false,
+            didOpen: function() {
+                var btn = document.getElementById('btn-entregar-archivo');
+                if (!btn) return;
+                // Listener real sobre el botón: así el guardado ocurre DENTRO
+                // del toque del usuario, que es justo lo que Safari exige.
+                btn.addEventListener('click', function() {
+                    if (puedeCompartir) {
+                        navigator.share({ files: [archivo], title: nombreArchivo })
+                            .then(function() { Swal.close(); if (alTerminar) alTerminar(); })
+                            .catch(function() { /* si cancela el menú, se queda el botón */ });
+                    } else {
+                        _descargarBlob(blob, nombreArchivo);
+                        Swal.close();
+                        if (alTerminar) alTerminar();
+                    }
+                });
+            }
+        });
+    }
+
     function _descargarBlob(blob, nombreArchivo) {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
@@ -3271,9 +3360,9 @@
                     }
 
                     var blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    _descargarBlob(blob, nombreArchivo);
-
-                    Swal.fire({ title: '¡Excel Generado!', text: 'El reporte de Yogurt está listo.', icon: 'success' });
+                    _entregarArchivo(blob, nombreArchivo, function() {
+                        Swal.fire({ title: '¡Excel Generado!', text: 'El reporte de Yogurt está listo.', icon: 'success' });
+                    });
                 });
             });
         }).catch(function(error) {
@@ -3582,8 +3671,9 @@
 
                 return workbook.xlsx.writeBuffer().then(buf => {
                     var blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    _descargarBlob(blob, `Cestas_${fStrTarget}_Turno${tTarget}_${vTarget}.xlsx`);
-                    Swal.fire('¡Excel Generado!', '', 'success');
+                    _entregarArchivo(blob, `Cestas_${fStrTarget}_Turno${tTarget}_${vTarget}.xlsx`, function() {
+                        Swal.fire('¡Excel Generado!', '', 'success');
+                    });
                 });
             });
         }).catch(err => {
@@ -3933,7 +4023,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.7.2";
+    var APP_VERSION = "3.8.0";
 
     function mostrarAppPrincipal() {
         try {
@@ -5370,8 +5460,7 @@
             });
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _descargarBlob(blob, 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx');
-            _avisarDescargaPeso('UHT');
+            _entregarArchivo(blob, 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso('UHT'); });
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
         });
@@ -5407,8 +5496,7 @@
             });
         }).then(function(buffer) {
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _descargarBlob(blob, 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx');
-            _avisarDescargaPeso('Derivados');
+            _entregarArchivo(blob, 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso('Derivados'); });
         }).catch(function(err) {
             Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
         });
