@@ -1371,7 +1371,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.0 (Actual) - Descargas Arregladas en iPhone y iPad</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.1 (Actual) - Guardado en iPhone: Ahora Sí</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>El menú de compartir de iOS sirve para mandar el archivo a WhatsApp o Correo, pero sus opciones "Guardar imagen" y "Guardar en Archivos" fallan sin avisar cuando el archivo viene de una página web. Ya no se depende de él.</li>' +
+                      '<li>En la captura de reporte, la imagen ahora se muestra en pantalla: mantené el dedo presionado sobre ella y elegí "Añadir a Fotos". Ese es el camino que sí funciona en iPhone.</li>' +
+                      '<li>Para los Excel y el respaldo se agregó un botón "Descargar" que guarda en la app Archivos, además del de Compartir.</li>' +
+                      '<li>El enlace de descarga ahora vive 60 segundos en vez de 4: en iPhone Safari pregunta antes de descargar, y si el usuario se tardaba en contestar la descarga moría sola.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.8.0 - Descargas Arregladas en iPhone y iPad</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li><b>Corregido:</b> en iPhone/iPad no se descargaba nada al usar "Captura Reporte" — Safari bloqueaba la descarga en silencio, sin mostrar ningún error.</li>' +
                       '<li>Ahora en iPhone/iPad aparece un botón "Guardar archivo" que abre el menú del sistema, para guardar en Fotos o en Archivos.</li>' +
@@ -3199,32 +3206,50 @@
             return;
         }
 
+        // El menú de compartir de iOS sirve para MANDAR el archivo a otra app
+        // (WhatsApp, Correo), pero sus opciones "Guardar imagen" y "Guardar en
+        // Archivos" fallan sin avisar cuando el archivo viene de una página
+        // web. Por eso aquí no se depende de él: se ofrecen los tres caminos
+        // y se deja de primero el que sí funciona en iPhone.
+        var esImagen = /^image\//.test(blob.type || '');
+        var urlPrevia = esImagen ? URL.createObjectURL(blob) : null;
+
+        var instruccion = esImagen
+            ? '<p style="font-size:0.9rem; margin:0 0 10px 0;"><b>Para guardarla en Fotos:</b> mantené el dedo presionado sobre la imagen y elegí <b>"Añadir a Fotos"</b>.</p>'
+            : '<p style="font-size:0.9rem; margin:0 0 10px 0;">Tocá <b>Descargar</b> para guardarlo en la app Archivos de tu iPhone.</p>';
+
+        var vistaPrevia = esImagen
+            ? '<img src="' + urlPrevia + '" alt="' + _esc(nombreArchivo) + '" style="max-width:100%; max-height:38vh; border:1px solid #ccc; border-radius:8px; display:block; margin:0 auto 12px auto;">'
+            : '';
+
         Swal.fire({
-            icon: 'success',
+            icon: esImagen ? undefined : 'success',
             title: 'Archivo listo',
-            html: '<p style="font-size:0.9rem; margin-bottom:14px;">Toca el botón para guardarlo en tu iPhone.</p>' +
-                  '<button id="btn-entregar-archivo" class="swal2-confirm swal2-styled" style="margin:0;">' +
-                  (puedeCompartir ? 'Guardar archivo' : 'Descargar') + '</button>' +
-                  '<p style="font-size:0.75rem; color:#6c757d; margin-top:14px;">' + nombreArchivo + '</p>',
+            html: instruccion + vistaPrevia +
+                  '<div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">' +
+                  '<button id="btn-arch-descargar" class="swal2-confirm swal2-styled" style="margin:0;">Descargar</button>' +
+                  (puedeCompartir ? '<button id="btn-arch-compartir" class="swal2-cancel swal2-styled" style="margin:0; background:#6c757d;">Compartir</button>' : '') +
+                  '</div>' +
+                  '<p style="font-size:0.72rem; color:#6c757d; margin-top:12px; word-break:break-all;">' + _esc(nombreArchivo) + '</p>',
             showConfirmButton: false,
             showCancelButton: true,
             cancelButtonText: 'Cerrar',
             allowOutsideClick: false,
+            willClose: function() { if (urlPrevia) URL.revokeObjectURL(urlPrevia); },
             didOpen: function() {
-                var btn = document.getElementById('btn-entregar-archivo');
-                if (!btn) return;
-                // Listener real sobre el botón: así el guardado ocurre DENTRO
-                // del toque del usuario, que es justo lo que Safari exige.
-                btn.addEventListener('click', function() {
-                    if (puedeCompartir) {
-                        navigator.share({ files: [archivo], title: nombreArchivo })
-                            .then(function() { Swal.close(); if (alTerminar) alTerminar(); })
-                            .catch(function() { /* si cancela el menú, se queda el botón */ });
-                    } else {
-                        _descargarBlob(blob, nombreArchivo);
-                        Swal.close();
-                        if (alTerminar) alTerminar();
-                    }
+                // Listeners reales sobre los botones: así la descarga ocurre
+                // DENTRO del toque del usuario, que es lo que Safari exige.
+                var btnD = document.getElementById('btn-arch-descargar');
+                if (btnD) btnD.addEventListener('click', function() {
+                    _descargarBlob(blob, nombreArchivo);
+                    Swal.close();
+                    if (alTerminar) alTerminar();
+                });
+                var btnC = document.getElementById('btn-arch-compartir');
+                if (btnC) btnC.addEventListener('click', function() {
+                    navigator.share({ files: [archivo], title: nombreArchivo })
+                        .then(function() { Swal.close(); if (alTerminar) alTerminar(); })
+                        .catch(function() { /* si cancela el menú, la ventana se queda abierta */ });
                 });
             }
         });
@@ -3238,10 +3263,13 @@
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
+        // 60 segundos y no 4: en iPhone Safari primero pregunta "¿Quieres
+        // descargar...?" y, si el enlace se libera antes de que el usuario
+        // conteste, la descarga muere sin dar ningún aviso.
         setTimeout(function() {
             URL.revokeObjectURL(url);
             if (a.parentNode) a.parentNode.removeChild(a);
-        }, 4000);
+        }, 60000);
     }
 
     function arrayBufferToBase64(buffer) {
@@ -4023,7 +4051,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.8.0";
+    var APP_VERSION = "3.8.1";
 
     function mostrarAppPrincipal() {
         try {
