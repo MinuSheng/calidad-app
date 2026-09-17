@@ -1371,7 +1371,13 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.1 (Actual) - Guardado en iPhone: Ahora Sí</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.2 (Actual) - Corte Automático Después del Lavado</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li><b>Corregido:</b> al finalizar un lavado de máquina, el primer corte automático de Yogurt (:00 o :30) podía saltarse y obligaba a realizar un corte manual.</li>' +
+                      '<li>Ahora, al salir de lavado, el sistema reanuda los cortes en la siguiente marca real del reloj sin intentar recuperar los cortes correspondientes al tiempo que la máquina estuvo en lavado.</li>' +
+                      '<li>Ejemplo: si la máquina vuelve a operar a las 05:20, el siguiente corte automático se realiza a las 05:30; si vuelve a las 05:47, se realiza a las 06:00.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.8.1 - Guardado en iPhone: Ahora Sí</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>El menú de compartir de iOS sirve para mandar el archivo a WhatsApp o Correo, pero sus opciones "Guardar imagen" y "Guardar en Archivos" fallan sin avisar cuando el archivo viene de una página web. Ya no se depende de él.</li>' +
                       '<li>En la captura de reporte, la imagen ahora se muestra en pantalla: mantené el dedo presionado sobre ella y elegí "Añadir a Fotos". Ese es el camino que sí funciona en iPhone.</li>' +
@@ -2558,12 +2564,19 @@
         var ahora = new Date(); var horaStr = String(ahora.getHours()).padStart(2, '0') + ":" + String(ahora.getMinutes()).padStart(2, '0');
         modoLavadoActivo = !modoLavadoActivo;
         if (!modoLavadoActivo) { // Al salir de lavado
-            var mins = ahora.getMinutes();
-            var proximoCorte = new Date(ahora);
-            if (mins < 30) { proximoCorte.setMinutes(30, 0, 0); } 
-            else { proximoCorte.setHours(ahora.getHours() + 1, 0, 0, 0); }
-            var horaCorteStr = String(proximoCorte.getHours()).padStart(2, '0') + ":" + String(proximoCorte.getMinutes()).padStart(2, '0');
-            ultimoBloqueProcesado = horaCorteStr;
+            // Reanudar desde la SIGUIENTE marca real del reloj (:00 / :30).
+            // ultimoBloqueProcesado representa un corte YA realizado, por eso
+            // nunca debe adelantarse al próximo corte. Si se hiciera, el reloj
+            // interpretaría esa marca futura como ya procesada y la saltaría.
+            //
+            // Marcamos como procesada la frontera inmediatamente ANTERIOR a la
+            // hora de salida del lavado. Así no se recuperan cortes de las horas
+            // que la máquina estuvo lavando, pero la próxima frontera sí dispara.
+            var hrsSalida = ahora.getHours();
+            var minsSalida = ahora.getMinutes();
+            ultimoBloqueProcesado = (minsSalida < 30)
+                ? String(hrsSalida).padStart(2, '0') + ":00"
+                : String(hrsSalida).padStart(2, '0') + ":30";
         }
         registros.push({ hora: horaStr, lote: document.getElementById('lote').value || "—", tipoEspecial: modoLavadoActivo ? 'LAVADO_INICIO' : 'LAVADO_FIN', textoEspecial: modoLavadoActivo ? 'LAVADO DE MAQUINA' : 'FIN DE LAVADO / REINICIO DE OPERACIONES' });
         ordenarRegistrosCronologicamente(); actualizarBotonLavadoUI(); actualizarLabelEstadoTurno(); guardarEnMemoria(); renderizarTabla();
@@ -4051,7 +4064,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.8.1";
+    var APP_VERSION = "3.8.2";
 
     function mostrarAppPrincipal() {
         try {
