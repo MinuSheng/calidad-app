@@ -1375,7 +1375,13 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.9.0 (Actual) - Cambios de Sabor/Lote con Hora Exacta</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.9.1 (Actual) - Cambio Oficial en Excel y Edición Completa</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Los cambios de sabor, etiqueta o lote ya no aparecen en Excel como “Cambio de etiqueta”.</li>' +
+                      '<li>El Excel los registra como una línea normal del formato oficial: producto nuevo, lote, hora exacta y guiones en las columnas de muestreo.</li>' +
+                      '<li>Los cambios aplicados desde la tabla de Yogurt ahora permiten editar hora, producto/sabor, etiqueta y lote.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.9.0 - Cambios de Sabor/Lote con Hora Exacta</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li>Nuevo botón <b>“APLICAR CAMBIOS AHORA”</b> en Datos del Lote actual.</li>' +
                       '<li>Los cambios de sabor/producto, lote o etiqueta se registran inmediatamente con la hora real en la tabla de Yogurt.</li>' +
@@ -3118,6 +3124,56 @@
 
     function abrirVentanaEdicionEspecial(index) {
         var r = registros[index];
+
+        // Los cambios de configuración se pueden corregir completamente:
+        // hora, producto/sabor, etiqueta y lote.
+        if (r.tipoEspecial === 'CAMBIO_DATOS') {
+            var htmlCambio = '<div style="text-align:left; font-size:0.9rem;">' +
+                '<label><b>Hora (HH:MM):</b></label><input id="edit-cambio-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
+                '<label><b>Sabor / Producto:</b></label><input id="edit-cambio-producto" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.producto || '') + '">' +
+                '<label><b>Tipo de Etiqueta:</b></label><input id="edit-cambio-etiqueta" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.etiqueta || '') + '">' +
+                '<label><b>Lote Operador:</b></label><input id="edit-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.lote || '') + '">' +
+            '</div>';
+
+            Swal.fire({
+                title: '✏️ Editar cambio aplicado',
+                html: htmlCambio,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar Cambios',
+                preConfirm: function() {
+                    var hora = document.getElementById('edit-cambio-hora').value.trim();
+                    var producto = document.getElementById('edit-cambio-producto').value.trim();
+                    var etiqueta = document.getElementById('edit-cambio-etiqueta').value.trim();
+                    var lote = document.getElementById('edit-cambio-lote').value.trim();
+                    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+                        Swal.showValidationMessage('La hora debe tener formato HH:MM, por ejemplo 09:27.');
+                        return false;
+                    }
+                    if (!producto || !etiqueta || !lote) {
+                        Swal.showValidationMessage('Producto, etiqueta y lote no pueden quedar vacíos.');
+                        return false;
+                    }
+                    return { hora: hora, producto: producto, etiqueta: etiqueta, lote: lote };
+                }
+            }).then(function(res) {
+                if (res.isConfirmed) {
+                    registros[index].hora = res.value.hora;
+                    registros[index].producto = res.value.producto;
+                    registros[index].etiqueta = res.value.etiqueta;
+                    registros[index].lote = res.value.lote;
+                    // El texto de pantalla pasa a describir la configuración final,
+                    // sin depender de la comparación original que pudo ser corregida.
+                    registros[index].textoEspecial = 'Configuración: ' +
+                        res.value.producto + ' ' + res.value.etiqueta + ' | Lote ' + res.value.lote;
+                    ordenarRegistrosCronologicamente();
+                    guardarEnMemoria();
+                    renderizarTabla();
+                    Swal.fire('Guardado', 'El cambio quedó actualizado correctamente.', 'success');
+                }
+            });
+            return;
+        }
+
         var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
             '<label><b>Hora (HH:MM):</b></label><input id="edit-esp-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
             '<label><b>Lote Operador:</b></label><input id="edit-esp-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
@@ -3446,18 +3502,45 @@
                 for (var i = 0; i < rTarget.length; i++) {
                     var r = rTarget[i];
                     if (r.tipoEspecial === 'MERMA_DIRECTA') continue;
-                    var currentSignature = r.tipoEspecial ? ("LAVADO|" + r.lote) : (r.producto + "|" + r.etiqueta + "|" + r.lote);
+                    var currentSignature = (r.tipoEspecial && r.tipoEspecial !== 'CAMBIO_DATOS')
+                        ? ("LAVADO|" + r.lote)
+                        : (r.producto + "|" + r.etiqueta + "|" + r.lote);
                     var fechaCelda = ""; var prodCelda = "";
 
                     if (currentSignature !== lastSignature) {
                         if (i !== 0) filaActual++;
                         fechaCelda = fStrTarget;
-                        if (!r.tipoEspecial) prodCelda = "Yogurt bebible " + r.producto + " " + r.etiqueta;
+                        if (!r.tipoEspecial || r.tipoEspecial === 'CAMBIO_DATOS') prodCelda = "Yogurt bebible " + r.producto + " " + r.etiqueta;
                         lastSignature = currentSignature;
                     }
                     var filaExcel = worksheet.getRow(filaActual);
 
-                    if (r.tipoEspecial) {
+                    if (r.tipoEspecial === 'CAMBIO_DATOS') {
+                        // En el formato oficial NO existe una fila "Cambio de etiqueta/lote/sabor".
+                        // El cambio se plasma como una nueva línea normal: descripción completa
+                        // del producto, lote y hora; las columnas de muestreo quedan con guiones.
+                        filaExcel.getCell(1).value = fechaCelda;
+                        filaExcel.getCell(2).value = "Yogurt bebible " + r.producto + " " + r.etiqueta;
+                        filaExcel.getCell(3).value = r.lote;
+                        filaExcel.getCell(4).value = r.hora;
+                        filaExcel.getCell(5).value = "—";
+                        filaExcel.getCell(6).value = "—";
+                        filaExcel.getCell(7).value = "—";
+                        filaExcel.getCell(8).value = "—";
+                        filaExcel.getCell(9).value = "-";
+                        filaExcel.getCell(10).value = vTarget;
+                        filaExcel.getCell(11).value = tTarget;
+
+                        for(var cc=1; cc<=11; cc++) {
+                            var cellCambio = filaExcel.getCell(cc);
+                            cellCambio.border = borderThin;
+                            cellCambio.font = baseFont;
+                            cellCambio.alignment = { vertical: 'middle', horizontal: 'center' };
+                        }
+                        filaExcel.getCell(2).font = boldFont;
+                        filaExcel.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
+                        filaExcel.getCell(4).font = boldFont;
+                    } else if (r.tipoEspecial) {
                         filaExcel.getCell(1).value = fechaCelda; filaExcel.getCell(2).value = "";  filaExcel.getCell(3).value = r.lote; filaExcel.getCell(4).value = r.hora; filaExcel.getCell(5).value = r.textoEspecial;
                         worksheet.mergeCells(filaActual, 5, filaActual, 8);
                         for(var c=1; c<=11; c++) { var cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; }
@@ -4170,7 +4253,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.9.0";
+    var APP_VERSION = "3.9.1";
 
     function mostrarAppPrincipal() {
         try {
