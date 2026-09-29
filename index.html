@@ -557,7 +557,7 @@
         <button id="btn-lavado-toggle" class="btn-action btn-lavado" onclick="alternarModoLavadoParo()">🧼 PASAR MÁQUINA A MODO LAVADO / PARO</button>
 
         <div class="card">
-            <h2>🛠️ Datos del Lote actual (Cambia al instante)</h2>
+            <h2>🛠️ Datos del Lote actual</h2>
             <div class="grid-config">
                 <div class="form-group">
                     <label>Sabor/Producto</label>
@@ -600,6 +600,10 @@
                     <label>Estado de la App</label>
                     <input type="text" id="estado-turno-lbl" value="Esperando Inicio..." readonly style="font-weight:bold; color:#0d6efd; text-align:center; background:var(--input-bg);">
                 </div>
+            </div>
+            <button id="btn-aplicar-cambio-lote" class="btn-action" style="background-color:#0d6efd; color:white; margin-top:10px;" onclick="aplicarCambioDatosLoteAhora()">✓ APLICAR CAMBIOS AHORA</button>
+            <div style="font-size:0.74rem; color:#6c757d; text-align:center; margin-top:6px; line-height:1.35;">
+                Registra la hora exacta del cambio de sabor, lote o etiqueta sin alterar el próximo corte automático.
             </div>
         </div>
 
@@ -1371,7 +1375,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.8.2 (Actual) - Corte Automático Después del Lavado</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v3.9.0 (Actual) - Cambios de Sabor/Lote con Hora Exacta</h4>' +
+                  '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
+                      '<li>Nuevo botón <b>“APLICAR CAMBIOS AHORA”</b> en Datos del Lote actual.</li>' +
+                      '<li>Los cambios de sabor/producto, lote o etiqueta se registran inmediatamente con la hora real en la tabla de Yogurt.</li>' +
+                      '<li>Aplicar un cambio no crea un corte de 30 minutos, no borra defectos acumulados y no altera el próximo corte automático (:00 / :30).</li>' +
+                      '<li>Antes de guardar se muestra exactamente qué datos cambiaron y la hora que quedará registrada.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight: bold; color: var(--text-color);">v3.8.2 - Corte Automático Después del Lavado</h4>' +
                   '<ul style="margin-top:0; padding-left: 20px; color: var(--text-color);">' +
                       '<li><b>Corregido:</b> al finalizar un lavado de máquina, el primer corte automático de Yogurt (:00 o :30) podía saltarse y obligaba a realizar un corte manual.</li>' +
                       '<li>Ahora, al salir de lavado, el sistema reanuda los cortes en la siguiente marca real del reloj sin intentar recuperar los cortes correspondientes al tiempo que la máquina estuvo en lavado.</li>' +
@@ -2433,6 +2444,91 @@
 
     function detectarCambioManual() { guardarEnMemoria(); }
 
+    // v3.9.0: registra inmediatamente un cambio de sabor/lote/etiqueta.
+    // Es un evento informativo: NO ejecuta un corte, NO reinicia contadores
+    // y NO modifica ultimoBloqueProcesado; por eso el próximo :00/:30 sigue intacto.
+    function aplicarCambioDatosLoteAhora() {
+        if (turnoActivo === "") {
+            return Swal.fire('Atención', 'Debes iniciar un Turno Oficial antes de registrar un cambio.', 'warning');
+        }
+
+        var productoNuevo = getProductName();
+        var etiquetaNueva = document.getElementById('etiqueta').value || "—";
+        var loteNuevo = (document.getElementById('lote').value || "").trim() || "—";
+
+        if (productoNuevo === "—") {
+            return Swal.fire('Falta el producto', 'Selecciona el sabor/producto antes de aplicar el cambio.', 'warning');
+        }
+
+        // Busca la configuración que estaba oficialmente aplicada antes de este cambio.
+        // Los eventos CAMBIO_DATOS también guardan la nueva configuración para que
+        // varios cambios seguidos antes del próximo corte se comparen correctamente.
+        var anterior = null;
+        for (var i = registros.length - 1; i >= 0; i--) {
+            var rr = registros[i];
+            if (rr && rr.producto && rr.etiqueta && rr.lote &&
+                rr.tipoEspecial !== 'LAVADO_INICIO' &&
+                rr.tipoEspecial !== 'LAVADO_FIN' &&
+                rr.tipoEspecial !== 'MERMA_DIRECTA') {
+                anterior = rr;
+                break;
+            }
+        }
+
+        var cambios = [];
+        if (!anterior || anterior.producto !== productoNuevo) {
+            cambios.push('Sabor/Producto: ' + (anterior ? anterior.producto : '—') + ' → ' + productoNuevo);
+        }
+        if (!anterior || anterior.lote !== loteNuevo) {
+            cambios.push('Lote: ' + (anterior ? anterior.lote : '—') + ' → ' + loteNuevo);
+        }
+        if (!anterior || anterior.etiqueta !== etiquetaNueva) {
+            cambios.push('Etiqueta: ' + (anterior ? anterior.etiqueta : '—') + ' → ' + etiquetaNueva);
+        }
+
+        if (cambios.length === 0) {
+            return Swal.fire('Sin cambios', 'Los datos actuales son iguales a los últimos datos aplicados.', 'info');
+        }
+
+        var ahora = new Date();
+        var horaStr = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+
+        Swal.fire({
+            title: '¿Aplicar cambio ahora?',
+            html: '<div style="text-align:left; line-height:1.55;">' +
+                  '<b>Hora:</b> ' + horaStr + '<br>' +
+                  cambios.map(function(c){ return '• ' + c; }).join('<br>') +
+                  '<br><br><small>El próximo corte automático seguirá en su hora normal (:00 / :30).</small></div>',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '✓ Aplicar a las ' + horaStr,
+            cancelButtonText: 'Cancelar'
+        }).then(function(res) {
+            if (!res.isConfirmed) return;
+
+            registros.push({
+                hora: horaStr,
+                tipoEspecial: 'CAMBIO_DATOS',
+                textoEspecial: cambios.join(' | '),
+                producto: productoNuevo,
+                etiqueta: etiquetaNueva,
+                lote: loteNuevo
+            });
+
+            ordenarRegistrosCronologicamente();
+            guardarEnMemoria();
+            renderizarTabla();
+
+            Swal.fire({
+                title: 'Cambio registrado',
+                text: 'Quedó registrado a las ' + horaStr + '. El próximo corte automático no fue modificado.',
+                icon: 'success',
+                timer: 2600,
+                showConfirmButton: false
+            });
+        });
+    }
+
     function getProductName() {
         var base = document.getElementById('producto').value;
         if (base === 'OTRO') return document.getElementById('producto-custom').value || 'Otro';
@@ -3124,6 +3220,16 @@
                 var trMer = document.createElement('tr'); trMer.className = "merma-row";
                 trMer.innerHTML = '<td style="font-weight:bold; cursor:pointer;" onclick="abrirMenuOpcionesFila(' + i + ')">' + reg.hora + '</td><td colspan="5">🪣 ' + reg.textoEspecial + ' (Lote: ' + reg.lote + ')</td>';
                 tbody.appendChild(trMer); continue;
+            }
+            if (reg.tipoEspecial === 'CAMBIO_DATOS') {
+                var trCambio = document.createElement('tr'); trCambio.className = "change-row";
+                trCambio.innerHTML = '<td style="font-weight:bold; cursor:pointer;" onclick="abrirMenuOpcionesFila(' + i + ')">' + reg.hora + '</td>' +
+                    '<td colspan="5" style="text-align:left;">🔄 <b>CAMBIO APLICADO:</b> ' + reg.textoEspecial + '</td>';
+                tbody.appendChild(trCambio);
+                // Desde este instante esta configuración es la vigente, evitando
+                // una cabecera duplicada cuando llegue el siguiente corte.
+                lastHeaderSignature = reg.producto + "|" + reg.etiqueta + "|" + reg.lote;
+                continue;
             }
 
             var currentSignature = reg.producto + "|" + reg.etiqueta + "|" + reg.lote;
@@ -4064,7 +4170,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "3.8.2";
+    var APP_VERSION = "3.9.0";
 
     function mostrarAppPrincipal() {
         try {
