@@ -1380,7 +1380,14 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.2 (Actual) - Corrección Global de Lote/Sección</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.3 (Actual) - Historial Limpio tras Correcciones</h4>' +
+                  '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
+                      '<li>Corregir un lote mal digitado ya no lo deja plasmado como un falso cambio en Historial Oficial/Captura Reporte.</li>' +
+                      '<li>Los cambios reales posteriores releen el dato corregido y ocultan sabor, presentación o lote cuando ambos lados son iguales.</li>' +
+                      '<li>Si únicamente cambió LALA → LP, se muestra únicamente “Presentación: LALA → LP”.</li>' +
+                      '<li>El editor ahora muestra “Lote” en lugar de “Lote Operador”.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight:bold; color:var(--text-color);">v4.0.2 - Corrección Global de Lote/Sección</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
                       '<li>Corregir lote, sabor o presentación desde una sección de Yogurt actualiza todos los registros de ese tramo.</li>' +
                       '<li>La corrección no crea una nueva fila de cambio ni altera los cortes existentes.</li>' +
@@ -3170,7 +3177,7 @@
                 '<label><b>Hora (HH:MM):</b></label><input id="edit-cambio-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
                 '<label><b>Sabor / Producto:</b></label><input id="edit-cambio-producto" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.producto || '') + '">' +
                 '<label><b>Tipo de Etiqueta:</b></label><input id="edit-cambio-etiqueta" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.etiqueta || '') + '">' +
-                '<label><b>Lote Operador:</b></label><input id="edit-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.lote || '') + '">' +
+                '<label><b>Lote:</b></label><input id="edit-cambio-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + (r.lote || '') + '">' +
             '</div>';
 
             Swal.fire({
@@ -3244,7 +3251,7 @@
 
         var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
             '<label><b>Hora (HH:MM):</b></label><input id="edit-esp-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
-            '<label><b>Lote Operador:</b></label><input id="edit-esp-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
+            '<label><b>Lote:</b></label><input id="edit-esp-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
         '</div>';
         Swal.fire({ title: 'Modificar Evento Especial', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar Cambios'
         }).then(function(res) {
@@ -3260,7 +3267,7 @@
         var r = registros[index];
         var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
             '<label><b>Hora (HH:MM):</b></label><input id="edit-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
-            '<label><b>Lote Operador:</b></label><input id="edit-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
+            '<label><b>Lote:</b></label><input id="edit-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
             '<label><b>Mal Sellado:</b></label><input id="edit-mal" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.malSellado + '">' +
             '<label><b>Sobrellenado:</b></label><input id="edit-sobre" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.sobrellenado + '">' +
             '<label><b>Volumen Bajo:</b></label><input id="edit-bajo" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.volumenBajo + '">' +
@@ -3344,6 +3351,26 @@
             if (!rc.tipoEspecial) break;
         }
 
+        // El cambio real posterior debe usar como origen los datos YA corregidos.
+        // Esto evita que un error de digitación aparezca en Captura Reporte.
+        for (var e=fin+1; e<registros.length; e++) {
+            var sig=registros[e];
+            if (sig.tipoEspecial==='CAMBIO_DATOS') {
+                var txt=String(sig.textoEspecial||'');
+                var ps=txt.match(/Sabor\/Producto:\s*([^|]+?)\s*→\s*([^|]+)/i);
+                var pe=txt.match(/Etiqueta:\s*([^|]+?)\s*→\s*([^|]+)/i);
+                var pl=txt.match(/Lote:\s*([^|]+?)\s*→\s*([^|]+)/i);
+                var partesSig=[];
+                if(ps) partesSig.push('Sabor/Producto: '+nuevos.producto+' → '+ps[2].trim());
+                if(pl) partesSig.push('Lote: '+nuevos.lote+' → '+pl[2].trim());
+                if(pe) partesSig.push('Etiqueta: '+nuevos.etiqueta+' → '+pe[2].trim());
+                sig.textoEspecial=partesSig.length?partesSig.join(' | '):txt;
+                sig._cambioDetalle=null;
+                break;
+            }
+            if(!sig.tipoEspecial) break;
+        }
+
         // Si es la sección vigente, deja también correctos los datos actuales.
         var posterior=false;
         for (var d=fin+1; d<registros.length; d++) {
@@ -3419,13 +3446,13 @@
         var lote = t.match(/Lote:\s*([^|]+?)\s*→\s*([^|]+)/i);
         var etiqueta = t.match(/Etiqueta:\s*([^|]+?)\s*→\s*([^|]+)/i);
 
-        if (sabor) partes.push('Sabor: ' + sabor[1].trim() + ' → ' + sabor[2].trim());
-        if (etiqueta) partes.push('Presentación: ' + etiqueta[1].trim() + ' → ' + etiqueta[2].trim());
-        if (lote) partes.push('Lote: ' + lote[1].trim() + ' → ' + lote[2].trim());
+        if (sabor && sabor[1].trim().toLowerCase() !== sabor[2].trim().toLowerCase()) partes.push('Sabor: ' + sabor[1].trim() + ' → ' + sabor[2].trim());
+        if (etiqueta && etiqueta[1].trim().toLowerCase() !== etiqueta[2].trim().toLowerCase()) partes.push('Presentación: ' + etiqueta[1].trim() + ' → ' + etiqueta[2].trim());
+        if (lote && lote[1].trim().toLowerCase() !== lote[2].trim().toLowerCase()) partes.push('Lote: ' + lote[1].trim() + ' → ' + lote[2].trim());
 
         // Compatibilidad con cambios editados en v3.9.1, que guardaban
         // "Configuración: Producto Etiqueta | Lote ####".
-        if (partes.length === 0) {
+        if (partes.length === 0 && !sabor && !lote && !etiqueta) {
             if (reg._cambioDetalle && Array.isArray(reg._cambioDetalle)) {
                 partes = reg._cambioDetalle.slice();
             } else {
@@ -4438,7 +4465,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.2";
+    var APP_VERSION = "4.0.3";
 
     function mostrarAppPrincipal() {
         try {
