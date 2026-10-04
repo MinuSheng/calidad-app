@@ -1380,7 +1380,15 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.1 (Actual) - Excel Oficial UHT y Derivados Corregido</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.2 (Actual) - Corrección Global de Lote/Sección</h4>' +
+                  '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
+                      '<li>Corregir lote, sabor o presentación desde una sección de Yogurt actualiza todos los registros de ese tramo.</li>' +
+                      '<li>La corrección no crea una nueva fila de cambio ni altera los cortes existentes.</li>' +
+                      '<li>Merma y lavado del mismo tramo reciben también el lote corregido.</li>' +
+                      '<li>Si la sección nació de “Aplicar cambios ahora”, también se corrige ese evento original.</li>' +
+                      '<li>Editar un “CAMBIO APLICADO” propaga su corrección a los cortes posteriores hasta el siguiente cambio real.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom: 4px; font-weight:bold; color:var(--text-color);">v4.0.1 - Excel Oficial UHT y Derivados Corregido</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
                       '<li>Las plantillas oficiales SB-ACF-009 (UHT) y SB-ACF-071 (Derivados) ahora están incrustadas dentro del propio index.html.</li>' +
                       '<li>El Excel conserva encabezado, cuadrícula, códigos, versión, firmas y secciones del formato oficial.</li>' +
@@ -3187,10 +3195,22 @@
                 }
             }).then(function(res) {
                 if (res.isConfirmed) {
-                    registros[index].hora = res.value.hora;
-                    registros[index].producto = res.value.producto;
-                    registros[index].etiqueta = res.value.etiqueta;
-                    registros[index].lote = res.value.lote;
+                    var cambioViejo={producto:registros[index].producto,etiqueta:registros[index].etiqueta,lote:registros[index].lote};
+                    registros[index].hora=res.value.hora;
+                    registros[index].producto=res.value.producto;
+                    registros[index].etiqueta=res.value.etiqueta;
+                    registros[index].lote=res.value.lote;
+                    var firmaViejaCambio=cambioViejo.producto+'|'+cambioViejo.etiqueta+'|'+cambioViejo.lote;
+                    for(var pc=index+1;pc<registros.length;pc++){
+                        var rp=registros[pc];
+                        if(rp.tipoEspecial==='CAMBIO_DATOS') break;
+                        if(!rp.tipoEspecial){
+                            if(_firmaYogurt(rp)!==firmaViejaCambio) break;
+                            rp.producto=res.value.producto;rp.etiqueta=res.value.etiqueta;rp.lote=res.value.lote;
+                        }else if((rp.tipoEspecial==='MERMA_DIRECTA'||rp.tipoEspecial==='LAVADO_INICIO'||rp.tipoEspecial==='LAVADO_FIN')&&String(rp.lote||'')===String(cambioViejo.lote||'')){
+                            rp.lote=res.value.lote;
+                        }
+                    }
                     // El texto de pantalla pasa a describir la configuración final,
                     // sin depender de la comparación original que pudo ser corregida.
                     // Conserva una descripción limpia del tipo de cambio después de editar.
@@ -3208,7 +3228,11 @@
                     // mostramos la configuración final sin el redundante "Configuración:".
                     registros[index]._cambioDetalle = detallesEditados.length ? detallesEditados :
                         [(res.value.producto + ' ' + res.value.etiqueta + ' | Lote ' + res.value.lote)];
-                    registros[index].textoEspecial = textoPrevio;
+                    var partesTexto=[];
+                    if(mSab) partesTexto.push('Sabor/Producto: '+mSab[1].trim()+' → '+res.value.producto);
+                    if(mLot) partesTexto.push('Lote: '+mLot[1].trim()+' → '+res.value.lote);
+                    if(mEti) partesTexto.push('Etiqueta: '+mEti[1].trim()+' → '+res.value.etiqueta);
+                    registros[index].textoEspecial=partesTexto.length?partesTexto.join(' | '):textoPrevio;
                     ordenarRegistrosCronologicamente();
                     guardarEnMemoria();
                     renderizarTabla();
@@ -3253,6 +3277,88 @@
     // Editar/eliminar la cabecera de un cambio de sabor. Antes se redefinía
     // dentro de renderizarTabla(), o sea que se volvía a crear en cada
     // repintado de la tabla sin ninguna necesidad.
+    // v4.0.2 — Corrige una sección existente sin crear un cambio nuevo.
+    function _firmaYogurt(r) {
+        return (r && !r.tipoEspecial) ? ((r.producto || '') + '|' + (r.etiqueta || '') + '|' + (r.lote || '')) : '';
+    }
+
+    function _actualizarTextoCambioDatos(reg, productoNuevo, etiquetaNueva, loteNuevo) {
+        var t = String(reg.textoEspecial || ''), partes = [];
+        var mSab = t.match(/Sabor\/Producto:\s*([^|]+?)\s*→\s*([^|]+)/i);
+        var mEti = t.match(/Etiqueta:\s*([^|]+?)\s*→\s*([^|]+)/i);
+        var mLot = t.match(/Lote:\s*([^|]+?)\s*→\s*([^|]+)/i);
+        if (mSab) partes.push('Sabor/Producto: ' + mSab[1].trim() + ' → ' + productoNuevo);
+        if (mLot) partes.push('Lote: ' + mLot[1].trim() + ' → ' + loteNuevo);
+        if (mEti) partes.push('Etiqueta: ' + mEti[1].trim() + ' → ' + etiquetaNueva);
+        reg.producto = productoNuevo; reg.etiqueta = etiquetaNueva; reg.lote = loteNuevo;
+        if (partes.length) reg.textoEspecial = partes.join(' | ');
+        reg._cambioDetalle = null;
+    }
+
+    function corregirSeccionYogurt(index, nuevos) {
+        var base = registros[index];
+        if (!base || base.tipoEspecial) return 0;
+        var firmaAnterior = _firmaYogurt(base);
+        var prodAnterior = base.producto, etiAnterior = base.etiqueta, loteAnterior = base.lote;
+        var inicio = index, fin = index;
+
+        for (var a=index-1; a>=0; a--) {
+            var ra=registros[a];
+            if (ra.tipoEspecial === 'CAMBIO_DATOS') break;
+            if (!ra.tipoEspecial) {
+                if (_firmaYogurt(ra) !== firmaAnterior) break;
+                inicio=a;
+            } else if ((ra.tipoEspecial==='MERMA_DIRECTA'||ra.tipoEspecial==='LAVADO_INICIO'||ra.tipoEspecial==='LAVADO_FIN') &&
+                       String(ra.lote||'')===String(loteAnterior||'')) inicio=a;
+        }
+        for (var b=index+1; b<registros.length; b++) {
+            var rb=registros[b];
+            if (rb.tipoEspecial === 'CAMBIO_DATOS') break;
+            if (!rb.tipoEspecial) {
+                if (_firmaYogurt(rb) !== firmaAnterior) break;
+                fin=b;
+            } else if ((rb.tipoEspecial==='MERMA_DIRECTA'||rb.tipoEspecial==='LAVADO_INICIO'||rb.tipoEspecial==='LAVADO_FIN') &&
+                       String(rb.lote||'')===String(loteAnterior||'')) fin=b;
+        }
+
+        var tocados=0;
+        for (var i=inicio; i<=fin; i++) {
+            var r=registros[i];
+            if (!r.tipoEspecial && _firmaYogurt(r)===firmaAnterior) {
+                r.producto=nuevos.producto; r.etiqueta=nuevos.etiqueta; r.lote=nuevos.lote; tocados++;
+            } else if (r.tipoEspecial && r.tipoEspecial!=='CAMBIO_DATOS' &&
+                       String(r.lote||'')===String(loteAnterior||'')) {
+                r.lote=nuevos.lote; tocados++;
+            }
+        }
+
+        // Corrige el CAMBIO APLICADO que originó esta sección, si existe.
+        for (var c=inicio-1; c>=0; c--) {
+            var rc=registros[c];
+            if (rc.tipoEspecial==='CAMBIO_DATOS') {
+                if ((rc.producto||'')===prodAnterior && (rc.etiqueta||'')===etiAnterior && (rc.lote||'')===loteAnterior) {
+                    _actualizarTextoCambioDatos(rc,nuevos.producto,nuevos.etiqueta,nuevos.lote); tocados++;
+                }
+                break;
+            }
+            if (!rc.tipoEspecial) break;
+        }
+
+        // Si es la sección vigente, deja también correctos los datos actuales.
+        var posterior=false;
+        for (var d=fin+1; d<registros.length; d++) {
+            if (!registros[d].tipoEspecial || registros[d].tipoEspecial==='CAMBIO_DATOS') { posterior=true; break; }
+        }
+        if (!posterior) {
+            if (document.getElementById('lote')) document.getElementById('lote').value=nuevos.lote;
+            if (document.getElementById('etiqueta')) {
+                document.getElementById('etiqueta').value=nuevos.etiqueta;
+                if (typeof sincronizarDropdownPorValor==='function') sincronizarDropdownPorValor('dd-etiqueta',nuevos.etiqueta);
+            }
+        }
+        return tocados;
+    }
+
     function editarCabeceraSeccion(index) {
             var r = registros[index];
             Swal.fire({
@@ -3273,16 +3379,25 @@
                         '<label><b>Etiqueta:</b></label><input id="edit-cab-etiqueta" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.etiqueta + '">' +
                         '<label><b>Lote:</b></label><input id="edit-cab-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
                     '</div>';
-                    Swal.fire({ title: 'Editar Cambio de Sabor', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar Cambios' }).then(function(res2) {
+                    Swal.fire({
+                        title: '✏️ Corregir sección completa',
+                        html: htmlCont + '<div style="margin-top:10px;padding:10px;border-radius:8px;background:rgba(13,110,253,.12);font-size:.82rem;">Esta es una <b>corrección</b>, no un nuevo cambio. Se aplicará a todos los registros de esta misma sección.</div>',
+                        showCancelButton: true, confirmButtonText: 'Corregir toda la sección',
+                        preConfirm: function() {
+                            var hora=document.getElementById('edit-cab-hora').value.trim();
+                            var producto=document.getElementById('edit-cab-producto').value.trim();
+                            var etiqueta=document.getElementById('edit-cab-etiqueta').value.trim();
+                            var lote=document.getElementById('edit-cab-lote').value.trim();
+                            if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)){Swal.showValidationMessage('La hora debe tener formato HH:MM.');return false;}
+                            if(!producto||!etiqueta||!lote){Swal.showValidationMessage('Producto, etiqueta y lote no pueden quedar vacíos.');return false;}
+                            return {hora:hora,producto:producto,etiqueta:etiqueta,lote:lote};
+                        }
+                    }).then(function(res2) {
                         if (res2.isConfirmed) {
-                            registros[index].hora = document.getElementById('edit-cab-hora').value;
-                            registros[index].producto = document.getElementById('edit-cab-producto').value;
-                            registros[index].etiqueta = document.getElementById('edit-cab-etiqueta').value;
-                            registros[index].lote = document.getElementById('edit-cab-lote').value;
-                            ordenarRegistrosCronologicamente();
-                            guardarEnMemoria();
-                            renderizarTabla();
-                            Swal.fire('Guardado', 'Los datos se actualizaron correctamente.', 'success');
+                            var cantidad=corregirSeccionYogurt(index,res2.value);
+                            registros[index].hora=res2.value.hora;
+                            ordenarRegistrosCronologicamente(); guardarEnMemoria(); renderizarTabla();
+                            Swal.fire('Sección corregida','Se actualizaron '+cantidad+' registros. No se creó ningún cambio nuevo.','success');
                         }
                     });
                 } else if (res.isDenied) {
@@ -4323,7 +4438,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.1";
+    var APP_VERSION = "4.0.2";
 
     function mostrarAppPrincipal() {
         try {
