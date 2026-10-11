@@ -6088,31 +6088,59 @@
     }
 
     function _descargarPesoOficialPaginado(b64, config, tipo) {
-        Swal.fire({ title: 'Generando hojas oficiales...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        Swal.fire({ title: 'Generando hojas oficiales...', allowOutsideClick: false,
+            didOpen: function() { Swal.showLoading(); } });
         var paginas = _planificarPaginasPeso(config);
-        var wb = new ExcelJS.Workbook();
         _avisosExcelPeso = [];
-        // Se carga la plantilla ORIGINAL en cada iteración para mantener
-        // las celdas combinadas, logo, estructura y estilos oficiales.
-        var cadena = Promise.resolve();
-        paginas.forEach(function(pagina, i) {
-            cadena = cadena.then(function() {
-                var temporal = new ExcelJS.Workbook();
-                return temporal.xlsx.load(_base64AArrayBufferPeso(b64)).then(function() {
-                    var hoja = temporal.worksheets[0];
-                    var avisos = _rellenarPlantillaOficialPeso(hoja, Object.assign({}, config, pagina));
-                    _avisosExcelPeso.push.apply(_avisosExcelPeso, avisos);
-                    // ExcelJS no permite mover una hoja entre libros directamente.
-                    // Copiamos su modelo completo, preservando merges y formato.
-                    var destino = wb.addWorksheet('Hoja ' + (i + 1));
-                    destino.model = Object.assign({}, hoja.model, { id: destino.id, name: 'Hoja ' + (i + 1) });
+        // Trabajar sobre el libro ORIGINAL conserva sus relaciones internas:
+        // logos, imágenes, estilos y nombres definidos. Crear un Workbook vacío
+        // y asignar worksheet.model rompía esas relaciones al serializar.
+        var wb = new ExcelJS.Workbook();
+        wb.xlsx.load(_base64AArrayBufferPeso(b64)).then(function() {
+            var plantilla = wb.worksheets[0];
+            if (!plantilla) throw new Error('La plantilla oficial no contiene hojas.');
+            // Para múltiples páginas, cada página se genera como un archivo
+            // independiente desde la plantilla original. Así no se pierde el
+            // logo ni se dañan las relaciones del formato certificado.
+            if (paginas.length === 1) {
+                _avisosExcelPeso.push.apply(_avisosExcelPeso,
+                    _rellenarPlantillaOficialPeso(plantilla, Object.assign({}, config, paginas[0])));
+                return wb.xlsx.writeBuffer().then(function(buffer) {
+                    _entregarArchivo(new Blob([buffer], {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    }), 'MonitoreoPeso_' + tipo + '_' + Date.now() + '.xlsx',
+                    function() { _avisarDescargaPeso(tipo); });
+                });
+            }
+            // Varios libros, uno por página: no copiar modelos de hoja entre
+            // libros, ya que ExcelJS no conserva correctamente sus imágenes.
+            var secuencia = Promise.resolve();
+            paginas.forEach(function(pagina, i) {
+                secuencia = secuencia.then(function() {
+                    var libroPagina = new ExcelJS.Workbook();
+                    return libroPagina.xlsx.load(_base64AArrayBufferPeso(b64)).then(function() {
+                        var hoja = libroPagina.worksheets[0];
+                        _avisosExcelPeso.push.apply(_avisosExcelPeso,
+                            _rellenarPlantillaOficialPeso(hoja, Object.assign({}, config, pagina)));
+                        return libroPagina.xlsx.writeBuffer();
+                    }).then(function(buffer) {
+                        _entregarArchivo(new Blob([buffer], {
+                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        }), 'MonitoreoPeso_' + tipo + '_Hoja_' + (i + 1) +
+                        '_de_' + paginas.length + '.xlsx');
+                    });
                 });
             });
+            return secuencia.then(function() {
+                Swal.fire('Exportación completada',
+                    'Se generaron ' + paginas.length + ' archivos Excel, uno por hoja de continuación. Revisa las descargas del navegador.',
+                    'success');
+            });
+        }).catch(function(err) {
+            console.error('Error al exportar peso:', err);
+            Swal.fire('Error', 'No se pudo generar el Excel: ' +
+                (err && err.message ? err.message : String(err)), 'error');
         });
-        cadena.then(function() { return wb.xlsx.writeBuffer(); }).then(function(buffer) {
-            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _entregarArchivo(blob, 'MonitoreoPeso_' + tipo + '_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso(tipo); });
-        }).catch(function(err) { Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error'); });
     }
 
     function descargarExcelPesoConPlantillaUht() {
