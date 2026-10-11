@@ -4467,7 +4467,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.9";
+    var APP_VERSION = "4.0.10";
 
     function mostrarAppPrincipal() {
         try {
@@ -6092,7 +6092,7 @@
         return paginas.length ? paginas : [{ bloquesPagina: [], revisionesPagina: [], numeroPagina: 1 }];
     }
 
-    // v4.0.9: ExcelJS necesita instancias Anchor internas para serializar
+    // v4.0.10: logo reducido y centrado, con anclajes válidos de ExcelJS para serializar
     // imágenes. Reasignar logo.range con objetos literales provocaba
     // "Cannot read properties of undefined (reading 'nativeCol')".
     // removeImage/addImage construye los anclajes válidos automáticamente.
@@ -6106,8 +6106,8 @@
         if (!Array.isArray(ws._media)) return;
         ws._media = ws._media.filter(function(item) { return item !== logo; });
         ws.addImage(id, {
-            tl: { col: 0.58, row: 0.08 },
-            ext: { width: 104, height: 34 },
+            tl: { col: 0.95, row: 0.18 },
+            ext: { width: 74, height: 24 },
             editAs: 'absolute'
         });
     }
