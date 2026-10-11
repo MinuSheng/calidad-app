@@ -1380,7 +1380,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.16 (Actual) - Cuadrícula intacta y horas verticales</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.17 (Actual) - Escala de impresión ajustada</h4>' +
+                  '<p>Se amplía el área útil de impresión y se ajustan las proporciones de columnas para acercar la hoja al tamaño del formato oficial, manteniendo la cuadrícula y las anotaciones.</p>' +
+                  '<h4>v4.0.16 - Cuadrícula intacta y horas verticales</h4>' +
                   '<p>Las etiquetas iniciales ya no fusionan las celdas de peso. Las horas de transición se integran en las anotaciones verticales sin duplicarse en el encabezado.</p>' +
                   '<h4>v4.0.15 - Anotaciones de cambio de sabor con hora</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>El cambio de sabor muestra FIN y el nuevo producto con sus horas; no repite el lote en la anotación.</li><li>El nombre inicial del producto se imprime vertical con el mismo método, conservando la cuadrícula.</li></ul>' +
@@ -4475,7 +4477,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.16";
+    var APP_VERSION = "4.0.17";
 
     function mostrarAppPrincipal() {
         try {
@@ -5857,7 +5859,7 @@
             horizontalCentered: true,
             verticalCentered: false,
             printArea: config.areaImpresion,
-            margins: { left: 0.20, right: 0.20, top: 0.25, bottom: 0.25, header: 0.10, footer: 0.10 }
+            margins: { left: 0.10, right: 0.10, top: 0.12, bottom: 0.12, header: 0.05, footer: 0.05 }
         };
         ws.views = [{ state: 'normal', showGridLines: false }];
         ws.properties.defaultRowHeight = 15;
@@ -6216,7 +6218,7 @@
         _descargarPesoOficialPaginado(PLANTILLA_PESO_UHT_B64, {
             baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
             colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
-            areaImpresion: 'A1:AE48', anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
+            areaImpresion: 'A1:AE48', anchoColEtiqueta: 14.5, anchoColDatos: 4.85,
             causaDataStart: 38, causaDataEnd: 43
         }, 'UHT');
     }
@@ -6230,7 +6232,7 @@
             baseRows: [9, 23], bocasMax: 10, maxCol: 31,
             colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
             limpiar: ['J15', 'J18'], areaImpresion: 'A1:AE52',
-            anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
+            anchoColEtiqueta: 14.5, anchoColDatos: 4.85,
             causaDataStart: 42, causaDataEnd: 47
         }, 'Derivados');
     }
