@@ -1380,7 +1380,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.14 (Actual) - Corrección de escala de anotaciones verticales en Excel móvil</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.15 (Actual) - Anotaciones de cambio de sabor con hora</h4>' +
+                  '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>El cambio de sabor muestra FIN y el nuevo producto con sus horas; no repite el lote en la anotación.</li><li>El nombre inicial del producto se imprime vertical con el mismo método, conservando la cuadrícula.</li></ul>' +
+                  '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.14 - Corrección de escala de anotaciones verticales en Excel móvil</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>Se corrige la alineación vertical de FIN y de los cambios de producto en las celdas combinadas del Excel.</li><li>Se mantienen las dimensiones originales de la plantilla.</li></ul>' +
                   '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.11 - FIN y cambios de producto como en el formato físico</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>FIN se imprime verticalmente dentro de la cuadrícula, como una anotación manual, conservando su hora arriba.</li><li>Los cambios de sabor/producto muestran el nombre del nuevo producto y lote verticalmente en su propia columna, antes de los nuevos pesos.</li><li>Se conservan las dimensiones, el logo y la plantilla oficial.</li></ul>' +
@@ -4471,7 +4473,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.14";
+    var APP_VERSION = "4.0.15";
 
     function mostrarAppPrincipal() {
         try {
@@ -5942,7 +5944,7 @@
             // anotan seguidos, que es donde los escriben a mano.
             var textoProducto = (config.numeroPagina > 1 ? 'CONTINUACIÓN ' + config.numeroPagina + ' — ' : '') + primerLoteBloque.producto + '  —  Máquina: ' + bloque.maquina + '  —  Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('  —  Vence: ' + primerLoteBloque.vence) : '');
             (bloque.lotes || []).slice(1).forEach(function(l) {
-                textoProducto += '   //   FIN  →  ' + l.producto + '  —  Lote: ' + l.lote + (l.vence ? ('  —  Vence: ' + l.vence) : '');
+                if (String(l.lote || '') !== String(primerLoteBloque.lote || '')) { textoProducto += '   //   CAMBIO DE LOTE: ' + l.lote; }
             });
             var celdaProducto = ws.getCell('B' + baseRow);
             celdaProducto.value = textoProducto;
@@ -5967,8 +5969,10 @@
                 ws.mergeCells(filaBocaIni, config.colEtiqueta, filaBocaFin, config.colEtiqueta);
             } catch (e) { /* si ya venía combinada, se escribe igual abajo */ }
             var celdaEtiqueta = ws.getCell(filaBocaIni, config.colEtiqueta);
-            celdaEtiqueta.value = primerLoteBloque.producto + ((config.bocaDesde || 0) ? ' B' + (config.bocaDesde + 1) + '-B' + Math.min(bloque.bocas, config.bocaDesde + config.bocasMax) : '');
-            celdaEtiqueta.font = etiquetaFont; celdaEtiqueta.alignment = { horizontal: 'center', vertical: 'center', textRotation: 90, wrapText: true };
+            celdaEtiqueta.value = null;
+            // Misma técnica visual que FIN, sin texto de celda que Excel reescale.
+            escribirAnotacionVertical(config.colEtiqueta, filaBocaIni, filaBocaFin,
+                primerLoteBloque.producto + ((config.bocaDesde || 0) ? ' B' + (config.bocaDesde + 1) + '-B' + Math.min(bloque.bocas, config.bocaDesde + config.bocasMax) : ''), false);
 
             var col = config.colInicio;
             grupos.forEach(function(g, gi) {
@@ -5976,14 +5980,21 @@
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
                     var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
                     if (!yaTerminoConFin && col <= config.maxCol) {
+                        var revAnterior = ultimoRevAnterior;
+                        filaHoras.getCell(col).value = revAnterior ? _formatoHoraCelda(revAnterior) : '';
+                        filaHoras.getCell(col).font = normalFont;
+                        filaHoras.getCell(col).alignment = { horizontal: 'center', vertical: 'center' };
                         escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN', true);
                         col++;
                     }
                     if (col <= config.maxCol) {
                         var nombreNuevo = String(g.lote.producto || primerLoteBloque.producto || '');
-                        var loteNuevo = String(g.lote.lote || '');
-                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin,
-                            nombreNuevo + (loteNuevo ? ' — ' + loteNuevo : ''), false);
+                        var primerControlNuevo = g.revs.find(function(x) { return !x.esFin; }) || g.revs[0];
+                        var horaInicio = primerControlNuevo ? _formatoHoraCelda(primerControlNuevo) : '';
+                        filaHoras.getCell(col).value = horaInicio;
+                        filaHoras.getCell(col).font = normalFont;
+                        filaHoras.getCell(col).alignment = { horizontal: 'center', vertical: 'center' };
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, nombreNuevo, false);
                         col++;
                     }
                 }
