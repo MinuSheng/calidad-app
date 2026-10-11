@@ -1380,7 +1380,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.3 (Actual) - Historial Limpio tras Correcciones</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.4 (Actual) - Continuación de Monitoreos de Peso</h4>' +
+                  '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>Exportación de pesos en hojas consecutivas cuando se agotan las columnas disponibles.</li><li>Cabeceras de producción heredadas e identificación CONTINUACIÓN en cada página adicional.</li><li>Los registros de los turnos se mantienen vinculados en un mismo monitoreo.</li></ul>' +
+                  '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.3 - Historial Limpio tras Correcciones</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
                       '<li>Corregir un lote mal digitado ya no lo deja plasmado como un falso cambio en Historial Oficial/Captura Reporte.</li>' +
                       '<li>Los cambios reales posteriores releen el dato corregido y ocultan sabor, presentación o lote cuando ambos lados son iguales.</li>' +
@@ -4465,7 +4467,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.3";
+    var APP_VERSION = "4.0.4";
 
     function mostrarAppPrincipal() {
         try {
@@ -5774,8 +5776,8 @@
     // Devuelve un arreglo de avisos (para mostrarlos en la app, NUNCA dentro
     // de la hoja).
     function _rellenarPlantillaOficialPeso(ws, config) {
-        var bloques = _bloquesVisibles(_pesoDatos.bloques);
-        var revisiones = _pesoDatos.revisiones || [];
+        var bloques = config.bloquesPagina || _bloquesVisibles(_pesoDatos.bloques);
+        var revisiones = config.revisionesPagina || _pesoDatos.revisiones || [];
         var avisos = [];
         var primero = bloques[0];
         // La cabecera del formato físico se llena al ABRIR la hoja, así que
@@ -5881,6 +5883,11 @@
         ponerCabecera('H8', primerLote ? primerLote.lote : '');
         ponerCabecera('N8', primerLote ? (primerLote.vence || '') : '');
         ponerCabecera('T8', primero ? primero.maquina : '');
+        if (config.numeroPagina > 1) {
+            // La cabecera mantiene el formato oficial, indicando continuación.
+            var tituloContinuacion = ws.getCell('B' + config.baseRows[0]);
+            // La etiqueta se coloca en la fila del producto más abajo.
+        }
 
         // Letras pequeñas a propósito: es la única forma de que quepa todo sin
         // agrandar ninguna celda.
@@ -5901,7 +5908,7 @@
             // el formato físico, aquí va el producto, lote y vence del bloque —
             // y si dentro del mismo bloque hubo cambios de producto/lote, se
             // anotan seguidos, que es donde los escriben a mano.
-            var textoProducto = primerLoteBloque.producto + '  —  Máquina: ' + bloque.maquina + '  —  Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('  —  Vence: ' + primerLoteBloque.vence) : '');
+            var textoProducto = (config.numeroPagina > 1 ? 'CONTINUACIÓN ' + config.numeroPagina + ' — ' : '') + primerLoteBloque.producto + '  —  Máquina: ' + bloque.maquina + '  —  Lote: ' + primerLoteBloque.lote + (primerLoteBloque.vence ? ('  —  Vence: ' + primerLoteBloque.vence) : '');
             (bloque.lotes || []).slice(1).forEach(function(l) {
                 textoProducto += '   //   FIN  →  ' + l.producto + '  —  Lote: ' + l.lote + (l.vence ? ('  —  Vence: ' + l.vence) : '');
             });
@@ -6047,32 +6054,74 @@
     }
 
 
-    function descargarExcelPesoConPlantillaUht() {
-        Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
-
-        Promise.resolve(_base64AArrayBufferPeso(PLANTILLA_PESO_UHT_B64)).then(function(buffer) {
-            var wb = new ExcelJS.Workbook();
-            return wb.xlsx.load(buffer).then(function() {
-                var ws = wb.worksheets[0];
-                _avisosExcelPeso = _rellenarPlantillaOficialPeso(ws, {
-                    // SB-ACF-009 real: PRODUCTO en 9/17/25, Horas en la
-                    // siguiente (combinada con la fila de "Peso (ml)"),
-                    // B1..B5 en base+3..base+7. Tabla de causas: 38-43.
-                    // Última columna de la tabla: AE = 31.
-                    baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
-                    colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
-                    areaImpresion: 'A1:AE48',
-                    anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
-                    causaDataStart: 38, causaDataEnd: 43
-                });
-                return wb.xlsx.writeBuffer();
-            });
-        }).then(function(buffer) {
-            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _entregarArchivo(blob, 'MonitoreoPeso_UHT_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso('UHT'); });
-        }).catch(function(err) {
-            Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
+    // v4.0.4: paginación sin pérdida de pesajes. Cada pestaña es una hoja
+    // oficial imprimible, con cabecera heredada y marca de continuación.
+    function _planificarPaginasPeso(config) {
+        var paginas = [];
+        var todas = _pesoDatos.revisiones || [];
+        _bloquesVisibles(_pesoDatos.bloques).forEach(function(bloque) {
+            var grupos = _agruparRevisionesPorLote(bloque, todas);
+            var revs = [];
+            grupos.forEach(function(g) { g.revs.forEach(function(r) { revs.push(r); }); });
+            var offset = 0;
+            var capacidad = config.maxCol - config.colInicio + 1;
+            // Las máquinas con más bocas se conservan en el registro digital.
+            // Cada página física repite la cabecera y el lote correspondiente.
+            if (!revs.length) {
+                paginas.push({ bloquesPagina: [bloque], revisionesPagina: [], numeroPagina: paginas.length + 1 });
+            }
+            while (offset < revs.length) {
+                var seleccion = [], usadas = 0, loteAnterior = null;
+                while (offset < revs.length) {
+                    var r = revs[offset];
+                    var costo = 1 + (loteAnterior !== null && loteAnterior !== r.loteId ? 2 : 0);
+                    if (usadas + costo > capacidad) break;
+                    seleccion.push(r);
+                    usadas += costo;
+                    loteAnterior = r.loteId;
+                    offset++;
+                }
+                paginas.push({ bloquesPagina: [bloque], revisionesPagina: seleccion, numeroPagina: paginas.length + 1 });
+            }
         });
+        return paginas.length ? paginas : [{ bloquesPagina: [], revisionesPagina: [], numeroPagina: 1 }];
+    }
+
+    function _descargarPesoOficialPaginado(b64, config, tipo) {
+        Swal.fire({ title: 'Generando hojas oficiales...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+        var paginas = _planificarPaginasPeso(config);
+        var wb = new ExcelJS.Workbook();
+        _avisosExcelPeso = [];
+        // Se carga la plantilla ORIGINAL en cada iteración para mantener
+        // las celdas combinadas, logo, estructura y estilos oficiales.
+        var cadena = Promise.resolve();
+        paginas.forEach(function(pagina, i) {
+            cadena = cadena.then(function() {
+                var temporal = new ExcelJS.Workbook();
+                return temporal.xlsx.load(_base64AArrayBufferPeso(b64)).then(function() {
+                    var hoja = temporal.worksheets[0];
+                    var avisos = _rellenarPlantillaOficialPeso(hoja, Object.assign({}, config, pagina));
+                    _avisosExcelPeso.push.apply(_avisosExcelPeso, avisos);
+                    // ExcelJS no permite mover una hoja entre libros directamente.
+                    // Copiamos su modelo completo, preservando merges y formato.
+                    var destino = wb.addWorksheet('Hoja ' + (i + 1));
+                    destino.model = Object.assign({}, hoja.model, { id: destino.id, name: 'Hoja ' + (i + 1) });
+                });
+            });
+        });
+        cadena.then(function() { return wb.xlsx.writeBuffer(); }).then(function(buffer) {
+            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            _entregarArchivo(blob, 'MonitoreoPeso_' + tipo + '_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso(tipo); });
+        }).catch(function(err) { Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error'); });
+    }
+
+    function descargarExcelPesoConPlantillaUht() {
+        _descargarPesoOficialPaginado(PLANTILLA_PESO_UHT_B64, {
+            baseRows: [9, 17, 25], bocasMax: 5, maxCol: 31,
+            colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
+            areaImpresion: 'A1:AE48', anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
+            causaDataStart: 38, causaDataEnd: 43
+        }, 'UHT');
     }
 
     // Llena la plantilla OFICIAL SB-ACF-071 (Derivados) real. A diferencia
@@ -6080,33 +6129,13 @@
     // uno trae 10 filas de boca (ERCA y PRIMO con 8 bocas caben completos;
     // SERAC con 16 no cabe completo — se avisa si pasa).
     function descargarExcelPesoConPlantillaDerivados() {
-        Swal.fire({ title: 'Generando Excel Oficial...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
-
-        Promise.resolve(_base64AArrayBufferPeso(PLANTILLA_PESO_DERIVADOS_B64)).then(function(buffer) {
-            var wb = new ExcelJS.Workbook();
-            return wb.xlsx.load(buffer).then(function() {
-                var ws = wb.worksheets[0];
-                _avisosExcelPeso = _rellenarPlantillaOficialPeso(ws, {
-                    // SB-ACF-071 real: PRODUCTO en 9 y 23, Horas en la
-                    // siguiente (combinada con la fila de "Bocas"), 10 filas
-                    // de boca por bloque. Tabla de causas: 42-47.
-                    // El formato SB-ACF-071 trae 10 renglones físicos por bloque.
-                    // Si una máquina tiene más bocas, la app conserva todas y el
-                    // Excel avisa que las adicionales requieren una segunda hoja física.
-                    baseRows: [9, 23], bocasMax: 10, maxCol: 31,
-                    colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
-                    limpiar: ['J15', 'J18'], areaImpresion: 'A1:AE52',
-                    anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
-                    causaDataStart: 42, causaDataEnd: 47
-                });
-                return wb.xlsx.writeBuffer();
-            });
-        }).then(function(buffer) {
-            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            _entregarArchivo(blob, 'MonitoreoPeso_Derivados_' + Date.now() + '.xlsx', function() { _avisarDescargaPeso('Derivados'); });
-        }).catch(function(err) {
-            Swal.fire('Error', 'No se pudo generar el Excel: ' + err.message, 'error');
-        });
+        _descargarPesoOficialPaginado(PLANTILLA_PESO_DERIVADOS_B64, {
+            baseRows: [9, 23], bocasMax: 10, maxCol: 31,
+            colEtiqueta: 2, colInicio: 3, altoFila: 15, anchoColumna: 10.71,
+            limpiar: ['J15', 'J18'], areaImpresion: 'A1:AE52',
+            anchoColEtiqueta: 14.5, anchoColDatos: 5.25,
+            causaDataStart: 42, causaDataEnd: 47
+        }, 'Derivados');
     }
 
     // ---------- MODO SIMULACIÓN (colección de pruebas, separada de la real) ----------
