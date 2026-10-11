@@ -1380,7 +1380,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.4 (Actual) - Continuación de Monitoreos de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.11 (Actual) - FIN y cambios de producto como en el formato físico</h4>' +
+                  '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>FIN se imprime verticalmente dentro de la cuadrícula, como una anotación manual, conservando su hora arriba.</li><li>Los cambios de sabor/producto muestran el nombre del nuevo producto y lote verticalmente en su propia columna, antes de los nuevos pesos.</li><li>Se conservan las dimensiones, el logo y la plantilla oficial.</li></ul>' +
+                  '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.4 - Continuación de Monitoreos de Peso</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>Exportación de pesos en hojas consecutivas cuando se agotan las columnas disponibles.</li><li>Cabeceras de producción heredadas e identificación CONTINUACIÓN en cada página adicional.</li><li>Los registros de los turnos se mantienen vinculados en un mismo monitoreo.</li></ul>' +
                   '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.3 - Historial Limpio tras Correcciones</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);">' +
@@ -4467,7 +4469,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.10";
+    var APP_VERSION = "4.0.11";
 
     function mostrarAppPrincipal() {
         try {
@@ -5899,6 +5901,20 @@
         var etiquetaFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF000000' } };
         var productoFont = { name: 'Arial', size: 8, bold: true };
 
+        // v4.0.11: anotaciones verticales dentro de la cuadrícula, como en papel.
+        // Nunca modificar alturas ni anchuras de la plantilla para acomodarlas.
+        function escribirAnotacionVertical(columna, inicio, fin, texto, esFin) {
+            if (columna > config.maxCol) return;
+            try { ws.mergeCells(inicio, columna, fin, columna); } catch (_) {}
+            var celda = ws.getCell(inicio, columna);
+            celda.value = texto;
+            celda.font = { name: 'Arial', size: esFin ? 8 : 6, bold: true,
+                           color: { argb: 'FF000000' } };
+            celda.alignment = { horizontal: 'center', vertical: 'middle',
+                                 textRotation: 90, wrapText: false, shrinkToFit: true };
+        }
+
+
         bloques.slice(0, config.baseRows.length).forEach(function(bloque, idx) {
             var baseRow = config.baseRows[idx];
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
@@ -5941,29 +5957,17 @@
             var col = config.colInicio;
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
-                    // Si el grupo anterior ya cerró con un "Fin de Producción"
-                    // marcado a mano, no se dibuja un segundo FIN automático.
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
                     var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
                     if (!yaTerminoConFin && col <= config.maxCol) {
-                        var cFin = filaHoras.getCell(col);
-                        cFin.value = 'FIN';
-                        cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center', vertical: 'center' };
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN', true);
                         col++;
                     }
                     if (col <= config.maxCol) {
-                        // Aquí SOLO va el número de lote nuevo. Antes iba
-                        // "Producto — Lote" en vertical, y ese texto no cabe en
-                        // el alto de la celda: obligaba a estirar la fila y
-                        // descuadraba el formato. El detalle completo del cambio
-                        // ya queda escrito arriba, en la fila de PRODUCTO(s).
-                        var cLote = filaHoras.getCell(col);
-                        cLote.value = g.lote.lote;
-                        // El estilo se asigna completo de un jalón (.style y no
-                        // .font/.fill/.alignment por separado): ExcelJS tiene una
-                        // rareza por la que, asignado por partes, la rotación se
-                        // le "contagia" al resto de la fila.
-                        cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', vertical: 'center', textRotation: 90 };
+                        var nombreNuevo = String(g.lote.producto || primerLoteBloque.producto || '');
+                        var loteNuevo = String(g.lote.lote || '');
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin,
+                            nombreNuevo + (loteNuevo ? ' — ' + loteNuevo : ''), false);
                         col++;
                     }
                 }
@@ -5971,14 +5975,16 @@
                     if (col > config.maxCol) return;
                     var c = filaHoras.getCell(col);
                     if (r.esFin) {
-                        // El "Fin de Producción" lleva la hora en que terminó.
-                        // Sin wrapText (haría crecer la fila): la hora va pegada
-                        // con un espacio y en letra chica.
-                        c.value = 'FIN ' + r.hora;
-                        c.font = finFont; c.fill = finFill; c.alignment = { horizontal: 'center', vertical: 'center', textRotation: 90 };
+                        // La hora queda arriba; FIN se escribe verticalmente
+                        // dentro de las filas de bocas, como en el original.
+                        c.value = _formatoHoraCelda(r);
+                        c.font = normalFont;
+                        c.alignment = { horizontal: 'center', vertical: 'center' };
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN', true);
                     } else {
                         c.value = _formatoHoraCelda(r);
-                        c.font = normalFont; c.alignment = { horizontal: 'center', vertical: 'center' };
+                        c.font = normalFont;
+                        c.alignment = { horizontal: 'center', vertical: 'center' };
                     }
                     col++;
                 });
@@ -6007,12 +6013,12 @@
                         var ultimoRevAnterior2 = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
                         var yaTerminoConFin2 = ultimoRevAnterior2 && ultimoRevAnterior2.esFin;
                         if (!yaTerminoConFin2 && col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
-                        if (col2 <= config.maxCol) { filaB.getCell(col2).fill = loteFill; col2++; }
+                        if (col2 <= config.maxCol) { col2++; }
                     }
                     g.revs.forEach(function(r) {
                         if (col2 > config.maxCol) return;
                         var c = filaB.getCell(col2);
-                        c.value = _formatoPesoValor(r, bocaReal);
+                        if (!r.esFin) c.value = _formatoPesoValor(r, bocaReal);
                         c.font = normalFont; c.alignment = { horizontal: 'center', vertical: 'center' };
                         col2++;
                     });
