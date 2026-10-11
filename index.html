@@ -4467,7 +4467,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.7";
+    var APP_VERSION = "4.0.8";
 
     function mostrarAppPrincipal() {
         try {
@@ -6092,20 +6092,21 @@
         return paginas.length ? paginas : [{ bloquesPagina: [], revisionesPagina: [], numeroPagina: 1 }];
     }
 
-    // v4.0.7: sustituir el anclaje heredado de la plantilla (dos celdas)
-    // por uno de posición fija y tamaño en píxeles. Evita que Excel para
-    // Android desplace el logo cuando se reescriben los anchos de columnas.
+    // v4.0.8: ExcelJS necesita instancias Anchor internas para serializar
+    // imágenes. Reasignar logo.range con objetos literales provocaba
+    // "Cannot read properties of undefined (reading 'nativeCol')".
+    // removeImage/addImage construye los anclajes válidos automáticamente.
     function _fijarLogoLalaPeso(ws) {
         var imagenes = ws.getImages();
         if (!imagenes || !imagenes.length) return;
         var logo = imagenes[0];
-        // El logotipo se mantiene dentro de las dos primeras filas, por
-        // encima del borde que separa el encabezado de la siguiente sección.
-        logo.range = {
+        var id = logo.imageId;
+        ws.removeImage(id);
+        ws.addImage(id, {
             tl: { col: 0.58, row: 0.08 },
             ext: { width: 104, height: 34 },
             editAs: 'absolute'
-        };
+        });
     }
 
     function _descargarPesoOficialPaginado(b64, config, tipo) {
