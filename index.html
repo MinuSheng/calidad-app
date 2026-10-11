@@ -4467,7 +4467,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.4";
+    var APP_VERSION = "4.0.7";
 
     function mostrarAppPrincipal() {
         try {
@@ -6092,6 +6092,22 @@
         return paginas.length ? paginas : [{ bloquesPagina: [], revisionesPagina: [], numeroPagina: 1 }];
     }
 
+    // v4.0.7: sustituir el anclaje heredado de la plantilla (dos celdas)
+    // por uno de posición fija y tamaño en píxeles. Evita que Excel para
+    // Android desplace el logo cuando se reescriben los anchos de columnas.
+    function _fijarLogoLalaPeso(ws) {
+        var imagenes = ws.getImages();
+        if (!imagenes || !imagenes.length) return;
+        var logo = imagenes[0];
+        // El logotipo se mantiene dentro de las dos primeras filas, por
+        // encima del borde que separa el encabezado de la siguiente sección.
+        logo.range = {
+            tl: { col: 0.58, row: 0.08 },
+            ext: { width: 104, height: 34 },
+            editAs: 'absolute'
+        };
+    }
+
     function _descargarPesoOficialPaginado(b64, config, tipo) {
         Swal.fire({ title: 'Generando hojas oficiales...', allowOutsideClick: false,
             didOpen: function() { Swal.showLoading(); } });
@@ -6110,6 +6126,7 @@
             if (paginas.length === 1) {
                 _avisosExcelPeso.push.apply(_avisosExcelPeso,
                     _rellenarPlantillaOficialPeso(plantilla, Object.assign({}, config, paginas[0])));
+                _fijarLogoLalaPeso(plantilla);
                 return wb.xlsx.writeBuffer().then(function(buffer) {
                     _entregarArchivo(new Blob([buffer], {
                         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -6127,6 +6144,7 @@
                         var hoja = libroPagina.worksheets[0];
                         _avisosExcelPeso.push.apply(_avisosExcelPeso,
                             _rellenarPlantillaOficialPeso(hoja, Object.assign({}, config, pagina)));
+                        _fijarLogoLalaPeso(hoja);
                         return libroPagina.xlsx.writeBuffer();
                     }).then(function(buffer) {
                         _entregarArchivo(new Blob([buffer], {
