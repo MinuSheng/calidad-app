@@ -1380,7 +1380,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.15 (Actual) - Anotaciones de cambio de sabor con hora</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.16 (Actual) - Cuadrícula intacta y horas verticales</h4>' +
+                  '<p>Las etiquetas iniciales ya no fusionan las celdas de peso. Las horas de transición se integran en las anotaciones verticales sin duplicarse en el encabezado.</p>' +
+                  '<h4>v4.0.15 - Anotaciones de cambio de sabor con hora</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>El cambio de sabor muestra FIN y el nuevo producto con sus horas; no repite el lote en la anotación.</li><li>El nombre inicial del producto se imprime vertical con el mismo método, conservando la cuadrícula.</li></ul>' +
                   '<h4 style="margin-bottom: 4px; color:var(--text-color);">v4.0.14 - Corrección de escala de anotaciones verticales en Excel móvil</h4>' +
                   '<ul style="margin-top:0; padding-left:20px; color:var(--text-color);"><li>Se corrige la alineación vertical de FIN y de los cambios de producto en las celdas combinadas del Excel.</li><li>Se mantienen las dimensiones originales de la plantilla.</li></ul>' +
@@ -4473,7 +4475,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.15";
+    var APP_VERSION = "4.0.16";
 
     function mostrarAppPrincipal() {
         try {
@@ -5965,11 +5967,18 @@
             var filaBocaIni = baseRow + 3;
             var filaBocaFin = baseRow + 2 + config.bocasMax;
             for (var fb = filaBocaIni; fb <= filaBocaFin; fb++) { fijarAlto(fb); }
-            try {
-                ws.mergeCells(filaBocaIni, config.colEtiqueta, filaBocaFin, config.colEtiqueta);
-            } catch (e) { /* si ya venía combinada, se escribe igual abajo */ }
-            var celdaEtiqueta = ws.getCell(filaBocaIni, config.colEtiqueta);
-            celdaEtiqueta.value = null;
+            // Mantener intactas las líneas horizontales de la columna inicial.
+            // La etiqueta es una imagen transparente flotante, NO una celda combinada.
+            for (var er = filaBocaIni; er <= filaBocaFin; er++) {
+                var ec = ws.getCell(er, config.colEtiqueta);
+                ec.value = null;
+                ec.border = {
+                    top: { style: 'thin', color: { argb: 'FF000000' } },
+                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                    left: { style: 'thin', color: { argb: 'FF000000' } },
+                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                };
+            }
             // Misma técnica visual que FIN, sin texto de celda que Excel reescale.
             escribirAnotacionVertical(config.colEtiqueta, filaBocaIni, filaBocaFin,
                 primerLoteBloque.producto + ((config.bocaDesde || 0) ? ' B' + (config.bocaDesde + 1) + '-B' + Math.min(bloque.bocas, config.bocaDesde + config.bocasMax) : ''), false);
@@ -5981,20 +5990,20 @@
                     var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
                     if (!yaTerminoConFin && col <= config.maxCol) {
                         var revAnterior = ultimoRevAnterior;
-                        filaHoras.getCell(col).value = revAnterior ? _formatoHoraCelda(revAnterior) : '';
+                        filaHoras.getCell(col).value = '';
                         filaHoras.getCell(col).font = normalFont;
                         filaHoras.getCell(col).alignment = { horizontal: 'center', vertical: 'center' };
-                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN', true);
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN' + (revAnterior ? '  ' + _formatoHoraCelda(revAnterior) : ''), true);
                         col++;
                     }
                     if (col <= config.maxCol) {
                         var nombreNuevo = String(g.lote.producto || primerLoteBloque.producto || '');
                         var primerControlNuevo = g.revs.find(function(x) { return !x.esFin; }) || g.revs[0];
                         var horaInicio = primerControlNuevo ? _formatoHoraCelda(primerControlNuevo) : '';
-                        filaHoras.getCell(col).value = horaInicio;
+                        filaHoras.getCell(col).value = '';
                         filaHoras.getCell(col).font = normalFont;
                         filaHoras.getCell(col).alignment = { horizontal: 'center', vertical: 'center' };
-                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, nombreNuevo, false);
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, nombreNuevo + (horaInicio ? '  ' + horaInicio : ''), false);
                         col++;
                     }
                 }
@@ -6004,10 +6013,10 @@
                     if (r.esFin) {
                         // La hora queda arriba; FIN se escribe verticalmente
                         // dentro de las filas de bocas, como en el original.
-                        c.value = _formatoHoraCelda(r);
+                        c.value = '';
                         c.font = normalFont;
                         c.alignment = { horizontal: 'center', vertical: 'center' };
-                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN', true);
+                        escribirAnotacionVertical(col, filaBocaIni, filaBocaFin, 'FIN  ' + _formatoHoraCelda(r), true);
                     } else {
                         c.value = _formatoHoraCelda(r);
                         c.font = normalFont;
