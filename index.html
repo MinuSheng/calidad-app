@@ -3759,7 +3759,7 @@
                         worksheet.mergeCells(filaActual, 5, filaActual, 8);
                         for(var c=1; c<=11; c++) { var cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; }
                         filaExcel.getCell(4).font = boldFont;
-                        if (r.textoEspecial.toUpperCase().includes("LAVADO")) { filaExcel.getCell(5).font = { name: 'Aptos Narrow', size: 12, bold: true, color: { argb: 'FF842029' } }; } else { filaExcel.getCell(5).font = boldFont; }
+                        if (r.textoEspecial.toUpperCase().includes("LAVADO")) { filaExcel.getCell(5).font = { name: 'Aptos Narrow', size: 12, bold: true, color: { argb: 'FF000000' } }; } else { filaExcel.getCell(5).font = boldFont; }
                     } else {
                         var isPackNumber = (r.pack !== "-" && r.pack !== "—" && r.pack !== "");
                         var pVal = isPackNumber ? Math.round(Number(r.pack)) : "—";
@@ -5892,10 +5892,10 @@
         // Letras pequeñas a propósito: es la única forma de que quepa todo sin
         // agrandar ninguna celda.
         var normalFont = { name: 'Arial', size: 7 };
-        var finFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF842029' } };
-        var loteFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF664D03' } };
-        var finFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
-        var loteFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
+        var finFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF000000' } };
+        var loteFont = { name: 'Arial', size: 5, bold: true, color: { argb: 'FF000000' } };
+        var finFill = { type: 'pattern', pattern: 'none' };
+        var loteFill = { type: 'pattern', pattern: 'none' };
         var etiquetaFont = { name: 'Arial', size: 6, bold: true, color: { argb: 'FF000000' } };
         var productoFont = { name: 'Arial', size: 8, bold: true };
 
@@ -5935,8 +5935,8 @@
                 ws.mergeCells(filaBocaIni, config.colEtiqueta, filaBocaFin, config.colEtiqueta);
             } catch (e) { /* si ya venía combinada, se escribe igual abajo */ }
             var celdaEtiqueta = ws.getCell(filaBocaIni, config.colEtiqueta);
-            celdaEtiqueta.value = primerLoteBloque.producto;
-            celdaEtiqueta.style = { font: etiquetaFont, alignment: { horizontal: 'center', vertical: 'middle', textRotation: 90, wrapText: true } };
+            celdaEtiqueta.value = primerLoteBloque.producto + ((config.bocaDesde || 0) ? ' B' + (config.bocaDesde + 1) + '-B' + Math.min(bloque.bocas, config.bocaDesde + config.bocasMax) : '');
+            celdaEtiqueta.font = etiquetaFont; celdaEtiqueta.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90, wrapText: true };
 
             var col = config.colInicio;
             grupos.forEach(function(g, gi) {
@@ -5948,7 +5948,7 @@
                     if (!yaTerminoConFin && col <= config.maxCol) {
                         var cFin = filaHoras.getCell(col);
                         cFin.value = 'FIN';
-                        cFin.style = { font: finFont, fill: finFill, alignment: { horizontal: 'center', vertical: 'center' } };
+                        cFin.font = finFont; cFin.fill = finFill; cFin.alignment = { horizontal: 'center', vertical: 'center' };
                         col++;
                     }
                     if (col <= config.maxCol) {
@@ -5963,7 +5963,7 @@
                         // .font/.fill/.alignment por separado): ExcelJS tiene una
                         // rareza por la que, asignado por partes, la rotación se
                         // le "contagia" al resto de la fila.
-                        cLote.style = { font: loteFont, fill: loteFill, alignment: { horizontal: 'center', vertical: 'center', textRotation: 90 } };
+                        cLote.font = loteFont; cLote.fill = loteFill; cLote.alignment = { horizontal: 'center', vertical: 'center', textRotation: 90 };
                         col++;
                     }
                 }
@@ -5975,10 +5975,10 @@
                         // Sin wrapText (haría crecer la fila): la hora va pegada
                         // con un espacio y en letra chica.
                         c.value = 'FIN ' + r.hora;
-                        c.style = { font: finFont, fill: finFill, alignment: { horizontal: 'center', vertical: 'center', textRotation: 90 } };
+                        c.font = finFont; c.fill = finFill; c.alignment = { horizontal: 'center', vertical: 'center', textRotation: 90 };
                     } else {
                         c.value = _formatoHoraCelda(r);
-                        c.style = { font: normalFont, alignment: { horizontal: 'center', vertical: 'center' } };
+                        c.font = normalFont; c.alignment = { horizontal: 'center', vertical: 'center' };
                     }
                     col++;
                 });
@@ -5991,14 +5991,15 @@
             // Solo se llenan las filas de boca existentes en ESTA página oficial.
             // La app conserva todas las bocas; si exceden el papel se genera aviso
             // para que el analista sepa que necesita continuidad física.
-            var bocasAMostrar = Math.min(bloque.bocas, config.bocasMax);
-            if (bloque.bocas > config.bocasMax) {
+            var bocaDesde = config.bocaDesde || 0;
+            var bocasAMostrar = Math.min(Math.max(0, bloque.bocas - bocaDesde), config.bocasMax);
+            if (bloque.bocas > config.bocasMax && !config.bocaDesde) {
                 avisos.push('La máquina ' + bloque.maquina + ' tiene ' + bloque.bocas +
                     ' bocas y esta página oficial solo tiene ' + config.bocasMax +
-                    ' renglones. La app conserva las ' + bloque.bocas +
-                    '; para auditoría, las restantes deben continuarse en otra hoja oficial.');
+                    ' renglones. Se generarán hojas adicionales para conservar las ' + bloque.bocas + ' bocas.');
             }
             for (var b = 1; b <= bocasAMostrar; b++) {
+                var bocaReal = bocaDesde + b;
                 var filaB = ws.getRow(baseRow + 2 + b);
                 var col2 = config.colInicio;
                 grupos.forEach(function(g, gi) {
@@ -6011,8 +6012,8 @@
                     g.revs.forEach(function(r) {
                         if (col2 > config.maxCol) return;
                         var c = filaB.getCell(col2);
-                        c.value = _formatoPesoValor(r, b);
-                        c.style = { font: normalFont, alignment: { horizontal: 'center', vertical: 'center' } };
+                        c.value = _formatoPesoValor(r, bocaReal);
+                        c.font = normalFont; c.alignment = { horizontal: 'center', vertical: 'center' };
                         col2++;
                     });
                 });
@@ -6032,7 +6033,7 @@
             var ponerCausa = function(celda, valor) {
                 var c = ws.getCell(celda);
                 c.value = valor;
-                c.style = { font: causaFont, alignment: { vertical: 'center', wrapText: false } };
+                c.font = causaFont; c.alignment = { vertical: 'center', wrapText: false };
             };
             ponerCausa('A' + filaCausa, p.hora);
             ponerCausa('B' + filaCausa, p.causaParo || 'Sin especificar');
@@ -6068,7 +6069,9 @@
             // Las máquinas con más bocas se conservan en el registro digital.
             // Cada página física repite la cabecera y el lote correspondiente.
             if (!revs.length) {
-                paginas.push({ bloquesPagina: [bloque], revisionesPagina: [], numeroPagina: paginas.length + 1 });
+                for (var boca = 0; boca < bloque.bocas; boca += config.bocasMax) {
+                    paginas.push({ bloquesPagina: [bloque], revisionesPagina: [], bocaDesde: boca, numeroPagina: paginas.length + 1 });
+                }
             }
             while (offset < revs.length) {
                 var seleccion = [], usadas = 0, loteAnterior = null;
@@ -6081,7 +6084,9 @@
                     loteAnterior = r.loteId;
                     offset++;
                 }
-                paginas.push({ bloquesPagina: [bloque], revisionesPagina: seleccion, numeroPagina: paginas.length + 1 });
+                for (var boca = 0; boca < bloque.bocas; boca += config.bocasMax) {
+                    paginas.push({ bloquesPagina: [bloque], revisionesPagina: seleccion, bocaDesde: boca, numeroPagina: paginas.length + 1 });
+                }
             }
         });
         return paginas.length ? paginas : [{ bloquesPagina: [], revisionesPagina: [], numeroPagina: 1 }];
