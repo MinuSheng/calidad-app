@@ -324,6 +324,12 @@
 
         /* BANNER MODO EMERGENCIA */
         .emergency-banner { color: #dc3545; font-size: 0.75rem; font-weight: bold; text-align: center; margin-top: -5px; margin-bottom: 8px; animation: parpadeo 1.5s infinite; }
+        /* Peso: contraste consistente en claro, oscuro y neón; sin columnas resaltadas */
+        #peso-tabla-trabajo { color:var(--text-color); }
+        #peso-tabla-trabajo table { background:var(--card-bg); color:var(--text-color); }
+        #peso-tabla-trabajo th { background:var(--table-header) !important; color:var(--text-color) !important; }
+        #peso-tabla-trabajo td { background:var(--card-bg) !important; color:var(--text-color) !important; }
+        #peso-tabla-trabajo > div { background:var(--card-bg); }
     </style>
     <style>
         #security-overlay.in-app { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); }
@@ -1380,7 +1386,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.19 (Actual) - Marcadores FIN y encabezados de impresión</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.20 (Actual) - Formato oficial y legibilidad de Peso</h4>' +
+                  '<p>Se respeta la tipografía original de MÁQUINA, se evita duplicar FIN en transiciones y se mejora la tabla de Peso en modo oscuro, eliminando fondos amarillos y rosados.</p>' +
+                  '<h4>v4.0.19 - Marcadores FIN y encabezados de impresión</h4>' +
                   '<p>Se evita repetir FIN en los cambios de producto, se mantiene su hora visible y se reconstruye la etiqueta MÁQUINA en ambos formatos para impedir que pierda la M al imprimir.</p>' +
                   '<h4 style="margin-bottom: 4px;">v4.0.18 - Alineación del logo y configuración de impresión</h4>' +
                   '<p>Se centra el logo dentro de su recuadro original y se elimina la escala fija que entraba en conflicto con el ajuste a una página. Se mantienen intactas las celdas, cuadrícula y anotaciones.</p>' +
@@ -4481,7 +4489,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.19";
+    var APP_VERSION = "4.0.20";
 
     function mostrarAppPrincipal() {
         try {
@@ -4938,38 +4946,38 @@
         var anterior = grupos[gi - 1];
         if (!anterior || !anterior.revs || anterior.revs.length === 0) return false;
         var ultima = anterior.revs[anterior.revs.length - 1];
-        return !!(ultima && ultima.esFin);
+        return !!(ultima && ultima.esFin) || anterior.revs.some(function(r) { return !!r.esFin; });
     }
 
     function generarHtmlFormatoPeso(d, editable) {
         var bloques = _bloquesVisibles(d.bloques);
         var revisiones = d.revisiones || [];
-        var html = '<div id="peso-tabla-trabajo" style="color:#000;">';
+        var html = '<div id="peso-tabla-trabajo">';
         bloques.forEach(function(bloque) {
             var grupos = _agruparRevisionesPorLote(bloque, revisiones);
-            html += '<div style="margin-bottom:18px; border:1px solid #999; border-radius:6px; overflow:hidden;">';
-            html += '<div style="background:#e9ecef; color:#000; padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + _segmentoActualBloque(bloque).producto + (editable ? ' ✏️' : '') + '</div>';
+            html += '<div style="margin-bottom:18px; border:1px solid var(--border-color); border-radius:6px; overflow:hidden;">';
+            html += '<div style="background:var(--table-header); color:var(--text-color); padding:8px 10px; font-size:0.8rem; font-weight:bold; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarBloquePeso(\'' + bloque.id + '\')"' : '') + '>' + bloque.maquina + ' — ' + _segmentoActualBloque(bloque).producto + (editable ? ' ✏️' : '') + '</div>';
             if (grupos.length === 0) {
                 html += '<div style="padding:10px; font-size:0.8rem; color:#6c757d;">Sin revisiones registradas todavía. Lote actual: ' + ((bloque.lotes && bloque.lotes[0]) ? bloque.lotes[0].lote : '—') + '</div>';
             } else {
-                html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid #ccc; padding:4px;">Boca</th>';
+                html += '<div style="overflow-x:auto;"><table style="width:100%; font-size:0.72rem; border-collapse:collapse;"><thead><tr><th style="border:1px solid var(--border-color); padding:4px;">Boca</th>';
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) {
-                        if (!_finYaMarcado(grupos, gi)) html += '<th style="border:1px solid #ccc; padding:4px; background:#f8d7da; color:#842029;">FIN</th>';
-                        html += '<th style="border:1px solid #ccc; padding:4px; background:#ffe9a8;">' + g.lote.producto + ' — ' + g.lote.lote + '</th>';
+                        if (!_finYaMarcado(grupos, gi)) html += '<th style="border:1px solid var(--border-color); padding:4px; background:var(--table-header); color:var(--text-color);">FIN</th>';
+                        html += '<th style="border:1px solid var(--border-color); padding:4px; background:var(--card-bg);">' + g.lote.producto + ' — ' + g.lote.lote + '</th>';
                     }
-                    g.revs.forEach(function(r) { html += '<th style="border:1px solid #ccc; padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoHoraCelda(r) + (editable ? ' ✏️' : '') + '</th>'; });
+                    g.revs.forEach(function(r) { html += '<th style="border:1px solid var(--border-color); padding:4px; ' + (editable ? 'cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoHoraCelda(r) + (editable ? ' ✏️' : '') + '</th>'; });
                 });
                 html += '</tr></thead><tbody>';
                 for (var b = 1; b <= bloque.bocas; b++) {
-                    html += '<tr><td style="border:1px solid #ccc; padding:4px; font-weight:bold;">B' + b + '</td>';
+                    html += '<tr><td style="border:1px solid var(--border-color); padding:4px; font-weight:bold;">B' + b + '</td>';
                     grupos.forEach(function(g, gi) {
                         if (gi > 0) {
-                            if (!_finYaMarcado(grupos, gi)) html += '<td style="border:1px solid #ccc; background:#f8d7da;"></td>';
-                            html += '<td style="border:1px solid #ccc; background:#ffe9a8; writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? (g.lote.producto + ' — ' + g.lote.lote) : '') + '</td>';
+                            if (!_finYaMarcado(grupos, gi)) html += '<td style="border:1px solid var(--border-color); background:var(--card-bg);"></td>';
+                            html += '<td style="border:1px solid var(--border-color); background:var(--card-bg); writing-mode:vertical-rl; text-align:center; font-size:0.6rem;">' + (b === 1 ? (g.lote.producto + ' — ' + g.lote.lote) : '') + '</td>';
                         }
                         g.revs.forEach(function(r) {
-                            html += '<td style="border:1px solid #ccc; padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoPesoValor(r, b) + '</td>';
+                            html += '<td style="border:1px solid var(--border-color); padding:4px; text-align:center;' + (editable ? ' cursor:pointer;' : '') + '"' + (editable ? ' onclick="editarRevisionPeso(\'' + r.id + '\')"' : '') + '>' + _formatoPesoValor(r, b) + '</td>';
                         });
                     });
                     html += '</tr>';
@@ -5901,7 +5909,7 @@
         // después de aplicar los anchos estrechos de impresión.
         var etiquetaMaquina = ws.getCell('R8');
         etiquetaMaquina.value = 'MÁQUINA:';
-        etiquetaMaquina.font = { name: 'Arial', size: 7, bold: true, color: { argb: 'FF000000' } };
+        etiquetaMaquina.font = { name: 'Arial', size: 7, bold: false, color: { argb: 'FF000000' } };
         etiquetaMaquina.alignment = { horizontal: 'center', vertical: 'center', shrinkToFit: true };
         if (config.numeroPagina > 1) {
             // La cabecera mantiene el formato oficial, indicando continuación.
@@ -6271,7 +6279,7 @@
 
     function inyectarSimulacionPeso() {
         Swal.fire({
-            title: '¿Cargar un turno completo de prueba?', text: 'Esto usa una colección de pruebas totalmente separada de tus datos reales — no afecta nada de lo que ya tienes guardado. Se va a cargar un turno entero (varios bloques de producto, varias revisiones cada uno) en UHT y en Derivados.',
+            title: '¿Cargar un turno completo de prueba actualizado?', text: 'Esto usa una colección de pruebas totalmente separada de tus datos reales — no afecta nada de lo que ya tienes guardado. Se va a cargar un turno entero (varios bloques de producto, varias revisiones cada uno) en UHT y en Derivados.',
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, cargar turno completo'
         }).then(function(res) {
             if (!res.isConfirmed) return;
