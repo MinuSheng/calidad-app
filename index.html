@@ -1380,7 +1380,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.17 (Actual) - Escala de impresión ajustada</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.19 (Actual) - Marcadores FIN y encabezados de impresión</h4>' +
+                  '<p>Se evita repetir FIN en los cambios de producto, se mantiene su hora visible y se reconstruye la etiqueta MÁQUINA en ambos formatos para impedir que pierda la M al imprimir.</p>' +
+                  '<h4 style="margin-bottom: 4px;">v4.0.18 - Alineación del logo y configuración de impresión</h4>' +
+                  '<p>Se centra el logo dentro de su recuadro original y se elimina la escala fija que entraba en conflicto con el ajuste a una página. Se mantienen intactas las celdas, cuadrícula y anotaciones.</p>' +
+                  '<h4>v4.0.17 - Escala de impresión ajustada</h4>' +
                   '<p>Se amplía el área útil de impresión y se ajustan las proporciones de columnas para acercar la hoja al tamaño del formato oficial, manteniendo la cuadrícula y las anotaciones.</p>' +
                   '<h4>v4.0.16 - Cuadrícula intacta y horas verticales</h4>' +
                   '<p>Las etiquetas iniciales ya no fusionan las celdas de peso. Las horas de transición se integran en las anotaciones verticales sin duplicarse en el encabezado.</p>' +
@@ -4477,7 +4481,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.17";
+    var APP_VERSION = "4.0.19";
 
     function mostrarAppPrincipal() {
         try {
@@ -5855,7 +5859,7 @@
             fitToPage: true,
             fitToWidth: 1,
             fitToHeight: 1,
-            scale: 100,
+            // No mezclar escala fija con ajuste a una página.
             horizontalCentered: true,
             verticalCentered: false,
             printArea: config.areaImpresion,
@@ -5893,6 +5897,12 @@
         ponerCabecera('H8', primerLote ? primerLote.lote : '');
         ponerCabecera('N8', primerLote ? (primerLote.vence || '') : '');
         ponerCabecera('T8', primero ? primero.maquina : '');
+        // Reconstruir la etiqueta: la celda original puede quedar recortada
+        // después de aplicar los anchos estrechos de impresión.
+        var etiquetaMaquina = ws.getCell('R8');
+        etiquetaMaquina.value = 'MÁQUINA:';
+        etiquetaMaquina.font = { name: 'Arial', size: 7, bold: true, color: { argb: 'FF000000' } };
+        etiquetaMaquina.alignment = { horizontal: 'center', vertical: 'center', shrinkToFit: true };
         if (config.numeroPagina > 1) {
             // La cabecera mantiene el formato oficial, indicando continuación.
             var tituloContinuacion = ws.getCell('B' + config.baseRows[0]);
@@ -5989,7 +5999,7 @@
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
-                    var yaTerminoConFin = ultimoRevAnterior && ultimoRevAnterior.esFin;
+                    var yaTerminoConFin = grupos[gi - 1].revs.some(function(rv) { return rv.esFin; });
                     if (!yaTerminoConFin && col <= config.maxCol) {
                         var revAnterior = ultimoRevAnterior;
                         filaHoras.getCell(col).value = '';
@@ -6049,7 +6059,7 @@
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) {
                         var ultimoRevAnterior2 = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
-                        var yaTerminoConFin2 = ultimoRevAnterior2 && ultimoRevAnterior2.esFin;
+                        var yaTerminoConFin2 = grupos[gi - 1].revs.some(function(rv) { return rv.esFin; });
                         if (!yaTerminoConFin2 && col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
                         if (col2 <= config.maxCol) { col2++; }
                     }
@@ -6150,8 +6160,9 @@
         if (!Array.isArray(ws._media)) return;
         ws._media = ws._media.filter(function(item) { return item !== logo; });
         ws.addImage(id, {
-            tl: { col: 0.95, row: 0.18 },
-            ext: { width: 74, height: 24 },
+            // Centrado dentro del recuadro A1:A2, no sobre su borde derecho.
+            tl: { col: 0.25, row: 0.30 },
+            ext: { width: 58, height: 19 },
             editAs: 'absolute'
         });
     }
