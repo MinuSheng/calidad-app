@@ -1386,7 +1386,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.20 (Actual) - Formato oficial y legibilidad de Peso</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.21 (Actual) - Tipografía oficial y marcador FIN único</h4>' +
+                  '<p>Se preservan las fuentes de la plantilla en LOTE, VENCE y MÁQUINA; se elimina el FIN duplicado al cambiar de producto y se mantiene la hora de cierre.</p>' +
+                  '<h4>v4.0.20 - Formato oficial y legibilidad de Peso</h4>' +
                   '<p>Se respeta la tipografía original de MÁQUINA, se evita duplicar FIN en transiciones y se mejora la tabla de Peso en modo oscuro, eliminando fondos amarillos y rosados.</p>' +
                   '<h4>v4.0.19 - Marcadores FIN y encabezados de impresión</h4>' +
                   '<p>Se evita repetir FIN en los cambios de producto, se mantiene su hora visible y se reconstruye la etiqueta MÁQUINA en ambos formatos para impedir que pierda la M al imprimir.</p>' +
@@ -4489,7 +4491,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.20";
+    var APP_VERSION = "4.0.21";
 
     function mostrarAppPrincipal() {
         try {
@@ -5905,12 +5907,15 @@
         ponerCabecera('H8', primerLote ? primerLote.lote : '');
         ponerCabecera('N8', primerLote ? (primerLote.vence || '') : '');
         ponerCabecera('T8', primero ? primero.maquina : '');
-        // Reconstruir la etiqueta: la celda original puede quedar recortada
-        // después de aplicar los anchos estrechos de impresión.
-        var etiquetaMaquina = ws.getCell('R8');
-        etiquetaMaquina.value = 'MÁQUINA:';
-        etiquetaMaquina.font = { name: 'Arial', size: 7, bold: false, color: { argb: 'FF000000' } };
-        etiquetaMaquina.alignment = { horizontal: 'center', vertical: 'center', shrinkToFit: true };
+        // Mantener la tipografía oficial del archivo base en R8, F8 y L8.
+        // No reemplazar fuentes por Arial 7 ni aplicar negrita adicional.
+        // shrinkToFit reduce solo si el visor lo necesita, sin tocar las celdas.
+        ['R8', 'F8', 'L8'].forEach(function(ref) {
+            var celda = ws.getCell(ref);
+            celda.alignment = Object.assign({}, celda.alignment || {}, {
+                vertical: 'center', shrinkToFit: true
+            });
+        });
         if (config.numeroPagina > 1) {
             // La cabecera mantiene el formato oficial, indicando continuación.
             var tituloContinuacion = ws.getCell('B' + config.baseRows[0]);
@@ -6007,7 +6012,7 @@
             grupos.forEach(function(g, gi) {
                 if (gi > 0) {
                     var ultimoRevAnterior = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
-                    var yaTerminoConFin = grupos[gi - 1].revs.some(function(rv) { return rv.esFin; });
+                    var yaTerminoConFin = grupos[gi - 1].revs.some(function(rv) { return rv.esFin || String(rv.tipoEspecial || '').toUpperCase() === 'FIN'; });
                     if (!yaTerminoConFin && col <= config.maxCol) {
                         var revAnterior = ultimoRevAnterior;
                         filaHoras.getCell(col).value = '';
@@ -6027,8 +6032,9 @@
                         col++;
                     }
                 }
-                g.revs.forEach(function(r) {
+                g.revs.forEach(function(r, ri) {
                     if (col > config.maxCol) return;
+                    if (r.esFin && g.revs.slice(0, ri).some(function(prev) { return prev.esFin && _formatoHoraCelda(prev) === _formatoHoraCelda(r); })) return;
                     var c = filaHoras.getCell(col);
                     if (r.esFin) {
                         // La hora queda arriba; FIN se escribe verticalmente
@@ -6067,12 +6073,13 @@
                 grupos.forEach(function(g, gi) {
                     if (gi > 0) {
                         var ultimoRevAnterior2 = grupos[gi - 1].revs[grupos[gi - 1].revs.length - 1];
-                        var yaTerminoConFin2 = grupos[gi - 1].revs.some(function(rv) { return rv.esFin; });
+                        var yaTerminoConFin2 = grupos[gi - 1].revs.some(function(rv) { return rv.esFin || String(rv.tipoEspecial || '').toUpperCase() === 'FIN'; });
                         if (!yaTerminoConFin2 && col2 <= config.maxCol) { filaB.getCell(col2).fill = finFill; col2++; }
                         if (col2 <= config.maxCol) { col2++; }
                     }
-                    g.revs.forEach(function(r) {
+                    g.revs.forEach(function(r, ri) {
                         if (col2 > config.maxCol) return;
+                        if (r.esFin && g.revs.slice(0, ri).some(function(prev) { return prev.esFin && _formatoHoraCelda(prev) === _formatoHoraCelda(r); })) return;
                         var c = filaB.getCell(col2);
                         if (!r.esFin) c.value = _formatoPesoValor(r, bocaReal);
                         c.font = normalFont; c.alignment = { horizontal: 'center', vertical: 'center' };
