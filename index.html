@@ -330,6 +330,14 @@
         #peso-tabla-trabajo th { background:var(--table-header) !important; color:var(--text-color) !important; }
         #peso-tabla-trabajo td { background:var(--card-bg) !important; color:var(--text-color) !important; }
         #peso-tabla-trabajo > div { background:var(--card-bg); }
+
+        /* v4.0.23: editor de cortes Yogurt compacto, legible y adaptable */
+        .yogurt-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; text-align:left; padding:5px 2px; }
+        .yogurt-edit-field { display:flex; flex-direction:column; min-width:0; gap:6px; }
+        .yogurt-edit-field label { display:block; position:static; margin:0; font-size:0.9rem; font-weight:700; color:var(--text-color); white-space:normal; line-height:1.3; }
+        .yogurt-edit-field input { display:block; width:100% !important; min-width:0; max-width:100%; height:44px; padding:8px 10px; margin:0 !important; box-sizing:border-box; border:1px solid var(--input-border); border-radius:9px; background:var(--input-bg); color:var(--text-color); font-size:1rem; }
+        .yogurt-edit-field:nth-child(2) { grid-column:span 1; }
+        @media(max-width:360px) { .yogurt-edit-grid { gap:12px 8px; } .yogurt-edit-field label { font-size:0.83rem; } }
     </style>
     <style>
         #security-overlay.in-app { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); }
@@ -1386,7 +1394,11 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.21 (Actual) - Tipografía oficial y marcador FIN único</h4>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.23 (Actual) - Editor Yogurt y fecha operativa turno C</h4>' +
+                  '<p>Se reorganizan los campos de edición de Yogurt con etiquetas visibles y entradas compactas. Si el turno C se inicia entre medianoche y las 06:59, su fecha operativa corresponde al día anterior, sin cambiar la hora real del registro.</p>' +
+                  '<h4>v4.0.22 - Anclaje del logo Lala</h4>' +
+                  '<p>Ajuste del anclaje del logo en Excel para conservar su posición y tamaño.</p>' +
+                  '<h4>v4.0.21 - Tipografía oficial y marcador FIN único</h4>' +
                   '<p>Se preservan las fuentes de la plantilla en LOTE, VENCE y MÁQUINA; se elimina el FIN duplicado al cambiar de producto y se mantiene la hora de cierre.</p>' +
                   '<h4>v4.0.20 - Formato oficial y legibilidad de Peso</h4>' +
                   '<p>Se respeta la tipografía original de MÁQUINA, se evita duplicar FIN en transiciones y se mejora la tabla de Peso en modo oscuro, eliminando fondos amarillos y rosados.</p>' +
@@ -1842,7 +1854,7 @@
         if (!fechaInicioTurno) {
             // Único caso sin fechaInicioTurno guardado (no debería pasar en un turno normal):
             // se mantiene el ajuste viejo solo para Turno C que cruza medianoche.
-            if (turnoActivo === "C" && fechaObj.getHours() < 10) { fechaObj.setDate(fechaObj.getDate() - 1); }
+            if (turnoActivo === "C" && fechaObj.getHours() < 7) { fechaObj.setDate(fechaObj.getDate() - 1); }
             fechaInicioTurno = fechaObj;
         }
         var dd = String(fechaObj.getDate()).padStart(2, '0');
@@ -2685,6 +2697,16 @@
         Swal.fire('Simulación Cerrada', 'Se limpiaron los datos de prueba. No se guardó nada en tu historial ni en la nube.', 'success');
     }
 
+    // El turno C pertenece al día en que comenzó a las 23:00,
+    // aunque la producción arranque después de medianoche (hasta antes de las 07:00).
+    function obtenerFechaOperativaTurno(turno, instante) {
+        var fecha = new Date(instante.getTime());
+        if (turno === 'C' && fecha.getHours() < 7) {
+            fecha.setDate(fecha.getDate() - 1);
+        }
+        return fecha;
+    }
+
     function inicializarNuevoTurnoOficial() {
         // Sin esta validación, si nadie elegía turno quedaba turnoActivo = ""
         // y la app se comportaba como si NO hubiera turno iniciado (contadores
@@ -2701,7 +2723,7 @@
                 contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 };
                 modoLavadoActivo = false;
                 turnoActivo = document.getElementById('select-turno').value;
-                fechaInicioTurno = new Date();
+                fechaInicioTurno = obtenerFechaOperativaTurno(turnoActivo, new Date());
                 parosRegistrados = [];
                 guardarParosEnMemoria();
 
@@ -3291,13 +3313,19 @@
 
     function abrirVentanaEdicionManualFila(index) {
         var r = registros[index];
-        var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
-            '<label><b>Hora (HH:MM):</b></label><input id="edit-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
-            '<label><b>Lote:</b></label><input id="edit-lote" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.lote + '">' +
-            '<label><b>Mal Sellado:</b></label><input id="edit-mal" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.malSellado + '">' +
-            '<label><b>Sobrellenado:</b></label><input id="edit-sobre" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.sobrellenado + '">' +
-            '<label><b>Volumen Bajo:</b></label><input id="edit-bajo" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.volumenBajo + '">' +
-        '</div>';
+        // Campos compactos, etiquetas independientes y alineación estable en móvil.
+        var campos = [
+            ['edit-hora', 'Hora (HH:MM)', r.hora, 'text', 5],
+            ['edit-lote', 'Lote', r.lote, 'text', 12],
+            ['edit-mal', 'Mal Sellado', r.malSellado, 'number', 4],
+            ['edit-sobre', 'Sobrellenado', r.sobrellenado, 'number', 4],
+            ['edit-bajo', 'Volumen Bajo', r.volumenBajo, 'number', 4]
+        ];
+        var htmlCont = '<div class="yogurt-edit-grid">' + campos.map(function(c) {
+            var valor = String(c[2] == null ? '' : c[2]).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+            return '<div class="yogurt-edit-field"><label for="'+c[0]+'">'+c[1]+'</label>' +
+                '<input id="'+c[0]+'" type="'+c[3]+'" '+(c[3]==='number'?'min="0" step="1" inputmode="numeric"':'')+' maxlength="'+c[4]+'" value="'+valor+'"></div>';
+        }).join('') + '</div>';
         Swal.fire({ title: 'Modificar Datos Manualmente', html: htmlCont, showCancelButton: true, confirmButtonText: 'Guardar Cambios'
         }).then(function(res) {
             if(res.isConfirmed) {
@@ -4491,7 +4519,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.21";
+    var APP_VERSION = "4.0.23";
 
     function mostrarAppPrincipal() {
         try {
