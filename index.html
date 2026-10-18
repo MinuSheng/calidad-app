@@ -1091,11 +1091,37 @@
         return prodDate;
     }
 
+    // Fuente operativa única: tabla mensual oficial OCT-2026 (hoja 0706).
+    // La presentación y máquina determinan la categoría; no inferir por marca.
+    const VIDA_UTIL_OFICIAL_OCT2026 = Object.freeze({
+        crema50:50, crema45:45, griego46:46, yogurt62:62,
+        bolsa90:90, leche120:120, leche150:150, caja180:180
+    });
+    function categoriaVidaUtilPeso(tipo, maquina, producto) {
+        var n = String(producto || '').toLowerCase();
+        var m = String(maquina || '').toUpperCase();
+        if (tipo === 'derivados') {
+            if (n.includes('griego')) return 'griego46';
+            if (n.includes('crema dulce')) return 'crema45';
+            if (n.includes('crema')) return 'crema50';
+            if (n.includes('mantequilla a granel')) return 'caja180';
+            if (n.includes('mantequilla')) return 'leche150';
+            if (n.includes('yogurt') || ['ERCA','PRIMO','SERAC','IS6-7'].includes(m)) return 'yogurt62';
+        }
+        if (tipo === 'uht') {
+            if (m === 'THIMONIER') return 'bolsa90';
+            if (n.includes('lechelado')) return 'caja180';
+            if (n.includes('nutrilety') || n.includes('deslactosada eskimo') || n.includes('descremada-deslactosada')) return 'leche120';
+            if (n.includes('lala') || n.includes('oh lala')) return 'leche150';
+            if (m === 'A3FLEX' || m === 'COMPACT') return 'caja180';
+        }
+        return null;
+    }
     function obtenerDiasProducto(tipo, maquina, producto) {
         var info = catalogoMaquinasPeso[tipo] && catalogoMaquinasPeso[tipo][maquina];
-        if (!info) return 62;
-        var item = info.productos.find(function(p) { return p.nombre === producto; });
-        return item ? item.dias : 62;
+        if (!info || !info.productos.some(function(p){ return p.nombre === producto; })) return null;
+        var categoria = categoriaVidaUtilPeso(tipo, maquina, producto);
+        return categoria ? VIDA_UTIL_OFICIAL_OCT2026[categoria] : null;
     }
 
     var _pesoInicializado = false;
@@ -1394,7 +1420,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.23 (Actual) - Editor Yogurt y fecha operativa turno C</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.24 (Actual) - Vencimientos oficiales octubre y selector de Peso</h4>' +
+                  '<ul><li>Caducidad y Peso consultan los mismos días oficiales de octubre 2026.</li><li>En Peso, búsqueda por producto, sabor y presentación con días visibles.</li><li>Sin categoría verificable no se inventa una fecha automática.</li></ul>' +
+                  '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.23 - Editor Yogurt y fecha operativa turno C</h4>' +
                   '<p>Se reorganizan los campos de edición de Yogurt con etiquetas visibles y entradas compactas. Si el turno C se inicia entre medianoche y las 06:59, su fecha operativa corresponde al día anterior, sin cambiar la hora real del registro.</p>' +
                   '<h4>v4.0.22 - Anclaje del logo Lala</h4>' +
                   '<p>Ajuste del anclaje del logo en Excel para conservar su posición y tamaño.</p>' +
@@ -1694,16 +1722,7 @@
     // =========================================================
     // LÓGICA CALCULADORA DE CADUCIDAD
     // =========================================================
-    const categoryDays = {
-        'crema50': 50,
-        'crema45': 45,
-        'griego46': 46,
-        'yogurt62': 62,
-        'bolsa90': 90,
-        'leche120': 120,
-        'leche150': 150,
-        'caja180': 180
-    };
+    const categoryDays = VIDA_UTIL_OFICIAL_OCT2026;
 
     function calcularCaducidad() {
         let loteStr = document.getElementById('input-lote-caducidad').value;
@@ -4652,6 +4671,7 @@
         if (!prodDate) return '';
         var dias = obtenerDiasProducto(tipo, maquina, producto);
         var expDate = new Date(prodDate);
+        if (!Number.isFinite(dias)) return ''; // Sin coincidencia oficial: no inventar 62 días.
         expDate.setDate(expDate.getDate() + dias);
         return String(expDate.getDate()).padStart(2, '0') + '/' + String(expDate.getMonth() + 1).padStart(2, '0') + '/' + expDate.getFullYear();
     }
@@ -4778,10 +4798,10 @@
         document.getElementById('input-peso-bocas').value = info.bocas;
 
         var opcionesProd = document.getElementById('opciones-peso-producto');
-        var buscadorHtml = '<input type="text" placeholder="🔍 Buscar producto..." onclick="event.stopPropagation();" oninput="filtrarOpcionesDropdown(this, \'opciones-peso-producto\')" style="width:90%; margin:6px auto; display:block; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">';
+        var buscadorHtml = '<input type="text" placeholder="🔍 Buscar por nombre, sabor o presentación..." onclick="event.stopPropagation();" oninput="filtrarOpcionesDropdown(this, \'opciones-peso-producto\')" style="width:90%; margin:6px auto; display:block; padding:8px; border-radius:8px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">';
         opcionesProd.innerHTML = buscadorHtml;
         info.productos.forEach(function(p) {
-            opcionesProd.innerHTML += '<div class="drop-opt" onclick="setDropdown(\'dd-peso-producto\', \'' + p.nombre.replace(/'/g, "\\'") + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\'); previsualizarVencePeso();">' + p.nombre + '</div>';
+            opcionesProd.innerHTML += '<div class="drop-opt" onclick="setDropdown(\'dd-peso-producto\', \'' + p.nombre.replace(/'/g, "\\'") + '\', \'' + p.nombre.replace(/'/g, "\\'") + '\'); previsualizarVencePeso();">' + p.nombre + (obtenerDiasProducto(_pesoVistaActual, maquina, p.nombre) !== null ? ' · ' + obtenerDiasProducto(_pesoVistaActual, maquina, p.nombre) + ' días' : ' · revisar vida útil') + '</div>';
         });
         document.getElementById('lbl-peso-producto').innerText = '-- Seleccione Producto --';
     }
