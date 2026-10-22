@@ -196,7 +196,8 @@
         body.theme-neon .timer-alert { background-color: #3d2e10; color: #fbbf24; border-color: #92650a; }
         body.theme-neon .tab-btn { background: #181926; color: #9a9bc0; border-color: #2e2f42; }
         body.theme-neon .tab-btn.active { background: linear-gradient(135deg, #d946ef, #7c3aed); color: white; border-color: transparent; box-shadow: 0 4px 15px rgba(217,70,239,0.4); }
-        body.theme-neon .btn-corte-manual { background: linear-gradient(135deg, #d946ef, #7c3aed) !important; color: white; }
+        body.theme-neon .btn-merma-color { background: linear-gradient(135deg, #f43f5e, #be185d) !important; box-shadow: 0 4px 14px rgba(244, 63, 94, 0.35); color: #ffffff !important; border: 1px solid rgba(251, 113, 133, 0.4); }
+        body.theme-neon .btn-corte-manual { background: linear-gradient(135deg, #4338ca, #6d28d9) !important; border: 1px solid rgba(139, 92, 246, 0.4); color: white; }
         body.theme-neon th, body.theme-neon td { border-color: #2e2f42; }
         body.theme-neon .swal2-popup { background: #1a1b26; color: #f0f0f5; border: 1px solid #2e2f42; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
         body.theme-neon .swal2-title { color: #ffffff; }
@@ -566,7 +567,7 @@
         </div>
 
         <div id="timer-banner" class="timer-alert">⏳ Próximo corte automático en: --m --s</div>
-        <div id="missing-pack-banner" class="timer-alert alert-missing" style="display: none;">⚠️ ¡ALERTA: Falta registrar datos de Production Pack!</div>
+        
 
         <button id="btn-lavado-toggle" class="btn-action btn-lavado" onclick="alternarModoLavadoParo()">🧼 PASAR MÁQUINA A MODO LAVADO / PARO</button>
 
@@ -679,6 +680,9 @@
                 </div>
             </div>
             
+            <!-- BANNER REUBICADO DE PRODUCTION PACK -->
+            <div id="missing-pack-banner" class="timer-alert alert-missing" style="display: none; cursor: pointer; margin-bottom: 10px;" onclick="irARegistroPack()">⚠️ ¡ALERTA: Falta registrar datos de Production Pack! 👆 Toca aquí para ir al registro</div>
+
             <div class="table-responsive" id="contenedor-tabla-registros">
                 <table>
                     <thead>
@@ -854,6 +858,19 @@
             <div id="resultado-caducidad" class="resultado-caducidad">
                 <span style="color:#6c757d;">Ingresa los datos arriba y presiona calcular.</span>
             </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end;">
+                <button type="button" class="btn-action" id="btn-fijar-caducidad" style="width: auto; background-color: var(--purple); font-size: 0.9rem; padding: 8px 14px; margin-top: 0; display: none;" onclick="fijarSlotCaducidadActual()">📌 Fijar en Memoria (Máx 4)</button>
+            </div>
+
+            <details id="details-caducidad-slots" open style="margin-top: 15px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; transition: 0.25s;">
+                <summary style="font-weight: bold; cursor: pointer; color: var(--text-color); font-size: 0.95rem; user-select: none;">
+                    📌 Productos en Memoria (<span id="count-caducidad-slots">0</span>/4)
+                </summary>
+                <div id="grid-caducidad-slots" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px;">
+                    <!-- Tarjetas compactas generadas dinámicamente -->
+                </div>
+            </details>
         </div>
     </div>
     <!-- FIN PESTAÑA CADUCIDAD -->
@@ -1149,6 +1166,7 @@
         document.getElementById('tab-' + tabName).classList.add('active');
 
         if (tabName === 'peso' && !_pesoInicializado) { inicializarTabPeso(); }
+        if (tabName === 'caducidad') { cargarSlotsCaducidad(); }
     }
 
     // =========================================================
@@ -1420,7 +1438,13 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.24 (Actual) - Vencimientos oficiales octubre y selector de Peso</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.25 (Actual) - Memoria multi-producto en Caducidad y alerta inteligente de Pack</h4>' +
+                  '<ul>' +
+                      '<li>En Caducidad ahora se pueden fijar hasta 4 productos en memoria con su lote y fecha de vencimiento para consultarlos o alternarlos sin borrar datos.</li>' +
+                      '<li>La alerta de Production Pack se reubicó encima del Historial Oficial, ignora la hora de arranque de turno (07:00, 15:00 y 23:00) y permite ir directo al registro faltante con un toque.</li>' +
+                      '<li>En modo Neón se diferenció el botón de Balde de Merma en tono rosa fresa para evitar confusiones con Corte Manual.</li>' +
+                  '</ul>' +
+                  '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.24 - Vencimientos oficiales octubre y selector de Peso</h4>' +
                   '<ul><li>Caducidad y Peso consultan los mismos días oficiales de octubre 2026.</li><li>En Peso, búsqueda por producto, sabor y presentación con días visibles.</li><li>Sin categoría verificable no se inventa una fecha automática.</li></ul>' +
                   '<h4 style="margin-bottom: 4px; color: var(--info);">v4.0.23 - Editor Yogurt y fecha operativa turno C</h4>' +
                   '<p>Se reorganizan los campos de edición de Yogurt con etiquetas visibles y entradas compactas. Si el turno C se inicia entre medianoche y las 06:59, su fecha operativa corresponde al día anterior, sin cambiar la hora real del registro.</p>' +
@@ -1767,6 +1791,181 @@
         }
 
         document.getElementById('resultado-caducidad').innerHTML = resultHTML;
+
+        // Registro de cálculo actual para slots de memoria
+        ultimoCalculoCaducidad = {
+            id: 'slot_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            lote: loteStr,
+            prodKey: catVal,
+            prodLabel: catText,
+            dias: daysToAdd,
+            fechaVenc: fDay + '/' + fMonth + '/' + fYear,
+            diffDays: diffDays,
+            estadoHtml: resultHTML
+        };
+
+        var btnFijar = document.getElementById('btn-fijar-caducidad');
+        if (btnFijar) btnFijar.style.display = 'inline-block';
+
+        // Auto-guardado en slots si no existe par (Lote + Producto) hasta máx 4
+        autoGuardarSlotCaducidad(ultimoCalculoCaducidad);
+    }
+
+    // =========================================================
+    // GESTIÓN DE SLOTS DE CADUCIDAD EN MEMORIA (MÁX 4 PRODUCTOS)
+    // Clave localStorage: lala_caducidad_slots
+    // =========================================================
+    var ultimoCalculoCaducidad = null;
+
+    function cargarSlotsCaducidad() {
+        var slots = [];
+        try {
+            var raw = localStorage.getItem('lala_caducidad_slots');
+            if (raw) slots = JSON.parse(raw);
+            if (!Array.isArray(slots)) slots = [];
+        } catch (e) {
+            slots = [];
+        }
+        renderizarSlotsCaducidad(slots);
+        return slots;
+    }
+
+    function guardarSlotsCaducidadEnStorage(slots) {
+        if (!Array.isArray(slots)) slots = [];
+        if (slots.length > 4) slots = slots.slice(0, 4);
+        localStorage.setItem('lala_caducidad_slots', JSON.stringify(slots));
+        renderizarSlotsCaducidad(slots);
+    }
+
+    function autoGuardarSlotCaducidad(item) {
+        if (!item || !item.lote || !item.prodKey) return;
+        var slots = cargarSlotsCaducidad();
+        var indexExistente = -1;
+        for (var i = 0; i < slots.length; i++) {
+            if (slots[i].lote === item.lote && slots[i].prodKey === item.prodKey) {
+                indexExistente = i;
+                break;
+            }
+        }
+
+        if (indexExistente >= 0) {
+            slots[indexExistente] = item;
+            guardarSlotsCaducidadEnStorage(slots);
+        } else if (slots.length < 4) {
+            slots.push(item);
+            guardarSlotsCaducidadEnStorage(slots);
+        }
+    }
+
+    function fijarSlotCaducidadActual() {
+        if (!ultimoCalculoCaducidad) {
+            return Swal.fire('Sin Datos', 'Primero calcula la fecha de vencimiento de un producto.', 'info');
+        }
+        var slots = cargarSlotsCaducidad();
+        var item = ultimoCalculoCaducidad;
+        var indexExistente = -1;
+        for (var i = 0; i < slots.length; i++) {
+            if (slots[i].lote === item.lote && slots[i].prodKey === item.prodKey) {
+                indexExistente = i;
+                break;
+            }
+        }
+
+        if (indexExistente >= 0) {
+            slots[indexExistente] = item;
+            guardarSlotsCaducidadEnStorage(slots);
+            Swal.fire({
+                title: 'Actualizado',
+                text: 'Se actualizó en memoria: ' + item.prodLabel + ' (Lote ' + item.lote + ').',
+                icon: 'success',
+                timer: 1800,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        } else if (slots.length < 4) {
+            slots.push(item);
+            guardarSlotsCaducidadEnStorage(slots);
+            Swal.fire({
+                title: '📌 Fijado en Memoria',
+                text: item.prodLabel + ' (Lote ' + item.lote + ') guardado en slot (' + slots.length + '/4).',
+                icon: 'success',
+                timer: 1800,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        } else {
+            Swal.fire({
+                title: 'Slots Llenos (4/4)',
+                text: 'Ya tienes 4 productos fijados en memoria. Elimina uno con el botón 🗑️ para liberar espacio.',
+                icon: 'warning'
+            });
+        }
+    }
+
+    function eliminarSlotCaducidad(slotId) {
+        var slots = cargarSlotsCaducidad();
+        var filtrados = slots.filter(function(s) { return s.id !== slotId; });
+        guardarSlotsCaducidadEnStorage(filtrados);
+    }
+
+    function verSlotCaducidad(slotId) {
+        var slots = cargarSlotsCaducidad();
+        var target = slots.find(function(s) { return s.id === slotId; });
+        if (!target) return;
+
+        var inputLote = document.getElementById('input-lote-caducidad');
+        if (inputLote) inputLote.value = target.lote;
+
+        setDropdown('dd-caducidad', target.prodKey, target.prodLabel);
+        calcularCaducidad();
+
+        var resBox = document.getElementById('resultado-caducidad');
+        if (resBox) resBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function renderizarSlotsCaducidad(slots) {
+        if (!slots) slots = [];
+        var countEl = document.getElementById('count-caducidad-slots');
+        if (countEl) countEl.innerText = slots.length;
+
+        var grid = document.getElementById('grid-caducidad-slots');
+        if (!grid) return;
+
+        if (slots.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #6c757d; font-size: 0.85rem; padding: 14px; background: rgba(0,0,0,0.02); border-radius: 6px;">No hay productos fijados en memoria. Al calcular productos válidos se guardarán aquí automáticamente (máx 4 slots).</div>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < slots.length; i++) {
+            var s = slots[i];
+            var badgeHtml = '';
+            if (s.diffDays < 0) {
+                badgeHtml = '<span style="display:inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; background: #f8d7da; color: #842029;">⚠️ Vencido (' + Math.abs(s.diffDays) + 'd)</span>';
+            } else if (s.diffDays <= 5) {
+                badgeHtml = '<span style="display:inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; background: #fff3cd; color: #664d03;">⏳ Próximo (' + s.diffDays + 'd)</span>';
+            } else {
+                badgeHtml = '<span style="display:inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; background: #d1e7dd; color: #0f5132;">✅ Óptimo (' + s.diffDays + 'd)</span>';
+            }
+
+            html += '<div class="caducidad-slot-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">' +
+                '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">' +
+                    '<div style="font-weight:bold; font-size:0.85rem; color:var(--text-color); line-height:1.2;">' + s.prodLabel + '</div>' +
+                    '<button type="button" onclick="eliminarSlotCaducidad(\'' + s.id + '\')" title="Eliminar de memoria" style="border:none; background:transparent; cursor:pointer; font-size:0.95rem; padding:0 2px; color:#dc3545;">🗑️</button>' +
+                '</div>' +
+                '<div style="font-size:0.8rem; color:#6c757d;">Lote: <b style="color:var(--text-color);">' + s.lote + '</b> · ' + s.dias + ' días</div>' +
+                '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">' +
+                    '<div style="font-size:1.15rem; font-weight:800; color:var(--info); letter-spacing:0.5px;">' + s.fechaVenc + '</div>' +
+                    badgeHtml +
+                '</div>' +
+                '<div style="margin-top:6px; display:flex; justify-content:flex-end;">' +
+                    '<button type="button" class="btn-action" style="margin-top:0; padding:4px 10px; font-size:0.75rem; width:auto; background-color:var(--info);" onclick="verSlotCaducidad(\'' + s.id + '\')">👁️ Cargar arriba</button>' +
+                '</div>' +
+            '</div>';
+        }
+        grid.innerHTML = html;
     }
 
     // =========================================================
@@ -3167,14 +3366,67 @@
     }
 
     function revisarFaltaProduccionPack() {
-        var falta = false;
+        var banner = document.getElementById('missing-pack-banner');
+        if (!banner) return;
+
+        var horaInicioTurno = '';
+        if (turnoActivo === 'A' || turnoActivo === 'A+' || turnoActivo === 'A+B') {
+            horaInicioTurno = '07:00';
+        } else if (turnoActivo === 'B') {
+            horaInicioTurno = '15:00';
+        } else if (turnoActivo === 'C') {
+            horaInicioTurno = '23:00';
+        }
+
+        var faltantes = [];
         for (var i = 0; i < registros.length; i++) {
-            if (!registros[i].tipoEspecial && (registros[i].pack === "—" || registros[i].pack === "")) {
-                var hParts = registros[i].hora.split(':'); var hM = parseInt(hParts[1]);
-                if (hM === 0) { falta = true; break; }
+            var reg = registros[i];
+            if (reg.tipoEspecial) continue;
+
+            // a) Excluir primer registro base del turno
+            if (i === 0) continue;
+
+            // a) Excluir hora exacta de inicio del turno oficial (07:00, 15:00, 23:00)
+            if (horaInicioTurno && reg.hora === horaInicioTurno) continue;
+
+            var hParts = (reg.hora || '').split(':');
+            if (hParts.length >= 2) {
+                var hM = parseInt(hParts[1], 10);
+                if (hM === 0) {
+                    if (reg.pack === "—" || reg.pack === "" || reg.pack === "-" || reg.pack === null || reg.pack === undefined) {
+                        faltantes.push({ index: i, hora: reg.hora });
+                    }
+                }
             }
         }
-        document.getElementById('missing-pack-banner').style.display = falta ? 'block' : 'none';
+
+        // b) Mostrar texto exacto y permitir click directo para ir al registro
+        if (faltantes.length > 0) {
+            var horasStr = faltantes.map(function(f) { return f.hora; }).join(', ');
+            banner.innerHTML = '⚠️ ¡ALERTA: Falta registrar datos de Production Pack (Hora: ' + horasStr + ')! 👆 Toca aquí para ir al registro';
+            banner.style.display = 'block';
+            banner.setAttribute('data-target-index', faltantes[0].index);
+        } else {
+            banner.style.display = 'none';
+            banner.removeAttribute('data-target-index');
+        }
+    }
+
+    function irARegistroPack(targetIndex) {
+        if (targetIndex === undefined || targetIndex === null) {
+            var banner = document.getElementById('missing-pack-banner');
+            var attr = banner ? banner.getAttribute('data-target-index') : null;
+            targetIndex = attr !== null ? parseInt(attr, 10) : -1;
+        }
+        if (targetIndex >= 0 && targetIndex < registros.length) {
+            var tabla = document.getElementById('contenedor-tabla-registros');
+            if (tabla) {
+                tabla.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            setTimeout(function() {
+                cambiarProductionPackFila(targetIndex);
+            }, 300);
+        }
     }
 
     function ejecutarCorteAutomaticoExacto(horaCorte) {
@@ -3607,6 +3859,7 @@
 
         document.getElementById('conversion-box').innerHTML = "📦 Equivalencia de producción: <b>" + equivPaquetes + " paquetes</b> (~" + equivPolines + " polines)";
         document.getElementById('merma-box').innerHTML = '<span>🪣 Total merma: <b>' + totalBaldesMerma + ' baldes</b> | ~' + mermaTotalLitros + ' Litros</span><span style="font-size: 0.75rem; text-decoration: underline; color:var(--purple);">Ver detalles 🔍</span>';
+        revisarFaltaProduccionPack();
     }
 
     // Descarga un archivo de forma segura en celulares. Antes cada descarga
@@ -4538,7 +4791,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.23";
+    var APP_VERSION = "4.0.25";
 
     function mostrarAppPrincipal() {
         try {
