@@ -1124,3 +1124,26 @@ Limpio (Clean working tree)
   - **Foreground Service Seguro:** `startForeground(1001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)` en API 34+ con `android.R.drawable.ic_dialog_info` como icono de notificación infalible.
   - **Permiso POST_NOTIFICATIONS:** Verificación y solicitud en `MainActivity.kt` (Android 13+).
   - **Escudo Anti-Crash Global:** Implementado `Thread.setDefaultUncaughtExceptionHandler` y bloques `try/catch (Throwable)` en todos los ciclos de vida y métodos de `BubbleService` y `MainActivity`, mostrando cualquier anomalía en Toast sin cerrar la aplicación.
+
+---
+
+## Corrección Definitiva: UI 100% Programática en Kotlin & Lazy WebView en BubbleService (v4.0.25)
+- **Fecha:** 2026-10-22
+- **Diagnóstico del Crash en Samsung One UI:**
+  * El escudo Anti-Crash capturó en el dispositivo: `Binary XML file line #45 in com.sndrlabs.calidadbubble...`.
+  * Causa raíz: `LayoutInflater` intentando inflar recursos XML (`layout_bubble_panel.xml`) desde el contexto sin tema visual de un `Service`, provocando fallo fatal en atributos de tema (`?attr/selectableItemBackgroundBorderless` o drawables).
+- **Solución Implementada:**
+  1. **Cero Dependencia de XML en BubbleService:** Se eliminó por completo `LayoutInflater` y cualquier referencia a `R.layout.*` en el servicio.
+  2. **Burbuja Flotante 100% Programática:**
+     * `FrameLayout` de 62dp x 62dp creado en Kotlin puro.
+     * `GradientDrawable` circular (`OVAL`) con degradado neón `#D946EF` a `#6D28D9` y borde cian `#22D3EE` de 2dp.
+     * `TextView` centrado a 26sp con icono `"⚡"` sin recursos XML externos.
+     * Adición inmediata y segura al `WindowManager` al arrancar el servicio.
+  3. **Panel Expandido Programático:**
+     * Contenedor vertical `LinearLayout` con fondo `#0F172A`, esquinas redondeadas (16dp) y borde `#7C3AED` (2dp).
+     * Barra superior con título `"⚡ Calidad App v4.0.25"` y botones de texto planos `"🔄"`, `"➖"` y `"❌"` con `GradientDrawable` redondeado (`#334155`).
+     * Arrastre suave del panel en pantalla.
+  4. **WebView Lazy Init y Fallback Samsung:**
+     * Cero instanciación de WebView durante el arranque (`onCreate()`).
+     * Carga diferida únicamente cuando el usuario expande el panel por primera vez.
+     * Doble capa de protección: primero intenta `ContextThemeWrapper(applicationContext, android.R.style.Theme_DeviceDefault_NoActionBar)`, y si la ROM de Samsung lanza excepción, recurre automáticamente a `WebView(applicationContext)` directo.

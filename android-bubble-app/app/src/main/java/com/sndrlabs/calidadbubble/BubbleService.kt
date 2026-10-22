@@ -9,7 +9,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -17,9 +20,10 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.text.TextUtils
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -31,7 +35,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -72,7 +76,8 @@ class BubbleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createNotificationChannel()
             startForegroundServiceWithNotification()
-            setupViews()
+            setupProgrammaticViews()
+            showBubbleHead()
         } catch (t: Throwable) {
             android.util.Log.e("CalidadBubble", "Error crítico en onCreate de BubbleService", t)
             showToast("Error en BubbleService: ${t.message}")
@@ -117,12 +122,14 @@ class BubbleService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelName = try { getString(R.string.channel_name) } catch (_: Throwable) { "Burbuja Calidad" }
+            val channelDesc = try { getString(R.string.channel_desc) } catch (_: Throwable) { "Notificación de servicio persistente" }
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                getString(R.string.channel_name),
+                channelName,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = getString(R.string.channel_desc)
+                description = channelDesc
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -180,17 +187,9 @@ class BubbleService : Service() {
         }
     }
 
-    @SuppressLint("InflateParams")
-    private fun setupViews() {
+    private fun setupProgrammaticViews() {
         try {
-            // ContextThemeWrapper para evitar crash en Samsung One UI al inflar vistas con Service Context
-            val themedContext = ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault)
-            val inflater = LayoutInflater.from(themedContext)
-
-            // 1. Burbuja Flotante Colapsada (62dp)
-            bubbleHeadView = inflater.inflate(R.layout.layout_bubble_head, null)
             val bubbleSize = dpToPx(62)
-
             val overlayType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             } else {
@@ -198,6 +197,7 @@ class BubbleService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
+            // 1. LayoutParams de la Burbuja
             bubbleParams = WindowManager.LayoutParams(
                 bubbleSize,
                 bubbleSize,
@@ -211,10 +211,36 @@ class BubbleService : Service() {
                 y = dpToPx(120)
             }
 
+            // 2. Construcción 100% programática de la Burbuja Flotante
+            val bubbleFrame = FrameLayout(this).apply {
+                layoutParams = FrameLayout.LayoutParams(bubbleSize, bubbleSize)
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(Color.parseColor("#D946EF"), Color.parseColor("#6D28D9"))
+                ).apply {
+                    shape = GradientDrawable.OVAL
+                    setStroke(dpToPx(2), Color.parseColor("#22D3EE"))
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    elevation = dpToPx(6).toFloat()
+                }
+            }
+
+            val bubbleText = TextView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                text = "⚡"
+                gravity = Gravity.CENTER
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+                setTextColor(Color.WHITE)
+            }
+            bubbleFrame.addView(bubbleText)
+            bubbleHeadView = bubbleFrame
             setupBubbleTouchListener()
 
-            // 2. Panel Messenger Expandido (92% ancho, 82% alto)
-            bubblePanelView = inflater.inflate(R.layout.layout_bubble_panel, null)
+            // 3. LayoutParams del Panel Expandido
             val metrics = resources.displayMetrics
             val panelWidth = (metrics.widthPixels * 0.92f).toInt()
             val panelHeight = (metrics.heightPixels * 0.82f).toInt()
@@ -230,10 +256,113 @@ class BubbleService : Service() {
                 gravity = Gravity.CENTER
             }
 
-            setupPanelViews()
+            // 4. Construcción 100% programática del Panel Expandido
+            val panelContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(16).toFloat()
+                    setColor(Color.parseColor("#0F172A"))
+                    setStroke(dpToPx(2), Color.parseColor("#7C3AED"))
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    elevation = dpToPx(10).toFloat()
+                    clipToOutline = true
+                }
+            }
+
+            // Barra superior (Header)
+            val headerLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(48)
+                )
+                setBackgroundColor(Color.parseColor("#1E293B"))
+                setPadding(dpToPx(14), 0, dpToPx(10), 0)
+            }
+
+            val tvTitle = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                text = "⚡ Calidad App v4.0.25"
+                setTextColor(Color.WHITE)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                typeface = Typeface.DEFAULT_BOLD
+                isSingleLine = true
+                ellipsize = TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            headerLayout.addView(tvTitle)
+
+            val btnReload = createHeaderButton("🔄") {
+                webView?.reload()
+            }
+            val btnMinimize = createHeaderButton("➖") {
+                collapseToBubble()
+            }
+            val btnClose = createHeaderButton("❌") {
+                collapseToBubble()
+            }
+
+            headerLayout.addView(btnReload)
+            headerLayout.addView(btnMinimize)
+            headerLayout.addView(btnClose)
+            setupHeaderDragListener(headerLayout)
+            panelContainer.addView(headerLayout)
+
+            // Barra de progreso horizontal
+            val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(3)
+                )
+                max = 100
+                visibility = View.GONE
+            }
+            progressBar = pb
+            panelContainer.addView(pb)
+
+            // Contenedor dinámico del WebView (el WebView se crea de forma diferida en expandToPanel)
+            val container = FrameLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+                setBackgroundColor(Color.parseColor("#0F172A"))
+            }
+            webContainer = container
+            panelContainer.addView(container)
+
+            bubblePanelView = panelContainer
+
         } catch (t: Throwable) {
-            android.util.Log.e("CalidadBubble", "Error en setupViews", t)
+            android.util.Log.e("CalidadBubble", "Error en setupProgrammaticViews", t)
             showToast("Error al inicializar vistas: ${t.message}")
+        }
+    }
+
+    private fun createHeaderButton(iconText: String, onClick: () -> Unit): TextView {
+        return TextView(this).apply {
+            val btnSize = dpToPx(34)
+            layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                marginStart = dpToPx(6)
+            }
+            text = iconText
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(8).toFloat()
+                setColor(Color.parseColor("#334155"))
+            }
+            setOnClickListener { onClick() }
         }
     }
 
@@ -289,6 +418,41 @@ class BubbleService : Service() {
         })
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupHeaderDragListener(headerLayout: View) {
+        headerLayout.setOnTouchListener(object : View.OnTouchListener {
+            private var startX = 0
+            private var startY = 0
+            private var touchX = 0f
+            private var touchY = 0f
+
+            override fun onTouch(v: View, event: MotionEvent): Boolean {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = panelParams.x
+                        startY = panelParams.y
+                        touchX = event.rawX
+                        touchY = event.rawY
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = (event.rawX - touchX).toInt()
+                        val dy = (event.rawY - touchY).toInt()
+                        panelParams.x = startX + dx
+                        panelParams.y = startY + dy
+                        if (isPanelAttached && bubblePanelView != null) {
+                            try {
+                                windowManager.updateViewLayout(bubblePanelView, panelParams)
+                            } catch (_: Throwable) {}
+                        }
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+    }
+
     private fun snapToNearestEdge() {
         val headView = bubbleHeadView ?: return
         val screenWidth = resources.displayMetrics.widthPixels
@@ -315,84 +479,22 @@ class BubbleService : Service() {
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupPanelViews() {
-        val panel = bubblePanelView ?: return
-
-        try {
-            val btnReload: ImageButton = panel.findViewById(R.id.btnReload)
-            val btnMinimize: ImageButton = panel.findViewById(R.id.btnMinimize)
-            val btnClose: ImageButton = panel.findViewById(R.id.btnClose)
-            val tvHeaderTitle: TextView = panel.findViewById(R.id.tvHeaderTitle)
-            val headerLayout: View = panel.findViewById(R.id.panelHeader)
-            progressBar = panel.findViewById(R.id.webProgressBar)
-            webContainer = panel.findViewById(R.id.webContainer)
-
-            tvHeaderTitle.text = "⚡ Calidad App (SNDR LABS)"
-
-            btnReload.setOnClickListener {
-                webView?.reload()
-            }
-
-            btnMinimize.setOnClickListener {
-                collapseToBubble()
-            }
-
-            btnClose.setOnClickListener {
-                collapseToBubble()
-            }
-
-            headerLayout.setOnTouchListener(object : View.OnTouchListener {
-                private var startX = 0
-                private var startY = 0
-                private var touchX = 0f
-                private var touchY = 0f
-
-                override fun onTouch(v: View, event: MotionEvent): Boolean {
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            startX = panelParams.x
-                            startY = panelParams.y
-                            touchX = event.rawX
-                            touchY = event.rawY
-                            return true
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            val dx = (event.rawX - touchX).toInt()
-                            val dy = (event.rawY - touchY).toInt()
-                            panelParams.x = startX + dx
-                            panelParams.y = startY + dy
-                            if (isPanelAttached && bubblePanelView != null) {
-                                try {
-                                    windowManager.updateViewLayout(bubblePanelView, panelParams)
-                                } catch (_: Throwable) {}
-                            }
-                            return true
-                        }
-                    }
-                    return false
-                }
-            })
-
-            // Inicialización segura y diferida del WebView en el hilo principal
-            Handler(Looper.getMainLooper()).post {
-                ensureWebViewInitialized()
-            }
-        } catch (t: Throwable) {
-            android.util.Log.e("CalidadBubble", "Error en setupPanelViews", t)
-            showToast("Error en panel: ${t.message}")
-        }
-    }
-
     @SuppressLint("SetJavaScriptEnabled")
     private fun ensureWebViewInitialized() {
         if (webView != null) return
         val container = webContainer ?: return
 
         try {
-            // Creación con ContextThemeWrapper para compatibilidad total con Samsung One UI
-            val themedContext = ContextThemeWrapper(this, android.R.style.Theme_DeviceDefault)
-            val wv = WebView(themedContext)
+            val wv: WebView = try {
+                val themed = ContextThemeWrapper(
+                    applicationContext,
+                    android.R.style.Theme_DeviceDefault_NoActionBar
+                )
+                WebView(themed)
+            } catch (t: Throwable) {
+                android.util.Log.w("CalidadBubble", "Fallback directo a WebView(applicationContext)", t)
+                WebView(applicationContext)
+            }
 
             wv.settings.apply {
                 javaScriptEnabled = true
@@ -448,7 +550,7 @@ class BubbleService : Service() {
                 )
             )
         } catch (t: Throwable) {
-            android.util.Log.e("CalidadBubble", "Error al crear WebView", t)
+            android.util.Log.e("CalidadBubble", "Error al crear WebView diferido", t)
             showToast("Error al inicializar WebView: ${t.message}")
         }
     }
@@ -493,6 +595,7 @@ class BubbleService : Service() {
                 stopSelf()
                 return
             }
+            // Inicialización diferida (lazy) del WebView al expandir por primera vez
             ensureWebViewInitialized()
 
             if (isBubbleAttached && bubbleHeadView != null) {
@@ -532,11 +635,14 @@ class BubbleService : Service() {
         try {
             if (isBubbleAttached && bubbleHeadView != null) {
                 windowManager.removeView(bubbleHeadView)
+                isBubbleAttached = false
             }
             if (isPanelAttached && bubblePanelView != null) {
                 windowManager.removeView(bubblePanelView)
+                isPanelAttached = false
             }
             webView?.destroy()
+            webView = null
         } catch (_: Throwable) {}
     }
 }
