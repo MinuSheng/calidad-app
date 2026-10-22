@@ -71,8 +71,8 @@
         android:progressDrawable="@android:drawable/progress_horizontal"
         android:visibility="gone" />
 
-    <WebView
-        android:id="@+id/panelWebView"
+    <FrameLayout
+        android:id="@+id/webContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
