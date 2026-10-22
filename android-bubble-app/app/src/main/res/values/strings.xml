@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Calidad Bubble</string>
+    <string name="bubble_service_name">Burbuja de Calidad</string>
+    <string name="channel_name">Servicio Flotante Calidad App</string>
+    <string name="channel_desc">Notificación para mantener activa la burbuja flotante en pantalla</string>
+</resources>
