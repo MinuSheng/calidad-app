@@ -15,10 +15,14 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.TypedValue
@@ -28,6 +32,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -35,6 +41,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -50,6 +57,7 @@ class BubbleService : Service() {
         private const val CHANNEL_ID = "calidad_bubble_channel"
         private const val NOTIFICATION_ID = 1001
         private const val DRAG_THRESHOLD_PX = 10
+        var fileUploadCallback: ValueCallback<Array<Uri>>? = null
     }
 
     private lateinit var windowManager: WindowManager
@@ -149,7 +157,6 @@ class BubbleService : Service() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
             )
 
-            // Icono del sistema 100% garantizado en Android 14/15 One UI
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Burbuja de Calidad Activa")
                 .setContentText("Toca para abrir la aplicación de calidad")
@@ -211,32 +218,33 @@ class BubbleService : Service() {
                 y = dpToPx(120)
             }
 
-            // 2. Construcción 100% programática de la Burbuja Flotante
+            // 2. Construcción programática de la Burbuja Flotante con app_logo oficial
             val bubbleFrame = FrameLayout(this).apply {
                 layoutParams = FrameLayout.LayoutParams(bubbleSize, bubbleSize)
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(Color.parseColor("#D946EF"), Color.parseColor("#6D28D9"))
+                    intArrayOf(Color.parseColor("#0F172A"), Color.parseColor("#1E293B"))
                 ).apply {
                     shape = GradientDrawable.OVAL
-                    setStroke(dpToPx(2), Color.parseColor("#22D3EE"))
+                    setStroke(dpToPx(2), Color.parseColor("#00F2FE"))
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     elevation = dpToPx(6).toFloat()
                 }
             }
 
-            val bubbleText = TextView(this).apply {
+            val bubbleLogo = ImageView(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT
                 )
-                text = "⚡"
-                gravity = Gravity.CENTER
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
-                setTextColor(Color.WHITE)
+                setImageResource(R.drawable.app_logo)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                val p = dpToPx(8)
+                setPadding(p, p, p, p)
+                contentDescription = "Logo Calidad App"
             }
-            bubbleFrame.addView(bubbleText)
+            bubbleFrame.addView(bubbleLogo)
             bubbleHeadView = bubbleFrame
             setupBubbleTouchListener()
 
@@ -256,7 +264,7 @@ class BubbleService : Service() {
                 gravity = Gravity.CENTER
             }
 
-            // 4. Construcción 100% programática del Panel Expandido
+            // 4. Panel Expandido con Borde Cian Neón y Dark Slate
             val panelContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -267,7 +275,7 @@ class BubbleService : Service() {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = dpToPx(16).toFloat()
                     setColor(Color.parseColor("#0F172A"))
-                    setStroke(dpToPx(2), Color.parseColor("#7C3AED"))
+                    setStroke(dpToPx(2), Color.parseColor("#00F2FE"))
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     elevation = dpToPx(10).toFloat()
@@ -289,7 +297,7 @@ class BubbleService : Service() {
 
             val tvTitle = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = "⚡ Calidad App v4.0.25"
+                text = "⚡ Calidad App v4.0.26"
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.DEFAULT_BOLD
@@ -327,7 +335,7 @@ class BubbleService : Service() {
             progressBar = pb
             panelContainer.addView(pb)
 
-            // Contenedor dinámico del WebView (el WebView se crea de forma diferida en expandToPanel)
+            // Contenedor dinámico del WebView
             val container = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -509,6 +517,10 @@ class BubbleService : Service() {
                 displayZoomControls = false
             }
 
+            // Exponer puente nativo para alerta háptica en Javascript
+            wv.addJavascriptInterface(AndroidBridge(this@BubbleService), "AndroidBridge")
+
+            // WebChromeClient con soporte de FilePicker nativo y barra de progreso
             wv.webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                     if (newProgress < 100) {
@@ -516,6 +528,31 @@ class BubbleService : Service() {
                         progressBar?.progress = newProgress
                     } else {
                         progressBar?.visibility = View.GONE
+                    }
+                }
+
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallback: ValueCallback<Array<Uri>>?,
+                    fileChooserParams: FileChooserParams?
+                ): Boolean {
+                    try {
+                        fileUploadCallback?.onReceiveValue(null)
+                        fileUploadCallback = filePathCallback
+                        val intent = Intent(this@BubbleService, FilePickerActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            val types = fileChooserParams?.acceptTypes
+                            if (!types.isNullOrEmpty() && types[0].isNotBlank()) {
+                                putExtra(FilePickerActivity.EXTRA_MIME_TYPE, types[0])
+                            }
+                        }
+                        startActivity(intent)
+                        return true
+                    } catch (e: Throwable) {
+                        android.util.Log.e("CalidadBubble", "Error al lanzar FilePickerActivity", e)
+                        fileUploadCallback?.onReceiveValue(null)
+                        fileUploadCallback = null
+                        return false
                     }
                 }
             }
@@ -595,7 +632,6 @@ class BubbleService : Service() {
                 stopSelf()
                 return
             }
-            // Inicialización diferida (lazy) del WebView al expandir por primera vez
             ensureWebViewInitialized()
 
             if (isBubbleAttached && bubbleHeadView != null) {
@@ -644,5 +680,29 @@ class BubbleService : Service() {
             webView?.destroy()
             webView = null
         } catch (_: Throwable) {}
+    }
+
+    // Puente de Comunicación Nativa hacia JavaScript
+    class AndroidBridge(private val context: Context) {
+        @JavascriptInterface
+        fun vibrateAlert() {
+            try {
+                val pattern = longArrayOf(0, 400, 200, 400)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                    vm?.defaultVibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                    v?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+                } else {
+                    @Suppress("DEPRECATION")
+                    val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                    @Suppress("DEPRECATION")
+                    v?.vibrate(pattern, -1)
+                }
+            } catch (t: Throwable) {
+                android.util.Log.e("CalidadBubble", "Error al ejecutar alerta de vibración", t)
+            }
+        }
     }
 }

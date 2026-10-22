@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#12131C</color>
-    <color name="card_dark">#1A1B26</color>
-    <color name="neon_purple">#D946EF</color>
-    <color name="neon_violet">#7C3AED</color>
-    <color name="neon_cyan">#22D3EE</color>
+    <color name="bg_dark">#0B0F19</color>
+    <color name="card_dark">#0F172A</color>
+    <color name="slate_dark">#1E293B</color>
+    <color name="neon_cyan">#00F2FE</color>
+    <color name="neon_blue">#0077FF</color>
     <color name="neon_green">#34D399</color>
-    <color name="neon_red">#DC2626</color>
-    <color name="text_light">#F0F0F5</color>
-    <color name="text_muted">#9A9BC0</color>
-    <color name="border_color">#2E2F42</color>
+    <color name="neon_red">#EF4444</color>
+    <color name="coral_red">#F87171</color>
+    <color name="text_light">#F8FAFC</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="border_cyan">#00F2FE</color>
+    <color name="border_dark">#1E293B</color>
+    <!-- Alias de retrocompatibilidad libres de rosa -->
+    <color name="neon_purple">#00F2FE</color>
+    <color name="neon_violet">#0077FF</color>
+    <color name="border_color">#1E293B</color>
 </resources>

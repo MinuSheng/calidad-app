@@ -1147,3 +1147,29 @@ Limpio (Clean working tree)
      * Cero instanciación de WebView durante el arranque (`onCreate()`).
      * Carga diferida únicamente cuando el usuario expande el panel por primera vez.
      * Doble capa de protección: primero intenta `ContextThemeWrapper(applicationContext, android.R.style.Theme_DeviceDefault_NoActionBar)`, y si la ROM de Samsung lanza excepción, recurre automáticamente a `WebView(applicationContext)` directo.
+
+---
+
+## Actualización v4.0.26: Cyber Cyan UI, Icono Oficial SNDR, File Picker Bridge & Alerta Háptica
+- **Fecha:** 2026-10-22
+- **Objetivos y Resultados:**
+  1. **Remodelación Visual Completa (Cero Rosa):**
+     * Eliminados por completo los colores magenta/rosa (#D946EF, #7C3AED, #BE185D).
+     * Paleta unificada 100% Neón Cian (#00F2FE, #00D2FF), Cyber Azul (#0077FF) y Dark Slate (#0F172A, #1E293B).
+     * `MainActivity`: Header con contenedor circular y borde cian para el logo oficial SNDR, preview circular superior derecho con borde cian neón 2dp, tarjeta de permisos con fondo `#0F172A` y borde cian `#00F2FE`.
+     * Botón "ACTIVAR BURBUJA FLOTANTE": Gradiente Cian Neón (#00D2FF a #0077FF), esquinas 12dp, texto blanco nítido en negrita y sombra cian.
+     * Botón "DETENER BURBUJA": Grafito oscuro `#1E293B`, borde carmesí `#EF4444` (1.5dp) y texto coral `#F87171`.
+  2. **Iconos Oficiales de la Aplicación:**
+     * Procesado `icono-app.png` con Pillow generando `ic_launcher.png` e `ic_launcher_round.png` en densidades `mdpi`, `hdpi`, `xhdpi`, `xxhdpi` y `xxxhdpi`.
+     * Generado `res/drawable/app_logo.png` optimizado (512x512).
+     * En `BubbleService.kt`: Reemplazado el TextView por `ImageView` centrado con padding de 8dp dentro del círculo con borde cian neón.
+  3. **Puente Nativo para Restaurar Backups (File Picker en WebView):**
+     * Creada `FilePickerActivity.kt`: lanza `Intent.ACTION_GET_CONTENT` (*/* y JSON) y canaliza la Uri seleccionada hacia el callback `ValueCallback<Array<Uri>>`.
+     * Registrada en `AndroidManifest.xml` con tema transparente `Theme.Translucent.NoTitleBar`.
+     * Integrado `onShowFileChooser(...)` en `WebChromeClient` dentro de `BubbleService.kt`, habilitando la restauración completa de backups desde memoria.
+  4. **Alerta Háptica de Falta de Pack:**
+     * Permiso `android.permission.VIBRATE` en `AndroidManifest.xml`.
+     * Implementada interfaz `@JavascriptInterface` `AndroidBridge.vibrateAlert()` con patrón `[0, 400, 200, 400] ms` para API 26 a 34+.
+     * Invocación automática en `revisarFaltaProduccionPack()` de `index.html`.
+     * Elevada versión oficial a `v4.0.26` en `index.html`, `build.gradle` y `BubbleService`.
+     * Sincronizado el archivo `android-bubble-app/app/src/main/assets/index.html` para soporte offline idéntico.

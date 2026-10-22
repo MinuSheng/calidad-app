@@ -11,25 +11,36 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Header Card -->
+        <!-- Header Card con Logo oficial izquierdo y Preview derecho -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="24dp">
 
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_app_logo"
-                android:contentDescription="Logo App" />
+            <!-- Logo superior izquierdo en contenedor circular con borde cian -->
+            <FrameLayout
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_circle_cyan_border"
+                android:padding="7dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/app_logo"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="Logo App Oficial" />
+            </FrameLayout>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="14dp">
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="10dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -45,19 +56,34 @@
                     android:layout_height="wrap_content"
                     android:text="Calidad Bubble"
                     android:textColor="@color/text_light"
-                    android:textSize="22sp"
+                    android:textSize="21sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="v4.0.25 • Messenger Overlay"
+                    android:text="v4.0.26 • Messenger Overlay"
                     android:textColor="@color/text_muted"
                     android:textSize="12sp" />
             </LinearLayout>
+
+            <!-- Preview superior derecho: Círculo #0F172A, borde cian #00F2FE 2dp y app_logo dentro -->
+            <FrameLayout
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_circle_cyan_border"
+                android:padding="7dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/app_logo"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="Preview Burbuja Flotante" />
+            </FrameLayout>
         </LinearLayout>
 
-        <!-- Status Card -->
+        <!-- Tarjeta de Permiso de Superposición -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -71,7 +97,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="● VERIFICANDO PERMISO..."
-                android:textColor="@color/neon_purple"
+                android:textColor="@color/neon_cyan"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -95,7 +121,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Action Buttons -->
+        <!-- Botones de Acción Principales -->
         <Button
             android:id="@+id/btnStartBubble"
             android:layout_width="match_parent"
@@ -105,6 +131,11 @@
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold"
+            android:elevation="4dp"
+            android:shadowColor="#00D2FF"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="6"
             android:layout_marginBottom="12dp" />
 
         <Button
@@ -113,17 +144,17 @@
             android:layout_height="48dp"
             android:background="@drawable/bg_btn_secondary"
             android:text="⏹️ DETENER BURBUJA"
-            android:textColor="@color/neon_red"
+            android:textColor="@color/coral_red"
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginBottom="24dp" />
 
-        <!-- Instructions Card -->
+        <!-- Tarjeta de Instrucciones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/card_dark"
+            android:background="@drawable/bg_panel_instructions"
             android:padding="16dp"
             android:layout_marginBottom="16dp">
 
@@ -139,7 +170,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="• Tap simple: Expande o minimiza el panel de control de calidad.\n• Arrastre libre: Mueve la burbuja a cualquier punto de la pantalla.\n• Imantación: Al soltarla, se adhiere magnéticamente al borde lateral.\n• Teclado activo: Soporte nativo para registrar Lotes, Cantidades y Baldes de Merma.\n• Modo Offline: Funciona sin conexión con la versión guardada en el dispositivo."
+                android:text="• Tap simple: Expande o minimiza el panel de control de calidad.
+• Arrastre libre: Mueve la burbuja a cualquier punto de la pantalla.
+• Imantación: Al soltarla, se adhiere magnéticamente al borde lateral.
+• Teclado activo: Soporte nativo para registrar Lotes, Cantidades y Baldes de Merma.
+• File Picker: Carga directa de respaldos JSON desde la memoria del teléfono.
+• Modo Offline: Funciona sin conexión con la versión guardada en el dispositivo."
                 android:textColor="@color/text_muted"
                 android:textSize="13sp"
                 android:lineSpacingExtra="4dp" />

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.CalidadBubble" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/neon_purple</item>
-        <item name="colorPrimaryVariant">@color/neon_violet</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimary">@color/neon_cyan</item>
+        <item name="colorPrimaryVariant">@color/neon_blue</item>
+        <item name="colorOnPrimary">#0B0F19</item>
         <item name="colorSecondary">@color/neon_cyan</item>
-        <item name="colorSecondaryVariant">@color/neon_cyan</item>
-        <item name="colorOnSecondary">#000000</item>
+        <item name="colorSecondaryVariant">@color/neon_blue</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
         <item name="android:statusBarColor">@color/bg_dark</item>
         <item name="android:navigationBarColor">@color/bg_dark</item>
     </style>

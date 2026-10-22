@@ -152,7 +152,7 @@ class MainActivity : AppCompatActivity() {
             btnGrantPermission.visibility = View.GONE
         } else {
             tvPermissionStatus.text = "● PERMISO DE SUPERPOSICIÓN: REQUERIDO"
-            tvPermissionStatus.setTextColor(ContextCompat.getColor(this, R.color.neon_purple))
+            tvPermissionStatus.setTextColor(ContextCompat.getColor(this, R.color.neon_cyan))
             btnGrantPermission.visibility = View.VISIBLE
         }
     }

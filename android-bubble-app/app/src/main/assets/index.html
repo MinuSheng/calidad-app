@@ -339,6 +339,14 @@
         .yogurt-edit-field input { display:block; width:100% !important; min-width:0; max-width:100%; height:44px; padding:8px 10px; margin:0 !important; box-sizing:border-box; border:1px solid var(--input-border); border-radius:9px; background:var(--input-bg); color:var(--text-color); font-size:1rem; }
         .yogurt-edit-field:nth-child(2) { grid-column:span 1; }
         @media(max-width:360px) { .yogurt-edit-grid { gap:12px 8px; } .yogurt-edit-field label { font-size:0.83rem; } }
+
+        /* v4.0.26: formulario compacto de edición de Cestas */
+        .cestas-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; text-align:left; padding:4px 2px; }
+        .cestas-edit-field { display:flex; flex-direction:column; min-width:0; gap:6px; }
+        .cestas-edit-field label { display:block; position:static; margin:0; color:var(--text-color); font-size:.9rem; font-weight:700; line-height:1.3; }
+        .cestas-edit-field input { display:block; width:100% !important; min-width:0; height:44px; margin:0 !important; padding:8px 10px; box-sizing:border-box; border:1px solid var(--input-border); border-radius:9px; background:var(--input-bg); color:var(--text-color); font-size:1rem; }
+        .cestas-edit-field.full { grid-column:1 / -1; }
+        @media(max-width:360px) { .cestas-edit-grid { gap:12px 8px; } .cestas-edit-field label { font-size:.83rem; } }
     </style>
     <style>
         #security-overlay.in-app { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); }
@@ -1438,7 +1446,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.25 (Actual) - Memoria multi-producto en Caducidad y alerta inteligente de Pack</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.26 (Actual) - Editor y orden cronológico de Cestas</h4>' +
+                  '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
+                  '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.25 - Memoria multi-producto en Caducidad y alerta inteligente de Pack</h4>' +
                   '<ul>' +
                       '<li>En Caducidad ahora se pueden fijar hasta 4 productos en memoria con su lote y fecha de vencimiento para consultarlos o alternarlos sin borrar datos.</li>' +
                       '<li>La alerta de Production Pack se reubicó encima del Historial Oficial, ignora la hora de arranque de turno (07:00, 15:00 y 23:00) y permite ir directo al registro faltante con un toque.</li>' +
@@ -3406,6 +3416,14 @@
             banner.innerHTML = '⚠️ ¡ALERTA: Falta registrar datos de Production Pack (Hora: ' + horasStr + ')! 👆 Toca aquí para ir al registro';
             banner.style.display = 'block';
             banner.setAttribute('data-target-index', faltantes[0].index);
+            // Alerta háptica nativa vía puente AndroidBridge
+            if (window.AndroidBridge && typeof window.AndroidBridge.vibrateAlert === 'function') {
+                try {
+                    window.AndroidBridge.vibrateAlert();
+                } catch (eHaptic) {
+                    console.warn('VibrationBridge error:', eHaptic);
+                }
+            }
         } else {
             banner.style.display = 'none';
             banner.removeAttribute('data-target-index');
@@ -4232,6 +4250,7 @@
     } catch(e){}
 
     function guardarCestas() {
+        ordenarRegistrosCestas();
         localStorage.setItem('lala_cont_cestas', JSON.stringify(contadoresCestas));
         localStorage.setItem('lala_reg_cestas', JSON.stringify(registrosCestas));
         localStorage.setItem('lala_corte_cestas', ultimoCorteCestas);
@@ -4321,30 +4340,48 @@
         Swal.fire({ title: 'Corte Manual Cestas', text: 'Registrar corte actual.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, Cortar' }).then(res => { if(res.isConfirmed) { ejecutarCorteCestas(horaSugerida); } });
     }
 
+    function ordenarRegistrosCestas() {
+        // El orden de la tabla y del Excel sigue la hora editada, no el orden de creación.
+        registrosCestas.sort((a,b) => String(a.hora || '').localeCompare(String(b.hora || ''), 'es', {numeric:true}));
+        registrosCestas.forEach((r,i) => { r.item = i + 1; });
+    }
+
     function abrirMenuOpcionesFilaCestas(index) {
         var r = registrosCestas[index];
-        var htmlCont = '<div style="text-align:left; font-size:0.9rem;">' +
-            '<label><b>Hora:</b></label><input id="edit-c-hora" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.hora + '">' +
-            '<label><b>Revisadas:</b></label><input id="edit-c-rev" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.revisadas + '">' +
-            '<label><b>Rechazadas:</b></label><input id="edit-c-rech" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.rechazadas + '">' +
-            '<label><b>Sucias:</b></label><input id="edit-c-suc" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.sucias + '">' +
-            '<label><b>Quebradas:</b></label><input id="edit-c-que" type="number" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + r.quebradas + '">' +
-            '<label><b>Obs:</b></label><input id="edit-c-obs" type="text" class="swal2-input" style="margin:4px 0 12px 0; width:90%;" value="' + _esc(r.obs) + '">' +
-        '</div>';
-
-        Swal.fire({ title: 'Modificar Cestas', html: htmlCont, showCancelButton: true, showDenyButton: true, denyButtonText: '🗑️ Borrar', confirmButtonText: 'Guardar' }).then(res => {
-            if(res.isConfirmed) {
-                registrosCestas[index].hora = document.getElementById('edit-c-hora').value;
-                registrosCestas[index].revisadas = parseInt(document.getElementById('edit-c-rev').value) || 0;
-                registrosCestas[index].rechazadas = parseInt(document.getElementById('edit-c-rech').value) || 0;
-                registrosCestas[index].sucias = parseInt(document.getElementById('edit-c-suc').value) || 0;
-                registrosCestas[index].quebradas = parseInt(document.getElementById('edit-c-que').value) || 0;
-                registrosCestas[index].obs = document.getElementById('edit-c-obs').value;
+        if (!r) return;
+        const campo = (id, etiqueta, valor, tipo='number', extra='') =>
+            '<div class="cestas-edit-field"><label for="'+id+'">'+etiqueta+'</label>' +
+            '<input id="'+id+'" type="'+tipo+'" '+extra+' value="'+_esc(String(valor ?? ''))+'"></div>';
+        var htmlCont = '<div class="cestas-edit-grid">' +
+            campo('edit-c-hora','Hora',r.hora,'time','required') +
+            campo('edit-c-rev','Revisadas',r.revisadas,'number','min="0" step="1" inputmode="numeric"') +
+            campo('edit-c-rech','Rechazadas',r.rechazadas,'number','min="0" step="1" inputmode="numeric"') +
+            campo('edit-c-suc','Sucias',r.sucias,'number','min="0" step="1" inputmode="numeric"') +
+            campo('edit-c-que','Quebradas',r.quebradas,'number','min="0" step="1" inputmode="numeric"') +
+            '<div class="cestas-edit-field full"><label for="edit-c-obs">Observaciones</label><input id="edit-c-obs" type="text" value="'+_esc(String(r.obs ?? ''))+'"></div></div>';
+        Swal.fire({ title: 'Modificar Cestas', html: htmlCont, width: 'min(95vw, 470px)',
+            showCancelButton: true, showDenyButton: true, denyButtonText: '🗑️ Borrar',
+            confirmButtonText: 'Guardar', cancelButtonText:'Cancelar',
+            preConfirm: () => {
+                const valor = id => document.getElementById(id).value;
+                const hora = valor('edit-c-hora');
+                const ids = ['edit-c-rev','edit-c-rech','edit-c-suc','edit-c-que'];
+                const numeros = ids.map(id => Number(valor(id)));
+                if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora) || numeros.some(n => !Number.isInteger(n) || n < 0)) {
+                    Swal.showValidationMessage('Introduce una hora válida y cantidades enteras no negativas.'); return false;
+                }
+                if (numeros[2] + numeros[3] !== numeros[1] || numeros[1] > numeros[0]) {
+                    Swal.showValidationMessage('Rechazadas debe ser igual a Sucias + Quebradas y no superar Revisadas.'); return false;
+                }
+                return {hora, revisadas:numeros[0], rechazadas:numeros[1], sucias:numeros[2], quebradas:numeros[3], obs:valor('edit-c-obs')};
+            }
+        }).then(res => {
+            if (res.isConfirmed && res.value) {
+                Object.assign(r, res.value);
                 guardarCestas();
-                Swal.fire('Guardado', '', 'success');
+                Swal.fire('Guardado', 'El corte se reordenó según su hora.', 'success');
             } else if (res.isDenied) {
                 registrosCestas.splice(index, 1);
-                for(var k=0; k<registrosCestas.length; k++) { registrosCestas[k].item = k+1; }
                 guardarCestas();
                 Swal.fire('Eliminado', '', 'success');
             }
@@ -4352,6 +4389,7 @@
     }
 
     function renderizarTablaCestas() {
+        ordenarRegistrosCestas();
         var tbody = document.getElementById('tabla-cuerpo-cestas'); if(!tbody) return; tbody.innerHTML = "";
         var tRev = 0, tRech = 0, tSuc = 0, tQue = 0;
         
@@ -4791,7 +4829,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.25";
+    var APP_VERSION = "4.0.26";
 
     function mostrarAppPrincipal() {
         try {

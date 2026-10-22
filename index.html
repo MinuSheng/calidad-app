@@ -3416,6 +3416,14 @@
             banner.innerHTML = '⚠️ ¡ALERTA: Falta registrar datos de Production Pack (Hora: ' + horasStr + ')! 👆 Toca aquí para ir al registro';
             banner.style.display = 'block';
             banner.setAttribute('data-target-index', faltantes[0].index);
+            // Alerta háptica nativa vía puente AndroidBridge
+            if (window.AndroidBridge && typeof window.AndroidBridge.vibrateAlert === 'function') {
+                try {
+                    window.AndroidBridge.vibrateAlert();
+                } catch (eHaptic) {
+                    console.warn('VibrationBridge error:', eHaptic);
+                }
+            }
         } else {
             banner.style.display = 'none';
             banner.removeAttribute('data-target-index');
