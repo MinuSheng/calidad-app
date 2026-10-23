@@ -1173,3 +1173,31 @@ Limpio (Clean working tree)
      * Invocación automática en `revisarFaltaProduccionPack()` de `index.html`.
      * Elevada versión oficial a `v4.0.26` en `index.html`, `build.gradle` y `BubbleService`.
      * Sincronizado el archivo `android-bubble-app/app/src/main/assets/index.html` para soporte offline idéntico.
+
+---
+
+## Actualización v4.0.27: Visor Nativo de Logs en MainActivity y Blindaje del Selector de Archivos (HyperOS / Xiaomi / Android)
+- **Fecha de Implementación:** 2026-10-23
+- **Diagnóstico y Causa Raíz:**
+  1. En dispositivos Xiaomi / HyperOS / MIUI, el callback `ValueCallback<Array<Uri>>` en `onShowFileChooser` quedaba bloqueado si una intención previa no se resolvía o cancelaba de inmediato al reabrir el selector.
+  2. Al seleccionar archivos `.TXT` o `.JSON` de respaldo desde proveedores de almacenamiento (`content://`), faltaba la concesión explícita de `Intent.FLAG_GRANT_READ_URI_PERMISSION` y la habilitación completa de `allowContentAccess` y `allowFileAccess` en `WebSettings`.
+  3. No existía visibilidad de los eventos JS en consola ni de las transiciones del servicio nativo en ejecución, dificultando la auditoría de fallos en producción.
+- **Soluciones Implementadas:**
+  1. **Motor de Logs Nativo (`AppLogManager.kt`):**
+     * Singleton en Kotlin con buffer circular de 150 slots (`HH:mm:ss`, etiquetas `[WEB]`, `[SERVICE]`, `[PICKER]`, `[ERROR]`, etc.).
+     * Sistema de listeners con despacho al MainLooper para sincronización en tiempo real con la UI.
+     * Métodos de exportación de log en texto plano (`exportLogs()`) y limpieza (`clearLogs()`).
+  2. **Consola de Diagnóstico en `MainActivity`:**
+     * Tarjeta colapsable con diseño Cyberpunk / Dark Slate (`#0F172A`, borde cian `#00F2FE`), scroll independiente (`ScrollView` con `nestedScrollingEnabled="true"`) y tipografía monoespaciada.
+     * Coloreado dinámico de líneas (`SpannableStringBuilder`): Cian para eventos de servicio, Rojo para errores/cancelaciones, Verde para éxitos, Azul para selector y Violeta para eventos web.
+     * Botones nativos: `📋 Copiar Registro` (hacia portapapeles) y `🗑️ Limpiar`.
+  3. **Blindaje de `BubbleService.kt` y `FilePickerActivity.kt`:**
+     * `WebSettings`: `allowContentAccess = true`, `allowFileAccess = true`, `allowFileAccessFromFileURLs = true`, `allowUniversalAccessFromFileURLs = true`.
+     * `WebChromeClient.onConsoleMessage`: redirección de `console.log`, `console.warn` y `console.error` hacia `AppLogManager.log(...)`.
+     * `onShowFileChooser`: verificación y cancelación segura (`fileUploadCallback?.onReceiveValue(null)`) de cualquier callback pendiente previo antes de instanciar un nuevo intent.
+     * `FilePickerActivity`: configuración de `Intent.FLAG_GRANT_READ_URI_PERMISSION`, tipo `*/*` y resolución inmediata con `null` en cancelación o destrucción (`onDestroy`).
+  4. **Bump de Versión Oficial v4.0.27:**
+     * `build.gradle` (app): `versionCode 3`, `versionName "4.0.27"`.
+     * `index.html`: `APP_VERSION = "4.0.27"` e inclusión en `verHistorialVersiones()`.
+     * Sincronización idéntica de `android-bubble-app/app/src/main/assets/index.html`.
+     * Header y preview en `MainActivity` y `BubbleService` elevados a `v4.0.27`.

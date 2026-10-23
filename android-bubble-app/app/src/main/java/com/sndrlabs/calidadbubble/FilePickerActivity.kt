@@ -15,17 +15,23 @@ class FilePickerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val mimeType = intent?.getStringExtra(EXTRA_MIME_TYPE) ?: "*/*"
+        AppLogManager.log("PICKER", "FilePickerActivity iniciada (mimeType=$mimeType)")
+
         val fileIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
-            type = if (mimeType.contains("json", ignoreCase = true)) "application/json" else "*/*"
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "text/*", "*/*"))
+            type = "*/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "text/plain", "application/json", "*/*"))
         }
+
+        val chooserIntent = Intent.createChooser(fileIntent, "Seleccionar archivo de respaldo").apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
         try {
-            startActivityForResult(
-                Intent.createChooser(fileIntent, "Seleccionar archivo de respaldo JSON"),
-                REQUEST_CODE_FILE
-            )
+            startActivityForResult(chooserIntent, REQUEST_CODE_FILE)
         } catch (e: Throwable) {
+            AppLogManager.log("ERROR", "Error al abrir selector de archivos: ${e.message}")
             BubbleService.fileUploadCallback?.onReceiveValue(null)
             BubbleService.fileUploadCallback = null
             finish()
@@ -35,19 +41,40 @@ class FilePickerActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_CODE_FILE) {
-            val result: Array<Uri>? = if (resultCode == RESULT_OK && data != null) {
-                if (data.data != null) {
-                    arrayOf(data.data!!)
+            if (resultCode == RESULT_OK && data != null) {
+                val result: Array<Uri>? = if (data.data != null) {
+                    val uri = data.data!!
+                    try {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: Throwable) {}
+                    AppLogManager.log("PICKER", "URI recibida: $uri")
+                    arrayOf(uri)
                 } else if (data.clipData != null) {
                     val count = data.clipData!!.itemCount
-                    Array(count) { i -> data.clipData!!.getItemAt(i).uri }
+                    val uris = Array(count) { i ->
+                        val u = data.clipData!!.getItemAt(i).uri
+                        try {
+                            contentResolver.takePersistableUriPermission(
+                                u,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                        } catch (_: Throwable) {}
+                        u
+                    }
+                    AppLogManager.log("PICKER", "$count URIs recibidas: ${uris.joinToString()}")
+                    uris
                 } else {
+                    AppLogManager.log("PICKER", "Selección sin datos")
                     null
                 }
+                BubbleService.fileUploadCallback?.onReceiveValue(result)
             } else {
-                null
+                AppLogManager.log("PICKER", "Selección cancelada")
+                BubbleService.fileUploadCallback?.onReceiveValue(null)
             }
-            BubbleService.fileUploadCallback?.onReceiveValue(result)
             BubbleService.fileUploadCallback = null
             finish()
         }
@@ -56,6 +83,7 @@ class FilePickerActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         if (BubbleService.fileUploadCallback != null) {
+            AppLogManager.log("PICKER", "FilePickerActivity destruida con callback pendiente -> resolviendo con null")
             BubbleService.fileUploadCallback?.onReceiveValue(null)
             BubbleService.fileUploadCallback = null
         }

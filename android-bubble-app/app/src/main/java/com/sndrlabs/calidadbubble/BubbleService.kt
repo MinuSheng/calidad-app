@@ -32,6 +32,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -84,6 +85,7 @@ class BubbleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createNotificationChannel()
             startForegroundServiceWithNotification()
+            AppLogManager.log("SERVICE", "BubbleService creado")
             setupProgrammaticViews()
             showBubbleHead()
         } catch (t: Throwable) {
@@ -145,7 +147,8 @@ class BubbleService : Service() {
         }
     }
 
-    private fun startForegroundServiceWithNotification() {
+    private fun startForegroundServiceWithNotification()
+            AppLogManager.log("SERVICE", "BubbleService creado") {
         try {
             val openAppIntent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -297,7 +300,7 @@ class BubbleService : Service() {
 
             val tvTitle = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = "⚡ Calidad App v4.0.26"
+                text = "⚡ Calidad App v4.0.27"
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.DEFAULT_BOLD
@@ -515,12 +518,16 @@ class BubbleService : Service() {
                 loadWithOverviewMode = true
                 builtInZoomControls = false
                 displayZoomControls = false
+                @Suppress("DEPRECATION")
+                allowFileAccessFromFileURLs = true
+                @Suppress("DEPRECATION")
+                allowUniversalAccessFromFileURLs = true
             }
 
             // Exponer puente nativo para alerta háptica en Javascript
             wv.addJavascriptInterface(AndroidBridge(this@BubbleService), "AndroidBridge")
 
-            // WebChromeClient con soporte de FilePicker nativo y barra de progreso
+            // WebChromeClient con redirección de consola, soporte de FilePicker nativo y barra de progreso
             wv.webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                     if (newProgress < 100) {
@@ -531,16 +538,34 @@ class BubbleService : Service() {
                     }
                 }
 
+                override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                    if (consoleMessage != null) {
+                        val level = consoleMessage.messageLevel()
+                        val tag = when (level) {
+                            ConsoleMessage.MessageLevel.ERROR -> "ERROR"
+                            ConsoleMessage.MessageLevel.WARNING -> "WARN"
+                            else -> "WEB"
+                        }
+                        AppLogManager.log(tag, consoleMessage.message())
+                    }
+                    return super.onConsoleMessage(consoleMessage)
+                }
+
                 override fun onShowFileChooser(
                     webView: WebView?,
                     filePathCallback: ValueCallback<Array<Uri>>?,
                     fileChooserParams: FileChooserParams?
                 ): Boolean {
                     try {
-                        fileUploadCallback?.onReceiveValue(null)
+                        AppLogManager.log("PICKER", "Solicitud de archivo iniciada")
+                        if (fileUploadCallback != null) {
+                            AppLogManager.log("PICKER", "Cancelando callback pendiente previo")
+                            fileUploadCallback?.onReceiveValue(null)
+                            fileUploadCallback = null
+                        }
                         fileUploadCallback = filePathCallback
                         val intent = Intent(this@BubbleService, FilePickerActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
                             val types = fileChooserParams?.acceptTypes
                             if (!types.isNullOrEmpty() && types[0].isNotBlank()) {
                                 putExtra(FilePickerActivity.EXTRA_MIME_TYPE, types[0])
@@ -549,7 +574,7 @@ class BubbleService : Service() {
                         startActivity(intent)
                         return true
                     } catch (e: Throwable) {
-                        android.util.Log.e("CalidadBubble", "Error al lanzar FilePickerActivity", e)
+                        AppLogManager.log("ERROR", "Error al lanzar FilePickerActivity: ${e.message}")
                         fileUploadCallback?.onReceiveValue(null)
                         fileUploadCallback = null
                         return false
@@ -613,6 +638,7 @@ class BubbleService : Service() {
             if (!isBubbleAttached && bubbleHeadView != null) {
                 windowManager.addView(bubbleHeadView, bubbleParams)
                 isBubbleAttached = true
+                AppLogManager.log("SERVICE", "Burbuja flotante visible")
             }
             if (isPanelAttached && bubblePanelView != null) {
                 windowManager.removeView(bubblePanelView)
@@ -641,6 +667,7 @@ class BubbleService : Service() {
             if (!isPanelAttached && bubblePanelView != null) {
                 windowManager.addView(bubblePanelView, panelParams)
                 isPanelAttached = true
+                AppLogManager.log("SERVICE", "Panel expandido visible")
             }
             isExpanded = true
         } catch (t: Throwable) {
@@ -658,6 +685,7 @@ class BubbleService : Service() {
             if (!isBubbleAttached && bubbleHeadView != null) {
                 windowManager.addView(bubbleHeadView, bubbleParams)
                 isBubbleAttached = true
+                AppLogManager.log("SERVICE", "Burbuja flotante visible")
             }
             isExpanded = false
         } catch (t: Throwable) {

@@ -1446,7 +1446,9 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.26 (Actual) - Editor y orden cronológico de Cestas</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.27 (Actual) - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
+                  '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.25 - Memoria multi-producto en Caducidad y alerta inteligente de Pack</h4>' +
                   '<ul>' +
@@ -4829,7 +4831,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.26";
+    var APP_VERSION = "4.0.27";
 
     function mostrarAppPrincipal() {
         try {

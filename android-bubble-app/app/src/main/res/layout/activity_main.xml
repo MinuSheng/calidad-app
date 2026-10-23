@@ -62,7 +62,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="v4.0.26 • Messenger Overlay"
+                    android:text="v4.0.27 • Messenger Overlay"
                     android:textColor="@color/text_muted"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -147,7 +147,120 @@
             android:textColor="@color/coral_red"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp" />
+
+        <!-- Sección Colapsable: Registro de Eventos y Diagnóstico -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_panel_card"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <!-- Encabezado / Botón de Toggle Colapsable -->
+            <LinearLayout
+                android:id="@+id/layoutLogHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tvLogTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🛠️ REGISTRO DE EVENTOS Y DIAGNÓSTICO"
+                    android:textColor="@color/neon_cyan"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLogCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="(0)"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvLogToggleIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▲"
+                    android:textColor="@color/neon_cyan"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Contenido expandible -->
+            <LinearLayout
+                android:id="@+id/layoutLogContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp">
+
+                <!-- Consola de logs con scroll propio -->
+                <ScrollView
+                    android:id="@+id/scrollLogViewer"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:background="@drawable/bg_log_console"
+                    android:padding="10dp"
+                    android:nestedScrollingEnabled="true"
+                    android:fadeScrollbars="false">
+
+                    <TextView
+                        android:id="@+id/tvLogViewer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:textSize="11sp"
+                        android:lineSpacingExtra="3dp"
+                        android:textColor="@color/text_light"
+                        android:textIsSelectable="true"
+                        android:text="[SISTEMA] Inicializando registros..." />
+                </ScrollView>
+
+                <!-- Barra de Acciones del Log -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                    <Button
+                        android:id="@+id/btnCopyLogs"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_log_copy"
+                        android:text="📋 Copiar Registro"
+                        android:textColor="@color/neon_cyan"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnClearLogs"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn_log_clear"
+                        android:text="🗑️ Limpiar"
+                        android:textColor="@color/coral_red"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginStart="6dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- Tarjeta de Instrucciones -->
         <LinearLayout
@@ -170,12 +283,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="• Tap simple: Expande o minimiza el panel de control de calidad.
-• Arrastre libre: Mueve la burbuja a cualquier punto de la pantalla.
-• Imantación: Al soltarla, se adhiere magnéticamente al borde lateral.
-• Teclado activo: Soporte nativo para registrar Lotes, Cantidades y Baldes de Merma.
-• File Picker: Carga directa de respaldos JSON desde la memoria del teléfono.
-• Modo Offline: Funciona sin conexión con la versión guardada en el dispositivo."
+                android:text="• Tap simple: Expande o minimiza el panel de control de calidad.&#10;• Arrastre libre: Mueve la burbuja a cualquier punto de la pantalla.&#10;• Imantación: Al soltarla, se adhiere magnéticamente al borde lateral.&#10;• Teclado activo: Soporte nativo para registrar Lotes, Cantidades y Baldes de Merma.&#10;• File Picker: Carga directa de respaldos JSON/TXT desde la memoria del teléfono.&#10;• Diagnóstico: Monitoreo en tiempo real de errores JS, transferencias de archivos y ciclo de vida."
                 android:textColor="@color/text_muted"
                 android:textSize="13sp"
                 android:lineSpacingExtra="4dp" />
