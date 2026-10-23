@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -17,14 +18,17 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.MediaStore
 import android.provider.Settings
 import android.text.TextUtils
+import android.util.Base64
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
@@ -48,6 +52,12 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Calendar
+import java.util.Collections
+import java.util.Locale
 import kotlin.math.hypot
 
 class BubbleService : Service() {
@@ -56,9 +66,10 @@ class BubbleService : Service() {
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
         private const val CHANNEL_ID = "calidad_bubble_channel"
+        private const val DOWNLOADS_CHANNEL_ID = "calidad_downloads_channel"
         private const val NOTIFICATION_ID = 1001
         private const val DRAG_THRESHOLD_PX = 10
-        var fileUploadCallback: android.webkit.ValueCallback<Array<android.net.Uri>>? = null
+        var fileUploadCallback: ValueCallback<Array<Uri>>? = null
     }
 
     private lateinit var windowManager: WindowManager
@@ -75,6 +86,17 @@ class BubbleService : Service() {
     private var isBubbleAttached = false
     private var isPanelAttached = false
 
+    // Monitor nativo horario de Production Pack
+    val confirmedPackHours: MutableSet<String> = Collections.synchronizedSet(mutableSetOf<String>())
+    private var lastVibratedHour: String? = null
+    private val packMonitorHandler = Handler(Looper.getMainLooper())
+    private val packMonitorRunnable = object : Runnable {
+        override fun run() {
+            checkHourlyProductionPack()
+            packMonitorHandler.postDelayed(this, 30_000L)
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -85,9 +107,12 @@ class BubbleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createNotificationChannel()
             startForegroundServiceWithNotification()
-            AppLogManager.log("SERVICE", "BubbleService creado")
+            AppLogManager.log("SERVICE", "BubbleService creado (v4.0.28)")
             setupProgrammaticViews()
             showBubbleHead()
+
+            // Iniciar monitor horario de Production Pack (cada 30s)
+            packMonitorHandler.post(packMonitorRunnable)
         } catch (t: Throwable) {
             android.util.Log.e("CalidadBubble", "Error crítico en onCreate de BubbleService", t)
             showToast("Error en BubbleService: ${t.message}")
@@ -132,18 +157,29 @@ class BubbleService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = try { getString(R.string.channel_name) } catch (_: Throwable) { "Burbuja Calidad" }
-            val channelDesc = try { getString(R.string.channel_desc) } catch (_: Throwable) { "Notificación de servicio persistente" }
+            val manager = getSystemService(NotificationManager::class.java)
+
+            // Canal persistente del servicio
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                channelName,
+                "Burbuja Calidad",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = channelDesc
+                description = "Notificación de servicio persistente"
                 setShowBadge(false)
             }
-            val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
+
+            // Canal para descargas nativas
+            val dlChannel = NotificationChannel(
+                DOWNLOADS_CHANNEL_ID,
+                "Descargas Calidad App",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notificaciones de archivos generados y descargados"
+                setShowBadge(true)
+            }
+            manager?.createNotificationChannel(dlChannel)
         }
     }
 
@@ -161,7 +197,7 @@ class BubbleService : Service() {
 
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Burbuja de Calidad Activa")
-                .setContentText("Toca para abrir la aplicación de calidad")
+                .setContentText("Toca para abrir la aplicación de calidad (v4.0.28)")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
@@ -299,7 +335,7 @@ class BubbleService : Service() {
 
             val tvTitle = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = "⚡ Calidad App v4.0.27"
+                text = "⚡ Calidad App v4.0.28"
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.DEFAULT_BOLD
@@ -523,7 +559,7 @@ class BubbleService : Service() {
                 allowUniversalAccessFromFileURLs = true
             }
 
-            // Exponer puente nativo para alerta háptica en Javascript
+            // Exponer puente nativo enriquecido hacia Javascript
             wv.addJavascriptInterface(AndroidBridge(this@BubbleService), "AndroidBridge")
 
             // WebChromeClient con redirección de consola, soporte de FilePicker nativo y barra de progreso
@@ -693,9 +729,157 @@ class BubbleService : Service() {
         }
     }
 
+    // Monitor periódico de Production Pack: revisa si el reloj marca hora en punto (:00)
+    private fun checkHourlyProductionPack() {
+        try {
+            val calendar = Calendar.getInstance()
+            val mm = calendar.get(Calendar.MINUTE)
+            val hh = calendar.get(Calendar.HOUR_OF_DAY)
+            val horaStr = String.format(Locale.US, "%02d:00", hh)
+
+            if (mm == 0) {
+                // Excluir horas oficiales de inicio de turno
+                if (horaStr == "07:00" || horaStr == "15:00" || horaStr == "23:00") {
+                    return
+                }
+                if (lastVibratedHour == horaStr) {
+                    return
+                }
+                if (confirmedPackHours.contains(horaStr)) {
+                    return
+                }
+                // Emitir vibración nativa de alerta horaria [0, 500, 250, 500] ms
+                ejecutarVibracionPackNativa()
+                lastVibratedHour = horaStr
+                AppLogManager.log("PACK", "Alerta nativa de falta de Production Pack emitida ($horaStr)")
+            } else {
+                if (lastVibratedHour != null && mm >= 2) {
+                    lastVibratedHour = null
+                }
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("CalidadBubble", "Error en checkHourlyProductionPack", t)
+        }
+    }
+
+    fun ejecutarVibracionPackNativa() {
+        try {
+            val pattern = longArrayOf(0, 500, 250, 500)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val v = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                v?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            } else {
+                @Suppress("DEPRECATION")
+                val v = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                @Suppress("DEPRECATION")
+                v?.vibrate(pattern, -1)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("CalidadBubble", "Error al ejecutar alerta de vibración", t)
+        }
+    }
+
+    // Guardado nativo a MediaStore.Downloads con fallback a Environment
+    fun guardarArchivoNativo(base64Data: String, nombreArchivo: String, mimeType: String) {
+        try {
+            val cleanBase64 = if (base64Data.contains(",")) {
+                base64Data.substringAfter(",")
+            } else {
+                base64Data
+            }
+            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+
+            val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, nombreArchivo)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val resolver = contentResolver
+                val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                val itemUri = resolver.insert(collection, contentValues)
+                if (itemUri != null) {
+                    resolver.openOutputStream(itemUri)?.use { os ->
+                        os.write(bytes)
+                        os.flush()
+                    }
+                    contentValues.clear()
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(itemUri, contentValues, null, null)
+                }
+                itemUri
+            } else {
+                @Suppress("DEPRECATION")
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                val file = File(downloadsDir, nombreArchivo)
+                FileOutputStream(file).use { fos ->
+                    fos.write(bytes)
+                    fos.flush()
+                }
+                try {
+                    FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+                } catch (_: Throwable) {
+                    Uri.fromFile(file)
+                }
+            }
+
+            AppLogManager.log("DOWNLOAD", "Archivo guardado en Descargas: $nombreArchivo (${bytes.size} bytes)")
+            showToast("📥 Guardado en Descargas: $nombreArchivo")
+
+            if (uri != null) {
+                dispararNotificacionDescarga(uri, nombreArchivo, mimeType)
+            }
+        } catch (t: Throwable) {
+            android.util.Log.e("CalidadBubble", "Error al guardar archivo en Descargas", t)
+            AppLogManager.log("ERROR", "Error guardarArchivo: ${t.message}")
+            showToast("Error al descargar archivo: ${t.message}")
+        }
+    }
+
+    private fun dispararNotificacionDescarga(uri: Uri, nombreArchivo: String, mimeType: String) {
+        try {
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val chooserIntent = Intent.createChooser(viewIntent, "Abrir $nombreArchivo").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                (System.currentTimeMillis() % 100000).toInt(),
+                chooserIntent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val notification = NotificationCompat.Builder(this, DOWNLOADS_CHANNEL_ID)
+                .setContentTitle("Archivo descargado: $nombreArchivo")
+                .setContentText("Toca para abrir o compartir el archivo")
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build()
+
+            val notifId = (System.currentTimeMillis() % 100000).toInt() + 2000
+            notificationManager?.notify(notifId, notification)
+        } catch (t: Throwable) {
+            AppLogManager.log("ERROR", "Error al disparar notificación de descarga: ${t.message}")
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {
+            packMonitorHandler.removeCallbacks(packMonitorRunnable)
             if (isBubbleAttached && bubbleHeadView != null) {
                 windowManager.removeView(bubbleHeadView)
                 isBubbleAttached = false
@@ -710,25 +894,29 @@ class BubbleService : Service() {
     }
 
     // Puente de Comunicación Nativa hacia JavaScript
-    class AndroidBridge(private val context: Context) {
+    class AndroidBridge(private val service: BubbleService) {
         @JavascriptInterface
         fun vibrateAlert() {
+            service.ejecutarVibracionPackNativa()
+        }
+
+        @JavascriptInterface
+        fun confirmarPackRegistrado(hora: String) {
             try {
-                val pattern = longArrayOf(0, 400, 200, 400)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                    vm?.defaultVibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                    v?.vibrate(VibrationEffect.createWaveform(pattern, -1))
-                } else {
-                    @Suppress("DEPRECATION")
-                    val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                    @Suppress("DEPRECATION")
-                    v?.vibrate(pattern, -1)
-                }
+                val h = hora.trim()
+                service.confirmedPackHours.add(h)
+                AppLogManager.log("PACK", "Pack registrado confirmado: $h")
             } catch (t: Throwable) {
-                android.util.Log.e("CalidadBubble", "Error al ejecutar alerta de vibración", t)
+                AppLogManager.log("ERROR", "Error confirmarPackRegistrado: ${t.message}")
+            }
+        }
+
+        @JavascriptInterface
+        fun guardarArchivo(base64Data: String, nombreArchivo: String, mimeType: String) {
+            try {
+                service.guardarArchivoNativo(base64Data, nombreArchivo, mimeType)
+            } catch (t: Throwable) {
+                AppLogManager.log("ERROR", "Error guardarArchivo: ${t.message}")
             }
         }
     }

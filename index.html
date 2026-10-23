@@ -1446,7 +1446,7 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.27 (Actual) - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.28 (Actual) - Keystore de actualización fija, selector táctil integrado para modales, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
                   '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
@@ -3464,7 +3464,6 @@
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
-                backdrop: false,
                 customClass: { popup: 'toast-no-blur' }
             });
         }
@@ -3488,6 +3487,13 @@
                     registros[index].pack = '—';
                 } else {
                     registros[index].pack = res.value;
+                    if (window.AndroidBridge && typeof window.AndroidBridge.confirmarPackRegistrado === 'function') {
+                        try {
+                            window.AndroidBridge.confirmarPackRegistrado(registros[index].hora);
+                        } catch (eP) {
+                            console.warn('confirmarPackRegistrado error:', eP);
+                        }
+                    }
                 }
                 guardarEnMemoria(); renderizarTabla(); }});
     }
@@ -3933,6 +3939,11 @@
         try { archivo = new File([blob], nombreArchivo, { type: blob.type }); } catch (e) { archivo = null; }
         var puedeCompartir = !!(archivo && navigator.canShare && navigator.share && navigator.canShare({ files: [archivo] }));
 
+        if (window.AndroidBridge && typeof window.AndroidBridge.guardarArchivo === 'function') {
+            _descargarBlob(blob, nombreArchivo);
+            if (alTerminar) alTerminar();
+            return;
+        }
         if (!_esIOS()) {
             _descargarBlob(blob, nombreArchivo);
             if (alTerminar) alTerminar();
@@ -3989,6 +4000,26 @@
     }
 
     function _descargarBlob(blob, nombreArchivo) {
+        // Enlace nativo directo a MediaStore.Downloads vía AndroidBridge
+        if (window.AndroidBridge && typeof window.AndroidBridge.guardarArchivo === 'function') {
+            try {
+                var reader = new FileReader();
+                reader.onloadend = function() {
+                    try {
+                        var res = reader.result;
+                        var b64 = (typeof res === 'string' && res.indexOf(',') !== -1) ? res.split(',')[1] : res;
+                        var mime = blob.type || 'application/octet-stream';
+                        window.AndroidBridge.guardarArchivo(b64, nombreArchivo, mime);
+                    } catch (eB64) {
+                        console.error('Error procesando Base64 para AndroidBridge:', eB64);
+                    }
+                };
+                reader.readAsDataURL(blob);
+                return;
+            } catch (eBridge) {
+                console.warn('Fallback a navegador web por error en AndroidBridge:', eBridge);
+            }
+        }
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
@@ -3996,9 +4027,6 @@
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        // 60 segundos y no 4: en iPhone Safari primero pregunta "¿Quieres
-        // descargar...?" y, si el enlace se libera antes de que el usuario
-        // conteste, la descarga muere sin dar ningún aviso.
         setTimeout(function() {
             URL.revokeObjectURL(url);
             if (a.parentNode) a.parentNode.removeChild(a);
@@ -4831,7 +4859,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.27";
+    var APP_VERSION = "4.0.28";
 
     function mostrarAppPrincipal() {
         try {
@@ -6920,6 +6948,158 @@
         const borrados = snap.docs.map(function(d) { return deleteDoc(d.ref); });
         await Promise.all(borrados);
     };
+</script>
+
+
+<!-- ======================================================== -->
+<!-- POLYFILL UNIVERSAL TÁCTIL PARA <select> EN VENTANAS FLOTANTES (v4.0.28) -->
+<!-- ======================================================== -->
+<div id="sndr-select-picker-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:999999999;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s ease;">
+    <div id="sndr-select-sheet" style="background:#0F172A;border:2px solid #00F2FE;border-bottom:none;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 -10px 30px rgba(0,242,254,0.25);overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #1E293B;background:#1E293B;">
+            <div id="sndr-select-picker-title" style="color:#00F2FE;font-size:1.05rem;font-weight:bold;letter-spacing:0.5px;">Seleccionar Opción</div>
+            <button id="sndr-select-picker-close" type="button" style="background:#334155;color:#FFFFFF;border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);">✕</button>
+        </div>
+        <div id="sndr-select-search-container" style="padding:10px 16px;background:#0F172A;border-bottom:1px solid #1E293B;display:none;">
+            <input id="sndr-select-search-input" type="text" placeholder="🔍 Filtrar opciones..." style="width:100%;padding:10px 14px;border-radius:8px;background:#1E293B;border:1px solid #334155;color:#FFFFFF;font-size:14px;box-sizing:border-box;outline:none;" />
+        </div>
+        <div id="sndr-select-options-list" style="flex:1;overflow-y:auto;padding:12px 16px 24px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;">
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function initSelectPolyfill() {
+        var pickerModal = document.getElementById('sndr-select-picker-modal');
+        var closeBtn = document.getElementById('sndr-select-picker-close');
+        var searchInput = document.getElementById('sndr-select-search-input');
+        var searchContainer = document.getElementById('sndr-select-search-container');
+        var listContainer = document.getElementById('sndr-select-options-list');
+        var titleEl = document.getElementById('sndr-select-picker-title');
+
+        if (!pickerModal) return;
+
+        function cerrarPicker() {
+            pickerModal.style.display = 'none';
+        }
+
+        closeBtn.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            cerrarPicker();
+        });
+
+        pickerModal.addEventListener('click', function(ev) {
+            if (ev.target === pickerModal) {
+                cerrarPicker();
+            }
+        });
+
+        function abrirPicker(selectEl) {
+            if (!selectEl || selectEl.disabled) return;
+            selectEl.blur();
+
+            // Identificar título inteligente
+            var titulo = "Seleccionar Opción";
+            var id = selectEl.id || "";
+            var label = selectEl.id ? document.querySelector('label[for="' + selectEl.id + '"]') : null;
+            if (label && label.innerText && label.innerText.trim()) {
+                titulo = label.innerText.trim();
+            } else if (selectEl.getAttribute('aria-label')) {
+                titulo = selectEl.getAttribute('aria-label');
+            } else if (id.indexOf('paro') !== -1) {
+                titulo = "⚙️ Paros / Máquinas";
+            } else if (id.indexOf('maquina') !== -1) {
+                titulo = "⚙️ Selección de Máquina";
+            } else if (id.indexOf('producto') !== -1) {
+                titulo = "📦 Selección de Producto";
+            } else if (id.indexOf('colab') !== -1 || id.indexOf('entrega') !== -1) {
+                titulo = "👥 Compañero de Turno";
+            } else if (id.indexOf('bloque') !== -1) {
+                titulo = "⏱️ Bloque Horario";
+            } else if (id.indexOf('error') !== -1) {
+                titulo = "⚠️ Causa o Defecto";
+            }
+            titleEl.innerText = titulo;
+
+            listContainer.innerHTML = '';
+            searchInput.value = '';
+            var options = Array.from(selectEl.options);
+
+            if (options.length > 5) {
+                searchContainer.style.display = 'block';
+            } else {
+                searchContainer.style.display = 'none';
+            }
+
+            options.forEach(function(opt, idx) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.setAttribute('data-index', idx);
+                btn.setAttribute('data-value', opt.value);
+                btn.setAttribute('data-text', opt.text);
+
+                var isSelected = (opt.value === selectEl.value || (!selectEl.value && idx === 0));
+                btn.style.cssText = 'padding:14px 16px;border-radius:12px;background:' + (isSelected ? '#0d6efd' : '#1E293B') + ';color:#FFFFFF;font-size:15px;font-weight:' + (isSelected ? 'bold' : 'normal') + ';text-align:left;border:1px solid ' + (isSelected ? '#00F2FE' : '#334155') + ';cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.15s;box-sizing:border-box;width:100%;';
+                btn.innerHTML = '<span>' + (opt.text || opt.value || '—') + '</span>' + (isSelected ? '<span style="color:#00F2FE;font-size:16px;">✔</span>' : '');
+
+                btn.addEventListener('click', function(eBtn) {
+                    eBtn.preventDefault();
+                    eBtn.stopPropagation();
+                    selectEl.value = opt.value;
+                    selectEl.selectedIndex = idx;
+                    cerrarPicker();
+
+                    var evChange = new Event('change', { bubbles: true, cancelable: true });
+                    var evInput = new Event('input', { bubbles: true, cancelable: true });
+                    selectEl.dispatchEvent(evInput);
+                    selectEl.dispatchEvent(evChange);
+                    if (typeof selectEl.onchange === 'function') {
+                        try { selectEl.onchange(evChange); } catch (eOc) {}
+                    }
+                });
+
+                listContainer.appendChild(btn);
+            });
+
+            searchInput.oninput = function() {
+                var q = searchInput.value.toLowerCase().trim();
+                var btns = listContainer.querySelectorAll('button');
+                btns.forEach(function(b) {
+                    var t = (b.getAttribute('data-text') || '').toLowerCase();
+                    b.style.display = (t.indexOf(q) !== -1) ? 'flex' : 'none';
+                });
+            };
+
+            pickerModal.style.display = 'flex';
+        }
+
+        // Interceptor en fase de captura (capture: true)
+        function handleSelectTouch(e) {
+            var target = e.target;
+            if (!target) return;
+            var sel = (target.tagName === 'SELECT') ? target : (target.closest ? target.closest('select') : null);
+            if (sel && !sel.disabled) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                sel.blur();
+                abrirPicker(sel);
+            }
+        }
+
+        document.addEventListener('pointerdown', handleSelectTouch, true);
+        document.addEventListener('mousedown', handleSelectTouch, true);
+        document.addEventListener('click', handleSelectTouch, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSelectPolyfill);
+    } else {
+        initSelectPolyfill();
+    }
+})();
 </script>
 
 </body>

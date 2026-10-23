@@ -1,3 +1,14 @@
+
+## Refactorización Maestra v4.0.28 - Firma Permanente, MediaStore, Select Táctil y Monitor Pack
+- **Fecha y Hora:** 2026-10-23 17:08:50
+- **Versión:** v4.0.28
+- **Objetivos Implementados:**
+  1. **Keystore Fija Permanente:** Generación de `android-bubble-app/app/calidad.keystore` (alias `calidad`, pass `sndrlabs`, RSA 2048, 10000 días) configurada en `signingConfigs.calidadKey` tanto para debug como para release. Permite actualizar el APK sobre versiones previas sin desinstalar ni perder datos locales.
+  2. **Puente Nativo MediaStore.Downloads:** Exposición de `@JavascriptInterface guardarArchivo(base64Data, nombreArchivo, mimeType)` en `BubbleService.kt`, escribiendo en la carpeta pública `Downloads` mediante `MediaStore.Downloads` (Android 10+) o fallback directo, con notificación interactiva `Intent.ACTION_VIEW` (`FLAG_GRANT_READ_URI_PERMISSION`).
+  3. **Monitor Horario de Production Pack:** Bucle en Kotlin dentro de `BubbleService.kt` (cada 30s) que evalúa si el reloj marca hora en punto (`:00`, excluyendo 07:00, 15:00 y 23:00) y si el pack no ha sido anotado, emite vibración nativa `[0, 500, 250, 500]` ms en segundo plano con la burbuja cerrada. Exposición de `confirmarPackRegistrado(hora)` en `AndroidBridge`.
+  4. **Polyfill Universal Táctil para `<select>`:** Interceptor en fase de captura sobre eventos `pointerdown` / `click` en cualquier `<select>` (estático o dentro de SweetAlert2 en Paros, Peso, Compañeros, Máquinas), desplegando una hoja modal flotante Dark Slate / Neón (`#0F172A`, `#00F2FE`, z-index 999999999) con filtrado instantáneo y botones táctiles grandes, resolviendo bloqueos del sistema en ventanas flotantes.
+  5. **Corrección SweetAlert2 y Sincronización:** Eliminación de advertencias de consola por `backdrop: false` en toasts de SweetAlert2, bump general a `v4.0.28`, actualización de assets offline y workflow de CI.
+
 # TEAM HANDOFF - Calidad App
 
 ## Auditoría Inicial por Antigravity

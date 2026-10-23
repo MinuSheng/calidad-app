@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
 
             AppLogManager.addListener(logListener)
             renderLogs()
-            AppLogManager.log("SERVICE", "MainActivity iniciada (v4.0.27)")
+            AppLogManager.log("SERVICE", "MainActivity iniciada (v4.0.28)")
 
             btnGrantPermission.setOnClickListener {
                 requestOverlayPermission()
