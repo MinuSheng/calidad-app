@@ -1216,3 +1216,16 @@ Limpio (Clean working tree)
   3. `BubbleService.kt`: Declaración canónica explícita de `fileUploadCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?` en `companion object`, con imports completos de WebChromeClient, Uri, Handler, Looper y ConsoleMessage.
   4. `FilePickerActivity.kt`: Imports explícitos de `Activity`, `Intent`, `Uri`, `Bundle` y `ValueCallback`.
   5. `AppLogManager.kt`: Imports verificados de `Handler`, `Looper`, `SimpleDateFormat`, `Date` y `Locale`.
+
+---
+
+## Corrección CI/CD: Reparación de Sintaxis Kotlin e Imports en BubbleService (v4.0.27)
+- **Fecha:** 2026-10-23
+- **Diagnóstico del Fallo en GitHub Actions (Run #39944574805 / #39945533939):**
+  * `BubbleService.kt:151:13 Expecting member declaration`: Durante la inyección de logs, una llamada a `AppLogManager.log(...)` se concatenó accidentalmente con la declaración del método `private fun startForegroundServiceWithNotification()`, corrompiendo la definición de la función antes de su bloque `{`.
+  * `FilePickerActivity.kt`: Se añadió import explícito de `android.webkit.ValueCallback`.
+  * `activity_main.xml`: Se removió el atributo `android:nestedScrollingEnabled` en `<ScrollView>` y se trasladó su habilitación limpia a Kotlin (`isNestedScrollingEnabled = true` en API 21+).
+- **Corrección Quirúrgica:**
+  1. Restaurada la firma limpia de `private fun startForegroundServiceWithNotification() {` en `BubbleService.kt`.
+  2. Tipado canónico `android.webkit.ValueCallback<Array<android.net.Uri>>?` verificado en `companion object`.
+  3. Verificación de todos los imports en `AppLogManager.kt`, `MainActivity.kt` y `FilePickerActivity.kt`.

@@ -147,8 +147,7 @@ class BubbleService : Service() {
         }
     }
 
-    private fun startForegroundServiceWithNotification()
-            AppLogManager.log("SERVICE", "BubbleService creado") {
+    private fun startForegroundServiceWithNotification() {
         try {
             val openAppIntent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
