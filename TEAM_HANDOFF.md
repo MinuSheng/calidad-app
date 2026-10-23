@@ -1201,3 +1201,18 @@ Limpio (Clean working tree)
      * `index.html`: `APP_VERSION = "4.0.27"` e inclusión en `verHistorialVersiones()`.
      * Sincronización idéntica de `android-bubble-app/app/src/main/assets/index.html`.
      * Header y preview en `MainActivity` y `BubbleService` elevados a `v4.0.27`.
+
+---
+
+## Corrección CI/CD: Resolución de Atributos AAPT2 e Imports Kotlin en Android App (v4.0.27)
+- **Fecha:** 2026-10-23
+- **Diagnóstico del Fallo en GitHub Actions (Run #39944574805):**
+  * El paso `Build Debug APK` falló durante `assembleDebug` debido al atributo `android:nestedScrollingEnabled="true"` en `<ScrollView>` dentro de `activity_main.xml`. En AAPT2 de Android SDK, `nestedScrollingEnabled` en el namespace `android:` sobre `android.widget.ScrollView` no es reconocido por el compilador de recursos XML.
+  * En `FilePickerActivity.kt` faltaba la importación explícita de `android.webkit.ValueCallback`.
+  * La declaración de `fileUploadCallback` en `BubbleService.companion object` requería tipado canónico explícito `android.webkit.ValueCallback<Array<android.net.Uri>>?`.
+- **Solución Quirúrgica:**
+  1. `activity_main.xml`: Se removió el atributo problemático `android:nestedScrollingEnabled="true"` de la consola de logs.
+  2. `MainActivity.kt`: Se delegó la habilitación de nested scrolling a nivel de código Kotlin con `scrollLogViewer.isNestedScrollingEnabled = true` en API 21+, garantizando 100% de compatibilidad con AAPT2. Se verificaron todos los imports de `Spannable`, `ClipboardManager` y vistas.
+  3. `BubbleService.kt`: Declaración canónica explícita de `fileUploadCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?` en `companion object`, con imports completos de WebChromeClient, Uri, Handler, Looper y ConsoleMessage.
+  4. `FilePickerActivity.kt`: Imports explícitos de `Activity`, `Intent`, `Uri`, `Bundle` y `ValueCallback`.
+  5. `AppLogManager.kt`: Imports verificados de `Handler`, `Looper`, `SimpleDateFormat`, `Date` y `Locale`.

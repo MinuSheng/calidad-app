@@ -71,6 +71,9 @@ class MainActivity : AppCompatActivity() {
             tvLogCount = findViewById(R.id.tvLogCount)
             tvLogToggleIcon = findViewById(R.id.tvLogToggleIcon)
             scrollLogViewer = findViewById(R.id.scrollLogViewer)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                scrollLogViewer.isNestedScrollingEnabled = true
+            }
             tvLogViewer = findViewById(R.id.tvLogViewer)
             btnCopyLogs = findViewById(R.id.btnCopyLogs)
             btnClearLogs = findViewById(R.id.btnClearLogs)

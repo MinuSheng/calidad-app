@@ -213,8 +213,7 @@
                     android:layout_height="220dp"
                     android:background="@drawable/bg_log_console"
                     android:padding="10dp"
-                    android:nestedScrollingEnabled="true"
-                    android:fadeScrollbars="false">
+                                        android:fadeScrollbars="false">
 
                     <TextView
                         android:id="@+id/tvLogViewer"

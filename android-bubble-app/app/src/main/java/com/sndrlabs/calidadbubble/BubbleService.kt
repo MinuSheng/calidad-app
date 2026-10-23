@@ -58,7 +58,7 @@ class BubbleService : Service() {
         private const val CHANNEL_ID = "calidad_bubble_channel"
         private const val NOTIFICATION_ID = 1001
         private const val DRAG_THRESHOLD_PX = 10
-        var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+        var fileUploadCallback: android.webkit.ValueCallback<Array<android.net.Uri>>? = null
     }
 
     private lateinit var windowManager: WindowManager
