@@ -1446,7 +1446,7 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.28 (Actual) - Keystore de actualización fija, selector táctil integrado para modales, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.29 (Actual) - Motor de selectores adheridos in-place para modales (Paros, Compañeros, Máquinas), bloqueo de scroll de fondo y compilación directa sobre versión instalada</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
                   '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
@@ -4859,7 +4859,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.28";
+    var APP_VERSION = "4.0.29";
 
     function mostrarAppPrincipal() {
         try {
@@ -6953,151 +6953,461 @@
 
 <!-- ======================================================== -->
 <!-- POLYFILL UNIVERSAL TÁCTIL PARA <select> EN VENTANAS FLOTANTES (v4.0.28) -->
+
 <!-- ======================================================== -->
-<div id="sndr-select-picker-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:999999999;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s ease;">
-    <div id="sndr-select-sheet" style="background:#0F172A;border:2px solid #00F2FE;border-bottom:none;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 -10px 30px rgba(0,242,254,0.25);overflow:hidden;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #1E293B;background:#1E293B;">
-            <div id="sndr-select-picker-title" style="color:#00F2FE;font-size:1.05rem;font-weight:bold;letter-spacing:0.5px;">Seleccionar Opción</div>
-            <button id="sndr-select-picker-close" type="button" style="background:#334155;color:#FFFFFF;border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);">✕</button>
-        </div>
-        <div id="sndr-select-search-container" style="padding:10px 16px;background:#0F172A;border-bottom:1px solid #1E293B;display:none;">
-            <input id="sndr-select-search-input" type="text" placeholder="🔍 Filtrar opciones..." style="width:100%;padding:10px 14px;border-radius:8px;background:#1E293B;border:1px solid #334155;color:#FFFFFF;font-size:14px;box-sizing:border-box;outline:none;" />
-        </div>
-        <div id="sndr-select-options-list" style="flex:1;overflow-y:auto;padding:12px 16px 24px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch;">
-        </div>
-    </div>
-</div>
+<!-- MOTOR DE SELECTORES ADHERIDOS EN EL LUGAR (v4.0.29)     -->
+<!-- IN-PLACE CUSTOM SELECT ENGINE & BACKGROUND SCROLL LOCK   -->
+<!-- ======================================================== -->
+<style id="custom-select-engine-styles">
+/* Bloqueo estricto de scroll de fondo para modales y desplegables */
+body.swal2-shown {
+    overflow: hidden !important;
+    touch-action: none !important;
+}
+.swal2-popup {
+    overflow: visible !important;
+}
+.swal2-html-container {
+    overflow: visible !important;
+}
+
+/* Contenedor del selector adherido en el lugar */
+.custom-select-container {
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: block;
+    margin: 4px 0 10px 0;
+    text-align: left;
+}
+
+/* Botón disparador */
+.custom-select-trigger {
+    width: 100%;
+    min-height: 44px;
+    background-color: #1E293B;
+    color: #F8FAFC;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    text-align: left;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.custom-select-trigger:focus,
+.custom-select-container.is-open .custom-select-trigger {
+    border-color: #38BDF8 !important;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+    outline: none !important;
+}
+
+.custom-select-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 8px;
+}
+
+.custom-select-arrow {
+    color: #94A3B8;
+    font-size: 0.75rem;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.custom-select-container.is-open .custom-select-arrow {
+    transform: rotate(180deg);
+    color: #38BDF8;
+}
+
+/* Desplegable adherido posicionado directamente debajo del disparador */
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 999999 !important;
+    background: #1E293B;
+    border: 2px solid #38BDF8;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.custom-select-dropdown.is-open {
+    display: flex !important;
+}
+
+/* Campo de búsqueda en vivo */
+.custom-select-search-box {
+    padding: 8px;
+    background: #0F172A;
+    border-bottom: 1px solid #334155;
+    box-sizing: border-box;
+}
+
+.custom-select-search-input {
+    width: 100%;
+    background: #1E293B;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #FFFFFF;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.custom-select-search-input:focus {
+    border-color: #38BDF8;
+}
+
+/* Lista táctil con scroll interno */
+.custom-select-options-list {
+    max-height: 210px;
+    overflow-y: auto;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+.custom-select-option {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: transparent;
+    color: #E2E8F0;
+    font-size: 0.92rem;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid transparent;
+    transition: background 0.12s, color 0.12s;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.custom-select-option:hover,
+.custom-select-option:active {
+    background: #334155;
+    color: #FFFFFF;
+}
+
+.custom-select-option.is-selected {
+    background: #0F172A;
+    color: #38BDF8;
+    font-weight: bold;
+    border-color: rgba(56, 189, 248, 0.5);
+}
+
+.custom-select-option-check {
+    color: #38BDF8;
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-left: 8px;
+}
+</style>
 
 <script>
 (function() {
-    function initSelectPolyfill() {
-        var pickerModal = document.getElementById('sndr-select-picker-modal');
-        var closeBtn = document.getElementById('sndr-select-picker-close');
-        var searchInput = document.getElementById('sndr-select-search-input');
-        var searchContainer = document.getElementById('sndr-select-search-container');
-        var listContainer = document.getElementById('sndr-select-options-list');
-        var titleEl = document.getElementById('sndr-select-picker-title');
+    var _scrollLockCount = 0;
+    var _origBodyOverflow = '';
+    var _origBodyTouchAction = '';
+    var _origHtmlOverflow = '';
 
-        if (!pickerModal) return;
+    function lockScroll() {
+        if (_scrollLockCount === 0) {
+            _origBodyOverflow = document.body.style.overflow;
+            _origBodyTouchAction = document.body.style.touchAction;
+            _origHtmlOverflow = document.documentElement.style.overflow;
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+            document.documentElement.style.overflow = 'hidden';
+        }
+        _scrollLockCount++;
+    }
 
-        function cerrarPicker() {
-            pickerModal.style.display = 'none';
+    function unlockScroll() {
+        _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+        if (_scrollLockCount === 0) {
+            document.body.style.overflow = _origBodyOverflow;
+            document.body.style.touchAction = _origBodyTouchAction;
+            document.documentElement.style.overflow = _origHtmlOverflow;
+        }
+    }
+
+    function closeAllDropdowns() {
+        var openDds = document.querySelectorAll('.custom-select-dropdown.is-open');
+        openDds.forEach(function(dd) {
+            dd.classList.remove('is-open');
+            var parent = dd.closest('.custom-select-container');
+            if (parent) parent.classList.remove('is-open');
+            unlockScroll();
+        });
+    }
+
+    // Cerrar al pulsar fuera del custom select
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-select-container')) {
+            closeAllDropdowns();
+        }
+    });
+
+    // Prevenir que el scroll táctil se transmita a la página de fondo cuando hay un desplegable abierto
+    document.addEventListener('touchmove', function(e) {
+        var openDd = document.querySelector('.custom-select-dropdown.is-open');
+        if (!openDd) return;
+        var list = openDd.querySelector('.custom-select-options-list');
+        if (list && list.contains(e.target)) {
+            return; // permitir scroll táctil interno
+        }
+        e.preventDefault();
+    }, { passive: false });
+
+    function syncSelectVisibility(select, container) {
+        var isHidden = select.hidden ||
+                       select.style.display === 'none' ||
+                       (select.getAttribute('style') && (select.getAttribute('style').indexOf('display: none') !== -1 || select.getAttribute('style').indexOf('display:none') !== -1));
+        if (isHidden) {
+            container.style.display = 'none';
+        } else {
+            container.style.display = 'block';
+        }
+    }
+
+    function populateOptions(select, dropdown, trigger) {
+        var list = dropdown.querySelector('.custom-select-options-list');
+        var searchBox = dropdown.querySelector('.custom-select-search-box');
+        var searchInput = dropdown.querySelector('.custom-select-search-input');
+        var labelEl = trigger.querySelector('.custom-select-text');
+
+        list.innerHTML = '';
+        if (searchInput) searchInput.value = '';
+
+        var options = Array.from(select.options);
+        if (options.length > 5) {
+            searchBox.style.display = 'block';
+        } else {
+            searchBox.style.display = 'none';
         }
 
-        closeBtn.addEventListener('click', function(ev) {
+        var currentVal = select.value;
+        var selectedOpt = null;
+
+        options.forEach(function(opt, idx) {
+            var isSel = (opt.value === currentVal) || (!currentVal && idx === select.selectedIndex);
+            if (isSel && !selectedOpt) selectedOpt = opt;
+
+            var optDiv = document.createElement('div');
+            optDiv.className = 'custom-select-option' + (isSel ? ' is-selected' : '');
+            optDiv.setAttribute('data-value', opt.value);
+            optDiv.setAttribute('data-index', idx);
+            optDiv.setAttribute('data-text', (opt.text || opt.value || '').toLowerCase());
+            optDiv.innerHTML = '<span>' + (opt.text || opt.value || '—') + '</span>' +
+                               (isSel ? '<span class="custom-select-option-check">✔</span>' : '');
+
+            optDiv.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                select.value = opt.value;
+                select.selectedIndex = idx;
+                if (labelEl) labelEl.textContent = opt.text || opt.value || '—';
+
+                // Disparar eventos nativos para los listeners de la aplicación
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                select.dispatchEvent(new Event('input', { bubbles: true }));
+                if (typeof select.onchange === 'function') {
+                    try { select.onchange(new Event('change')); } catch (_e) {}
+                }
+
+                closeAllDropdowns();
+            });
+
+            list.appendChild(optDiv);
+        });
+
+        if (labelEl) {
+            if (selectedOpt) {
+                labelEl.textContent = selectedOpt.text || selectedOpt.value || '—';
+            } else if (options.length > 0) {
+                labelEl.textContent = options[0].text || options[0].value || '—';
+            } else {
+                labelEl.textContent = '—';
+            }
+        }
+    }
+
+    function initCustomSelect(select) {
+        if (!select || select.dataset.customSelectInit === 'true') return;
+        select.dataset.customSelectInit = 'true';
+
+        // Ocultar select nativo de forma accesible
+        select.style.position = 'absolute';
+        select.style.opacity = '0';
+        select.style.pointerEvents = 'none';
+        select.style.width = '0px';
+        select.style.height = '0px';
+        select.style.margin = '0px';
+        select.style.padding = '0px';
+        select.style.border = 'none';
+        select.tabIndex = -1;
+
+        // Crear contenedor in-place adherido
+        var container = document.createElement('div');
+        container.className = 'custom-select-container';
+        select._customSelectContainer = container;
+
+        var trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'custom-select-trigger';
+        trigger.innerHTML = '<span class="custom-select-text">—</span><span class="custom-select-arrow">▼</span>';
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'custom-select-dropdown';
+        dropdown.innerHTML = '<div class="custom-select-search-box" style="display:none;">' +
+                             '<input type="text" class="custom-select-search-input" placeholder="🔍 Buscar..." />' +
+                             '</div>' +
+                             '<div class="custom-select-options-list"></div>';
+
+        container.appendChild(trigger);
+        container.appendChild(dropdown);
+
+        // Insertar inmediatamente después del <select> original dentro del mismo nodo padre
+        if (select.parentNode) {
+            select.parentNode.insertBefore(container, select.nextSibling);
+        }
+
+        syncSelectVisibility(select, container);
+        populateOptions(select, dropdown, trigger);
+
+        // Búsqueda en vivo con filtro reactivo
+        var searchInput = dropdown.querySelector('.custom-select-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var query = searchInput.value.toLowerCase().trim();
+                var items = dropdown.querySelectorAll('.custom-select-option');
+                items.forEach(function(item) {
+                    var txt = item.getAttribute('data-text') || '';
+                    item.style.display = (txt.indexOf(query) !== -1) ? 'flex' : 'none';
+                });
+            });
+            searchInput.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+            });
+        }
+
+        // Desplegar / Ocultar menú
+        trigger.addEventListener('click', function(ev) {
             ev.preventDefault();
             ev.stopPropagation();
-            cerrarPicker();
-        });
 
-        pickerModal.addEventListener('click', function(ev) {
-            if (ev.target === pickerModal) {
-                cerrarPicker();
+            var isOpen = dropdown.classList.contains('is-open');
+            closeAllDropdowns();
+
+            if (!isOpen) {
+                populateOptions(select, dropdown, trigger);
+
+                // Posicionamiento inteligente: abrir hacia abajo o hacia arriba si falta espacio
+                var rect = trigger.getBoundingClientRect();
+                var spaceBelow = window.innerHeight - rect.bottom;
+                if (spaceBelow < 220 && rect.top > 220) {
+                    dropdown.style.top = 'auto';
+                    dropdown.style.bottom = 'calc(100% + 4px)';
+                } else {
+                    dropdown.style.top = 'calc(100% + 4px)';
+                    dropdown.style.bottom = 'auto';
+                }
+
+                container.classList.add('is-open');
+                dropdown.classList.add('is-open');
+                lockScroll();
+
+                if (searchInput && searchInput.offsetParent !== null) {
+                    setTimeout(function() { searchInput.focus(); }, 60);
+                }
             }
         });
 
-        function abrirPicker(selectEl) {
-            if (!selectEl || selectEl.disabled) return;
-            selectEl.blur();
-
-            // Identificar título inteligente
-            var titulo = "Seleccionar Opción";
-            var id = selectEl.id || "";
-            var label = selectEl.id ? document.querySelector('label[for="' + selectEl.id + '"]') : null;
-            if (label && label.innerText && label.innerText.trim()) {
-                titulo = label.innerText.trim();
-            } else if (selectEl.getAttribute('aria-label')) {
-                titulo = selectEl.getAttribute('aria-label');
-            } else if (id.indexOf('paro') !== -1) {
-                titulo = "⚙️ Paros / Máquinas";
-            } else if (id.indexOf('maquina') !== -1) {
-                titulo = "⚙️ Selección de Máquina";
-            } else if (id.indexOf('producto') !== -1) {
-                titulo = "📦 Selección de Producto";
-            } else if (id.indexOf('colab') !== -1 || id.indexOf('entrega') !== -1) {
-                titulo = "👥 Compañero de Turno";
-            } else if (id.indexOf('bloque') !== -1) {
-                titulo = "⏱️ Bloque Horario";
-            } else if (id.indexOf('error') !== -1) {
-                titulo = "⚠️ Causa o Defecto";
+        // Escuchar cambios externos en el select nativo
+        select.addEventListener('change', function() {
+            var labelEl = trigger.querySelector('.custom-select-text');
+            var opt = select.options[select.selectedIndex];
+            if (labelEl && opt) {
+                labelEl.textContent = opt.text || opt.value || '—';
             }
-            titleEl.innerText = titulo;
+        });
+    }
 
-            listContainer.innerHTML = '';
-            searchInput.value = '';
-            var options = Array.from(selectEl.options);
+    function scanAndInitSelects(root) {
+        var base = root || document;
+        var selects = base.querySelectorAll('select');
+        selects.forEach(function(s) {
+            initCustomSelect(s);
+        });
+    }
 
-            if (options.length > 5) {
-                searchContainer.style.display = 'block';
-            } else {
-                searchContainer.style.display = 'none';
-            }
-
-            options.forEach(function(opt, idx) {
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.setAttribute('data-index', idx);
-                btn.setAttribute('data-value', opt.value);
-                btn.setAttribute('data-text', opt.text);
-
-                var isSelected = (opt.value === selectEl.value || (!selectEl.value && idx === 0));
-                btn.style.cssText = 'padding:14px 16px;border-radius:12px;background:' + (isSelected ? '#0d6efd' : '#1E293B') + ';color:#FFFFFF;font-size:15px;font-weight:' + (isSelected ? 'bold' : 'normal') + ';text-align:left;border:1px solid ' + (isSelected ? '#00F2FE' : '#334155') + ';cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.15s;box-sizing:border-box;width:100%;';
-                btn.innerHTML = '<span>' + (opt.text || opt.value || '—') + '</span>' + (isSelected ? '<span style="color:#00F2FE;font-size:16px;">✔</span>' : '');
-
-                btn.addEventListener('click', function(eBtn) {
-                    eBtn.preventDefault();
-                    eBtn.stopPropagation();
-                    selectEl.value = opt.value;
-                    selectEl.selectedIndex = idx;
-                    cerrarPicker();
-
-                    var evChange = new Event('change', { bubbles: true, cancelable: true });
-                    var evInput = new Event('input', { bubbles: true, cancelable: true });
-                    selectEl.dispatchEvent(evInput);
-                    selectEl.dispatchEvent(evChange);
-                    if (typeof selectEl.onchange === 'function') {
-                        try { selectEl.onchange(evChange); } catch (eOc) {}
+    // MutationObserver para nuevos modales y opciones dinámicas (e.g. Paros motivoSelect)
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+            if (m.type === 'childList') {
+                m.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) {
+                        if (node.tagName === 'SELECT') {
+                            initCustomSelect(node);
+                        } else {
+                            scanAndInitSelects(node);
+                        }
                     }
                 });
 
-                listContainer.appendChild(btn);
-            });
-
-            searchInput.oninput = function() {
-                var q = searchInput.value.toLowerCase().trim();
-                var btns = listContainer.querySelectorAll('button');
-                btns.forEach(function(b) {
-                    var t = (b.getAttribute('data-text') || '').toLowerCase();
-                    b.style.display = (t.indexOf(q) !== -1) ? 'flex' : 'none';
-                });
-            };
-
-            pickerModal.style.display = 'flex';
-        }
-
-        // Interceptor en fase de captura (capture: true)
-        function handleSelectTouch(e) {
-            var target = e.target;
-            if (!target) return;
-            var sel = (target.tagName === 'SELECT') ? target : (target.closest ? target.closest('select') : null);
-            if (sel && !sel.disabled) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                sel.blur();
-                abrirPicker(sel);
+                // Si cambiaron las opciones de un select ya inicializado
+                if (m.target && m.target.tagName === 'SELECT' && m.target._customSelectContainer) {
+                    var container = m.target._customSelectContainer;
+                    var dropdown = container.querySelector('.custom-select-dropdown');
+                    var trigger = container.querySelector('.custom-select-trigger');
+                    if (dropdown && trigger) {
+                        populateOptions(m.target, dropdown, trigger);
+                    }
+                }
+            } else if (m.type === 'attributes') {
+                if (m.target && m.target.tagName === 'SELECT' && m.target._customSelectContainer) {
+                    syncSelectVisibility(m.target, m.target._customSelectContainer);
+                }
             }
-        }
+        });
+    });
 
-        document.addEventListener('pointerdown', handleSelectTouch, true);
-        document.addEventListener('mousedown', handleSelectTouch, true);
-        document.addEventListener('click', handleSelectTouch, true);
-    }
+    observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class', 'hidden', 'disabled']
+    });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSelectPolyfill);
+        document.addEventListener('DOMContentLoaded', function() { scanAndInitSelects(document); });
     } else {
-        initSelectPolyfill();
+        scanAndInitSelects(document);
     }
 })();
 </script>

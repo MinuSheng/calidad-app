@@ -1,4 +1,16 @@
 
+## Corrección Crítica v4.0.29 - Motor de Selectores Adheridos In-Place y Bloqueo de Scroll de Fondo
+- **Fecha y Hora:** 2026-10-23 17:31:03
+- **Versión:** v4.0.29 (versionCode 5)
+- **Problemas Erradicados y Solución Implementada:**
+  1. **Erradicación del Bottom-Sheet Anterior:** Se eliminó por completo el modal flotante en `document.body` de la v4.0.28 que quedaba atrapado detrás de SweetAlert2 o destruía modales al detectar eventos fuera del contenedor en "Añadir Compañero" y "Entregar Turno".
+  2. **Motor In-Place Adherido al DOM:** Cada `<select>` se oculta de forma accesible y se sustituye por un contenedor `.custom-select-container` insertado en su mismo nodo padre. El menú `.custom-select-dropdown` se despliega posicionado de forma absoluta directamente debajo del disparador con `z-index: 999999`, borde neón `#38BDF8`, esquinas redondeadas y scroll táctil interno (`max-height: 210px`).
+  3. **Búsqueda Reactiva (>5 Opciones):** Se integra automáticamente un campo de búsqueda en vivo con autofocus (`🔍 Buscar...`) cuando el selector supera 5 elementos.
+  4. **Reactividad Dinámica (MutationObserver):** Se detecta la apertura de modales nuevos e inyecciones dinámicas de `<option>` (como la actualización de Motivos al cambiar de Máquina en "Iniciar Nuevo Paro") y se sincroniza la visibilidad con `style.display`.
+  5. **Bloqueo Estricto del Scroll de Fondo:** Al abrir menús o modales SweetAlert2 (`body.swal2-shown`), se bloquea el deslizamiento de la página principal (`overflow: hidden; touch-action: none;`) y se cancelan eventos `touchmove` no dirigidos a la lista de opciones.
+  6. **Preservación de Firma:** Se mantiene intacta la firma fija con `calidad.keystore` en `android-bubble-app/app/build.gradle` elevando a `versionCode 5` y `versionName "4.0.29"`.
+
+
 ## Refactorización Maestra v4.0.28 - Firma Permanente, MediaStore, Select Táctil y Monitor Pack
 - **Fecha y Hora:** 2026-10-23 17:08:50
 - **Versión:** v4.0.28
