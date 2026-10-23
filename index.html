@@ -1446,7 +1446,7 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.29 (Actual) - Motor de selectores adheridos in-place para modales (Paros, Compañeros, Máquinas), bloqueo de scroll de fondo y compilación directa sobre versión instalada</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.30 (Actual) - Selector táctil acordeón in-flow para modales (Paros, Compañeros, Máquinas), erradicación de colisiones de botones y fijación de scroll</h4><p>Transformación del menú a un acordeón integrado en el flujo natural del DOM (position: relative) que empuja hacia abajo los botones de acción (.swal2-actions) evitando superposiciones, con borde cian neón, búsqueda rápida (>4 opciones) y control estricto del scroll de fondo.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.29 - Motor de selectores adheridos in-place y preservación de keystore fija</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
                   '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
@@ -4859,7 +4859,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.29";
+    var APP_VERSION = "4.0.30";
 
     function mostrarAppPrincipal() {
         try {
@@ -6955,39 +6955,50 @@
 <!-- POLYFILL UNIVERSAL TÁCTIL PARA <select> EN VENTANAS FLOTANTES (v4.0.28) -->
 
 <!-- ======================================================== -->
-<!-- MOTOR DE SELECTORES ADHERIDOS EN EL LUGAR (v4.0.29)     -->
-<!-- IN-PLACE CUSTOM SELECT ENGINE & BACKGROUND SCROLL LOCK   -->
+<!-- MOTOR DE SELECTORES TIPO ACORDEÓN TÁCTIL IN-FLOW (v4.0.30) -->
+<!-- CERO COLISIONES DE BOTONES & ESCUDO DE APILAMIENTO EN MODALES -->
 <!-- ======================================================== -->
-<style id="custom-select-engine-styles">
-/* Bloqueo estricto de scroll de fondo para modales y desplegables */
+<style id="custom-select-accordion-styles">
+/* Escudo de apilamiento y scroll en modales SweetAlert2 */
 body.swal2-shown {
     overflow: hidden !important;
     touch-action: none !important;
 }
 .swal2-popup {
-    overflow: visible !important;
+    overflow-y: auto !important;
+    max-height: 90vh !important;
+    position: relative !important;
+    box-sizing: border-box !important;
 }
 .swal2-html-container {
     overflow: visible !important;
+    position: relative !important;
+    z-index: 5 !important;
+    margin: 10px 0 !important;
+}
+.swal2-actions {
+    position: relative !important;
+    z-index: 1 !important;
+    margin-top: 14px !important;
 }
 
-/* Contenedor del selector adherido en el lugar */
+/* Contenedor del selector in-flow */
 .custom-select-container {
     position: relative !important;
     width: 100% !important;
     box-sizing: border-box !important;
     display: block;
-    margin: 4px 0 10px 0;
+    margin: 6px 0 12px 0;
     text-align: left;
 }
 
 /* Botón disparador */
 .custom-select-trigger {
     width: 100%;
-    min-height: 44px;
+    min-height: 46px;
     background-color: #1E293B;
     color: #F8FAFC;
-    border: 1px solid #334155;
+    border: 1.5px solid #334155;
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.95rem;
@@ -7006,9 +7017,10 @@ body.swal2-shown {
 
 .custom-select-trigger:focus,
 .custom-select-container.is-open .custom-select-trigger {
-    border-color: #38BDF8 !important;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+    border-color: #00F2FE !important;
+    box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.25) !important;
     outline: none !important;
+    background-color: #0F172A;
 }
 
 .custom-select-text {
@@ -7020,50 +7032,62 @@ body.swal2-shown {
 }
 
 .custom-select-arrow {
-    color: #94A3B8;
+    color: #00F2FE;
     font-size: 0.75rem;
     margin-left: 8px;
-    transition: transform 0.2s ease;
+    transition: transform 0.25s ease;
     flex-shrink: 0;
 }
 
 .custom-select-container.is-open .custom-select-arrow {
     transform: rotate(180deg);
-    color: #38BDF8;
 }
 
-/* Desplegable adherido posicionado directamente debajo del disparador */
+/* Desplegable Acordeón In-Flow: empuja los elementos inferiores sin superposiciones */
 .custom-select-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    z-index: 999999 !important;
-    background: #1E293B;
-    border: 2px solid #38BDF8;
-    border-radius: 8px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+    z-index: 10 !important;
     display: none;
     flex-direction: column;
+    border-radius: 10px;
+    background: #0F172A;
+    border: 1.5px solid #00F2FE;
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
     overflow: hidden;
+    animation: customAccordionSlide 0.2s ease-out;
 }
 
 .custom-select-dropdown.is-open {
     display: flex !important;
 }
 
+@keyframes customAccordionSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Campo de búsqueda en vivo */
 .custom-select-search-box {
-    padding: 8px;
-    background: #0F172A;
-    border-bottom: 1px solid #334155;
+    padding: 8px 10px;
+    background: #0B1120;
+    border-bottom: 1px solid #1E293B;
     box-sizing: border-box;
 }
 
 .custom-select-search-input {
     width: 100%;
     background: #1E293B;
-    border: 1px solid #475569;
+    border: 1px solid #334155;
     border-radius: 6px;
     padding: 8px 10px;
     color: #FFFFFF;
@@ -7073,54 +7097,54 @@ body.swal2-shown {
 }
 
 .custom-select-search-input:focus {
-    border-color: #38BDF8;
+    border-color: #00F2FE;
 }
 
-/* Lista táctil con scroll interno */
+/* Lista de opciones táctiles con scroll suave */
 .custom-select-options-list {
-    max-height: 210px;
+    max-height: 190px;
     overflow-y: auto;
-    padding: 4px;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
 }
 
 .custom-select-option {
-    padding: 10px 12px;
-    border-radius: 6px;
-    background: transparent;
-    color: #E2E8F0;
-    font-size: 0.92rem;
+    padding: 12px 14px;
+    color: #FFFFFF;
+    font-size: 0.95rem;
     text-align: left;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border: 1px solid transparent;
-    transition: background 0.12s, color 0.12s;
+    border-bottom: 1px solid #1E293B;
+    transition: background 0.15s ease, color 0.15s ease;
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.custom-select-option:last-child {
+    border-bottom: none;
 }
 
 .custom-select-option:hover,
 .custom-select-option:active {
-    background: #334155;
-    color: #FFFFFF;
+    background: rgba(0, 242, 254, 0.15) !important;
 }
 
 .custom-select-option.is-selected {
-    background: #0F172A;
-    color: #38BDF8;
+    background: rgba(0, 242, 254, 0.12);
+    color: #00F2FE;
     font-weight: bold;
-    border-color: rgba(56, 189, 248, 0.5);
 }
 
 .custom-select-option-check {
-    color: #38BDF8;
+    color: #00F2FE;
     font-size: 0.9rem;
     font-weight: bold;
     margin-left: 8px;
@@ -7172,13 +7196,14 @@ body.swal2-shown {
         }
     });
 
-    // Prevenir que el scroll táctil se transmita a la página de fondo cuando hay un desplegable abierto
+    // Bloqueo estricto del scroll táctil hacia la página de fondo
     document.addEventListener('touchmove', function(e) {
         var openDd = document.querySelector('.custom-select-dropdown.is-open');
         if (!openDd) return;
         var list = openDd.querySelector('.custom-select-options-list');
-        if (list && list.contains(e.target)) {
-            return; // permitir scroll táctil interno
+        var swalPopup = document.querySelector('.swal2-popup');
+        if ((list && list.contains(e.target)) || (swalPopup && swalPopup.contains(e.target))) {
+            return; // permitir scroll táctil interno en lista o modal
         }
         e.preventDefault();
     }, { passive: false });
@@ -7204,7 +7229,8 @@ body.swal2-shown {
         if (searchInput) searchInput.value = '';
 
         var options = Array.from(select.options);
-        if (options.length > 5) {
+        // Si la lista tiene más de 4 opciones, incorporar buscador
+        if (options.length > 4) {
             searchBox.style.display = 'block';
         } else {
             searchBox.style.display = 'none';
@@ -7272,7 +7298,7 @@ body.swal2-shown {
         select.style.border = 'none';
         select.tabIndex = -1;
 
-        // Crear contenedor in-place adherido
+        // Crear contenedor in-flow adherido
         var container = document.createElement('div');
         container.className = 'custom-select-container';
         select._customSelectContainer = container;
@@ -7316,7 +7342,7 @@ body.swal2-shown {
             });
         }
 
-        // Desplegar / Ocultar menú
+        // Desplegar / Contraer acordeón in-flow
         trigger.addEventListener('click', function(ev) {
             ev.preventDefault();
             ev.stopPropagation();
@@ -7326,18 +7352,6 @@ body.swal2-shown {
 
             if (!isOpen) {
                 populateOptions(select, dropdown, trigger);
-
-                // Posicionamiento inteligente: abrir hacia abajo o hacia arriba si falta espacio
-                var rect = trigger.getBoundingClientRect();
-                var spaceBelow = window.innerHeight - rect.bottom;
-                if (spaceBelow < 220 && rect.top > 220) {
-                    dropdown.style.top = 'auto';
-                    dropdown.style.bottom = 'calc(100% + 4px)';
-                } else {
-                    dropdown.style.top = 'calc(100% + 4px)';
-                    dropdown.style.bottom = 'auto';
-                }
-
                 container.classList.add('is-open');
                 dropdown.classList.add('is-open');
                 lockScroll();
@@ -7366,7 +7380,7 @@ body.swal2-shown {
         });
     }
 
-    // MutationObserver para nuevos modales y opciones dinámicas (e.g. Paros motivoSelect)
+    // MutationObserver para nuevos modales y opciones dinámicas
     var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(m) {
             if (m.type === 'childList') {
@@ -7380,7 +7394,6 @@ body.swal2-shown {
                     }
                 });
 
-                // Si cambiaron las opciones de un select ya inicializado
                 if (m.target && m.target.tagName === 'SELECT' && m.target._customSelectContainer) {
                     var container = m.target._customSelectContainer;
                     var dropdown = container.querySelector('.custom-select-dropdown');
@@ -7411,7 +7424,6 @@ body.swal2-shown {
     }
 })();
 </script>
-
 </body>
 
 </html>

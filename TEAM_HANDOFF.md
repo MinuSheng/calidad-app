@@ -1,4 +1,16 @@
 
+## Corrección Visual y de Flujo v4.0.30 - Selector Acordeón In-Flow y Cero Colisiones en Modales
+- **Fecha y Hora:** 2026-10-23 17:50:37
+- **Versión:** v4.0.30 (versionCode 6)
+- **Problema Erradicado y Solución Arquitectónica:**
+  1. **Erradicación de Superposición por `position: absolute`:** En v4.0.29, el menú desplegable absoluto causaba colisiones visuales con los botones de acción (.swal2-actions), tapando opciones inferiores como "Posimat", "Hared Ruiz" y "Daniel".
+  2. **Motor de Acordeón In-Flow (Flujo Natural):** Se estableció `.custom-select-dropdown` con `position: relative !important; width: 100% !important; margin-top: 8px !important; margin-bottom: 8px !important; z-index: 10 !important;`. Al desplegarse en flujo estático/relativo, empuja físicamente los botones y campos siguientes hacia abajo, garantizando que NINGÚN BOTÓN PUEDA TAPAR LAS OPCIONES.
+  3. **Estilo Neón y Scroll Táctil:** Contenedor de opciones con borde cian neón (`1.5px solid #00F2FE`), fondo `#0F172A`, sombra luminosa `0 4px 15px rgba(0,242,254,0.25)` y scroll táctil suave (`max-height: 190px`).
+  4. **Búsqueda Reactiva (>4 Opciones):** Buscador táctil en cabecera con autofocus y filtrado en vivo para selectores de más de 4 opciones.
+  5. **Escudo de Apilamiento y Scroll en Modales:** Reglas globales para `.swal2-popup` (`overflow-y: auto !important; max-height: 90vh !important;`), `.swal2-html-container` (`overflow: visible !important; position: relative !important; z-index: 5 !important;`) y `.swal2-actions` (`position: relative !important; z-index: 1 !important; margin-top: 14px !important;`). Fijación estricta de scroll en `document.body`.
+  6. **Preservación de Firma Permanente:** Se mantiene la firma con `calidad.keystore` en `build.gradle` elevando a `versionCode 6` y `versionName "4.0.30"`.
+
+
 ## Corrección Crítica v4.0.29 - Motor de Selectores Adheridos In-Place y Bloqueo de Scroll de Fondo
 - **Fecha y Hora:** 2026-10-23 17:31:03
 - **Versión:** v4.0.29 (versionCode 5)
