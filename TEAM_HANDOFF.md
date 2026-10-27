@@ -1,3 +1,14 @@
+## Corrección Maestra v4.0.31 - Horas Editables, Recálculo en Paros y Orden Cronológico de Turno en Cestas
+- **Fecha y Hora:** 2026-10-27 13:45:00
+- **Versión:** v4.0.31 (versionCode 7)
+- **Problemas Erradicados y Solución Implementada:**
+  1. **Desbloqueo de Horas en Ventana Flotante Overlay:** Se erradicó la dependencia de `type="time"` que disparaba diálogos nativos bloqueados por Android en `TYPE_APPLICATION_OVERLAY`. Se reemplazó por inputs táctiles formateados "HH:MM" con `inputmode="numeric"` y máscara reactiva en Cestas y Paros.
+  2. **Reordenamiento Cronológico Inteligente por Turno en Cestas:** Implementación de cálculo de minutos transcurridos relativo al inicio del turno oficial: `(minutosRegistro - minutosInicioTurno + 1440) % 1440` (Turno 1 / A: 07:00, Turno 2 / B: 15:00, Turno 3 / C: 23:00 con cruce de medianoche, o 00:00-23:59 sin turno). Re-renderizado instantáneo de la tabla y totales acumulados.
+  3. **Edición Completa y Recálculo en Tiempo Real de Paros:** En "Ver/Editar Paros", campos editables para Hora Inicio y Hora Fin con recálculo automático de la duración en minutos (`Math.round((fin - inicio) / 60000)`), soporte para cruce de medianoche, persistencia en `localStorage` / Firebase y ordenamiento cronológico.
+  4. **Panel Resumen de Tiempo Muerto:** Inclusión de banner con cálculo acumulado de tiempo muerto total (minutos y horas) y cantidad de paros en el historial.
+  5. **Preservación de Firma Permanente:** Se conserva intacta la firma fija con `calidad.keystore` en `android-bubble-app/app/build.gradle` elevando a `versionCode 7` y `versionName "4.0.31"`.
+  6. **Sincronización Total de Assets Offline:** Actualización de `android-bubble-app/app/src/main/assets/index.html` con el código monolito unificado.
+
 
 ## Corrección Visual y de Flujo v4.0.30 - Selector Acordeón In-Flow y Cero Colisiones en Modales
 - **Fecha y Hora:** 2026-10-23 17:50:37

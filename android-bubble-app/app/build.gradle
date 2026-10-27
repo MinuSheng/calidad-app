@@ -11,8 +11,8 @@ android {
         applicationId "com.sndrlabs.calidadbubble"
         minSdk 26
         targetSdk 34
-        versionCode 6
-        versionName "4.0.30"
+        versionCode 7
+        versionName "4.0.31"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

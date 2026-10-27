@@ -1446,7 +1446,7 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.30 (Actual) - Selector táctil acordeón in-flow para modales (Paros, Compañeros, Máquinas), erradicación de colisiones de botones y fijación de scroll</h4><p>Transformación del menú a un acordeón integrado en el flujo natural del DOM (position: relative) que empuja hacia abajo los botones de acción (.swal2-actions) evitando superposiciones, con borde cian neón, búsqueda rápida (>4 opciones) y control estricto del scroll de fondo.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.29 - Motor de selectores adheridos in-place y preservación de keystore fija</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.31 (Actual) - Edición completa de horarios en Paros y Cestas, reordenamiento cronológico inteligente por turno y persistencia optimizada</h4><p>Campos de hora accesibles y táctiles en ventanas flotantes (eliminando bloqueos por diálogos nativos del sistema), cálculo automático de minutos en tiempo real en la bitácora de paros, visualización del total acumulado de tiempo muerto y reordenamiento cronológico preciso según el turno activo (Turno 1: 07:00, Turno 2: 15:00, Turno 3: 23:00 con cruce de medianoche).</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.30 - Selector táctil acordeón in-flow para modales (Paros, Compañeros, Máquinas), erradicación de colisiones de botones y fijación de scroll</h4><p>Transformación del menú a un acordeón integrado en el flujo natural del DOM (position: relative) que empuja hacia abajo los botones de acción (.swal2-actions) evitando superposiciones, con borde cian neón, búsqueda rápida (>4 opciones) y control estricto del scroll de fondo.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.29 - Motor de selectores adheridos in-place y preservación de keystore fija</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
                   '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
@@ -3027,19 +3027,71 @@
         }
     }
 
+    function ordenarParosCronologicamente() {
+        parosRegistrados.sort(function(a, b) {
+            var tA = new Date(a.hora_inicio).getTime();
+            var tB = new Date(b.hora_inicio).getTime();
+            if (isNaN(tA)) tA = 0;
+            if (isNaN(tB)) tB = 0;
+            return tA - tB;
+        });
+    }
+
+    function guardarParosEnMemoria() {
+        ordenarParosCronologicamente();
+        localStorage.setItem('lala_paros', JSON.stringify(parosRegistrados));
+        // Si estamos editando un respaldo previo de turno, persistir y sincronizar a Firebase
+        if (typeof editandoRespaldoId !== 'undefined' && editandoRespaldoId) {
+            if (typeof actualizarRespaldoExistente === 'function') {
+                actualizarRespaldoExistente(editandoRespaldoId);
+            }
+        }
+    }
+
     function verHistorialParos() {
         if (parosRegistrados.length === 0) return Swal.fire('Sin paros', 'No hay paros registrados en este turno.', 'info');
 
-        let htmlLista = '<div style="max-height: 400px; overflow-y: auto; text-align: left;">';
+        ordenarParosCronologicamente();
+        var totalMinutos = parosRegistrados.reduce((acc, p) => acc + (Number(p.minutos) || 0), 0);
+        var horasT = Math.floor(totalMinutos / 60);
+        var minsT = totalMinutos % 60;
+
+        let htmlLista = '<div style="max-height: 420px; overflow-y: auto; text-align: left; padding-right: 4px;">';
+        
+        // Tarjeta resumen de tiempo muerto
+        htmlLista += `<div style="background: rgba(0, 242, 254, 0.08); border: 1.5px solid var(--info); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:bold;">TIEMPO MUERTO TOTAL</div>
+                <div style="font-size:1.3rem; font-weight:bold; color:var(--info);">${totalMinutos} min <span style="font-size:0.85rem; font-weight:normal; color:var(--text-color);">(${horasT}h ${minsT}m)</span></div>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:0.8rem; background:var(--input-bg); border:1px solid var(--border-color); border-radius:6px; padding:4px 8px; font-weight:bold;">${parosRegistrados.length} paro(s)</span>
+            </div>
+        </div>`;
+
         parosRegistrados.forEach((p, index) => {
-            const horaInicio = new Date(p.hora_inicio);
-            const horaStr = `${String(horaInicio.getHours()).padStart(2, '0')}:${String(horaInicio.getMinutes()).padStart(2, '0')}`;
-            htmlLista += `<div style="background: var(--input-bg); border-radius: 8px; padding: 10px; margin-bottom: 8px; border-left: 4px solid var(--info);">
-                <b>${horaStr} - ${p.maquina}</b> (${p.minutos || 0} min)<br>
-                <span style="font-size:0.85rem;">Motivo: ${p.motivo}</span>
-                <div style="margin-top: 8px; display: flex; gap: 6px;">
-                    <button class="btn-action" style="background: #ffc107; color:black; font-size:0.8rem; padding: 6px 10px; margin:0; width:auto;" onclick="editarParo(${index})">Editar</button>
-                    <button class="btn-action" style="background: #dc3545; font-size:0.8rem; padding: 6px 10px; margin:0; width:auto;" onclick="eliminarParo(${index})">Eliminar</button>
+            const dIni = new Date(p.hora_inicio);
+            const horaIniStr = !isNaN(dIni.getTime()) ? `${String(dIni.getHours()).padStart(2, '0')}:${String(dIni.getMinutes()).padStart(2, '0')}` : '--:--';
+            let horaFinStr = 'En curso';
+            if (p.hora_fin) {
+                const dFin = new Date(p.hora_fin);
+                if (!isNaN(dFin.getTime())) {
+                    horaFinStr = `${String(dFin.getHours()).padStart(2, '0')}:${String(dFin.getMinutes()).padStart(2, '0')}`;
+                }
+            } else if (p.minutos) {
+                const dFin = new Date(dIni.getTime() + (Number(p.minutos) || 0) * 60000);
+                horaFinStr = `${String(dFin.getHours()).padStart(2, '0')}:${String(dFin.getMinutes()).padStart(2, '0')}`;
+            }
+
+            htmlLista += `<div style="background: var(--input-bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border-left: 4px solid var(--info); box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <b style="font-size:0.95rem; color:var(--text-color);">⏱️ ${horaIniStr} - ${horaFinStr} | ${p.maquina}</b>
+                    <span style="background: rgba(220, 53, 69, 0.15); color: #dc3545; font-weight: bold; border-radius: 4px; padding: 2px 7px; font-size: 0.8rem;">${p.minutos || 0} min</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-color); margin-bottom: 6px;"><b>Motivo:</b> ${p.motivo}</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-action" style="background: #ffc107; color:black; font-size:0.8rem; font-weight:bold; padding: 6px 12px; margin:0; width:auto; border-radius:6px;" onclick="editarParo(${index})">✏️ Editar</button>
+                    <button class="btn-action" style="background: #dc3545; color:white; font-size:0.8rem; font-weight:bold; padding: 6px 12px; margin:0; width:auto; border-radius:6px;" onclick="eliminarParo(${index})">🗑️ Eliminar</button>
                 </div>
             </div>`;
         });
@@ -3048,43 +3100,185 @@
         Swal.fire({
             title: 'Historial de Paros',
             html: htmlLista,
+            width: 'min(95vw, 470px)',
             confirmButtonText: 'Cerrar'
         });
     }
 
     function editarParo(index) {
         const paro = parosRegistrados[index];
-        const horaInicio = new Date(paro.hora_inicio);
-        const horaStr = `${String(horaInicio.getHours()).padStart(2, '0')}:${String(horaInicio.getMinutes()).padStart(2, '0')}`;
+        if (!paro) return;
+
+        const dIni = new Date(paro.hora_inicio);
+        const horaIniStr = !isNaN(dIni.getTime()) ? `${String(dIni.getHours()).padStart(2, '0')}:${String(dIni.getMinutes()).padStart(2, '0')}` : '07:00';
+
+        let horaFinStr = '';
+        if (paro.hora_fin) {
+            const dFin = new Date(paro.hora_fin);
+            if (!isNaN(dFin.getTime())) {
+                horaFinStr = `${String(dFin.getHours()).padStart(2, '0')}:${String(dFin.getMinutes()).padStart(2, '0')}`;
+            }
+        } else if (paro.minutos && !isNaN(dIni.getTime())) {
+            const dFin = new Date(dIni.getTime() + (Number(paro.minutos) || 0) * 60000);
+            horaFinStr = `${String(dFin.getHours()).padStart(2, '0')}:${String(dFin.getMinutes()).padStart(2, '0')}`;
+        }
+
+        const htmlForm = `
+            <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; padding: 6px 2px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 4px;">Hora Inicio (HH:MM)</label>
+                        <input id="swal-hora-inicio" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" value="${horaIniStr}"
+                            style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 1.05rem; font-weight: bold; text-align: center; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 4px;">Hora Fin (HH:MM)</label>
+                        <input id="swal-hora-fin" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" value="${horaFinStr}"
+                            style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 1.05rem; font-weight: bold; text-align: center; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.82rem; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 4px;">Duración (minutos)</label>
+                    <input id="swal-minutos" type="number" min="0" step="1" inputmode="numeric" placeholder="Minutos calculados" value="${paro.minutos || 0}"
+                        style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                    <small style="font-size: 0.75rem; color: var(--info); display: block; margin-top: 3px;">⚡ Se recalcula automáticamente en tiempo real al modificar horas.</small>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.82rem; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 4px;">Máquina</label>
+                    <input id="swal-maquina" type="text" placeholder="Máquina" value="${_esc(paro.maquina || '')}"
+                        style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                </div>
+
+                <div>
+                    <label style="font-size: 0.82rem; font-weight: bold; color: var(--text-color); display: block; margin-bottom: 4px;">Motivo del Paro</label>
+                    <input id="swal-motivo" type="text" placeholder="Motivo del paro" value="${_esc(paro.motivo || '')}"
+                        style="width: 100%; box-sizing: border-box; padding: 10px; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                </div>
+            </div>
+        `;
 
         Swal.fire({
             title: 'Editar Paro',
-            html: `<label>Hora Inicio:</label> <input id="swal-hora-inicio" type="time" class="swal2-input" value="${horaStr}">
-                   <input id="swal-maquina" class="swal2-input" value="${_esc(paro.maquina)}" placeholder="Máquina">
-                   <input id="swal-motivo" class="swal2-input" value="${_esc(paro.motivo)}" placeholder="Motivo">
-                   <input id="swal-minutos" type="number" class="swal2-input" value="${paro.minutos || 0}" placeholder="Minutos">`,
+            html: htmlForm,
+            width: 'min(95vw, 440px)',
+            showCancelButton: true,
             confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
             focusConfirm: false,
-            preConfirm: () => {
-                const nuevaHoraStr = document.getElementById('swal-hora-inicio').value;
-                const [horas, minutos] = nuevaHoraStr.split(':');
-                const nuevaHoraInicio = new Date(paro.hora_inicio);
-                nuevaHoraInicio.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0, 0);
-                parosRegistrados[index].hora_inicio = nuevaHoraInicio.toISOString();
-                parosRegistrados[index].maquina = document.getElementById('swal-maquina').value;
-                parosRegistrados[index].motivo = document.getElementById('swal-motivo').value;
-                // Los minutos que se escriben aquí mandan, y la hora de fin se
-                // recalcula a partir de ellos. Antes se calculaba la duración
-                // desde hora_fin y una línea después se pisaba con este input,
-                // así que cambiar la hora de inicio dejaba todo descuadrado.
-                parosRegistrados[index].minutos = parseInt(document.getElementById('swal-minutos').value) || 0;
-                if (parosRegistrados[index].hora_fin) {
-                    parosRegistrados[index].hora_fin = new Date(nuevaHoraInicio.getTime() + parosRegistrados[index].minutos * 60000).toISOString();
+            didOpen: () => {
+                const elIni = document.getElementById('swal-hora-inicio');
+                const elFin = document.getElementById('swal-hora-fin');
+                const elMin = document.getElementById('swal-minutos');
+
+                function attachMask(el) {
+                    if (!el) return;
+                    el.addEventListener('input', function() {
+                        let v = this.value.replace(/[^0-9]/g, '');
+                        if (v.length > 4) v = v.slice(0, 4);
+                        if (v.length >= 3) {
+                            this.value = v.slice(0, 2) + ':' + v.slice(2);
+                        } else {
+                            this.value = v;
+                        }
+                        recalcDuracion();
+                    });
+                    el.addEventListener('blur', function() {
+                        let v = this.value.trim();
+                        if (/^\d:[0-5]\d$/.test(v)) this.value = '0' + v;
+                        else if (/^\d{1,2}$/.test(v)) this.value = v.padStart(2, '0') + ':00';
+                        recalcDuracion();
+                    });
                 }
+
+                function recalcDuracion() {
+                    const vI = elIni.value.trim();
+                    const vF = elFin.value.trim();
+                    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(vI) && /^([01]\d|2[0-3]):[0-5]\d$/.test(vF)) {
+                        const [h1, m1] = vI.split(':').map(Number);
+                        const [h2, m2] = vF.split(':').map(Number);
+                        const baseDate = new Date(paro.hora_inicio || Date.now());
+                        const d1 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h1, m1, 0, 0);
+                        let d2 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h2, m2, 0, 0);
+                        if (d2 < d1) {
+                            // Paro cruza medianoche
+                            d2.setDate(d2.getDate() + 1);
+                        }
+                        const diffMins = Math.round((d2.getTime() - d1.getTime()) / 60000);
+                        elMin.value = diffMins >= 0 ? diffMins : 0;
+                    }
+                }
+
+                attachMask(elIni);
+                attachMask(elFin);
+
+                elMin.addEventListener('input', function() {
+                    const mins = parseInt(this.value, 10);
+                    const vI = elIni.value.trim();
+                    if (!isNaN(mins) && mins >= 0 && /^([01]\d|2[0-3]):[0-5]\d$/.test(vI)) {
+                        const [h1, m1] = vI.split(':').map(Number);
+                        const baseDate = new Date(paro.hora_inicio || Date.now());
+                        const d1 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h1, m1, 0, 0);
+                        const d2 = new Date(d1.getTime() + mins * 60000);
+                        elFin.value = `${String(d2.getHours()).padStart(2, '0')}:${String(d2.getMinutes()).padStart(2, '0')}`;
+                    }
+                });
+            },
+            preConfirm: () => {
+                let vIni = document.getElementById('swal-hora-inicio').value.trim();
+                let vFin = document.getElementById('swal-hora-fin').value.trim();
+                const elMin = document.getElementById('swal-minutos');
+                const maquina = document.getElementById('swal-maquina').value.trim();
+                const motivo = document.getElementById('swal-motivo').value.trim();
+
+                if (/^\d:[0-5]\d$/.test(vIni)) vIni = '0' + vIni;
+                if (/^\d:[0-5]\d$/.test(vFin)) vFin = '0' + vFin;
+
+                if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(vIni)) {
+                    Swal.showValidationMessage('Introduce una Hora de Inicio válida en formato HH:MM (00:00 a 23:59).');
+                    return false;
+                }
+
+                if (!maquina || !motivo) {
+                    Swal.showValidationMessage('Máquina y Motivo son requeridos.');
+                    return false;
+                }
+
+                const [h1, m1] = vIni.split(':').map(Number);
+                const baseDate = new Date(paro.hora_inicio || Date.now());
+                const d1 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h1, m1, 0, 0);
+
+                let d2 = null;
+                let mins = parseInt(elMin.value, 10);
+                if (isNaN(mins) || mins < 0) mins = 0;
+
+                if (vFin && /^([01]\d|2[0-3]):[0-5]\d$/.test(vFin)) {
+                    const [h2, m2] = vFin.split(':').map(Number);
+                    d2 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h2, m2, 0, 0);
+                    if (d2 < d1) {
+                        d2.setDate(d2.getDate() + 1);
+                    }
+                    mins = Math.round((d2.getTime() - d1.getTime()) / 60000);
+                } else if (paro.hora_fin || mins > 0) {
+                    d2 = new Date(d1.getTime() + mins * 60000);
+                }
+
+                return {
+                    hora_inicio: d1.toISOString(),
+                    hora_fin: d2 ? d2.toISOString() : null,
+                    minutos: mins,
+                    maquina: maquina,
+                    motivo: motivo
+                };
+            }
+        }).then(result => {
+            if (result.isConfirmed && result.value) {
+                Object.assign(parosRegistrados[index], result.value);
                 guardarParosEnMemoria();
                 actualizarBotonParoUI();
                 Swal.close();
-                setTimeout(() => verHistorialParos(), 200); // Refrescar la lista
+                setTimeout(() => verHistorialParos(), 200);
             }
         });
     }
@@ -3094,11 +3288,7 @@
         guardarParosEnMemoria();
         actualizarBotonParoUI();
         Swal.close();
-        setTimeout(() => verHistorialParos(), 200); // Refrescar la lista
-    }
-
-    function guardarParosEnMemoria() {
-        localStorage.setItem('lala_paros', JSON.stringify(parosRegistrados));
+        setTimeout(() => verHistorialParos(), 200);
     }
 
     // TAREA 5: Gestor de Paros y Auto-Reporte (El Cronómetro)
@@ -4370,10 +4560,39 @@
         Swal.fire({ title: 'Corte Manual Cestas', text: 'Registrar corte actual.', icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, Cortar' }).then(res => { if(res.isConfirmed) { ejecutarCorteCestas(horaSugerida); } });
     }
 
+    function obtenerMinutosInicioTurnoParaOrden() {
+        var t = (turnoActivo || (document.getElementById('select-turno') ? document.getElementById('select-turno').value : '') || '').toString().trim().toUpperCase();
+        if (!t) return null;
+        if (t === '1' || t === 'A' || t === 'A+' || t === 'A+B' || t.indexOf('1') !== -1 || t.indexOf('A') !== -1) {
+            return 7 * 60; // Turno 1 (arranca 07:00 = 420 min)
+        }
+        if (t === '2' || t === 'B' || t.indexOf('2') !== -1 || t.indexOf('B') !== -1) {
+            return 15 * 60; // Turno 2 (arranca 15:00 = 900 min)
+        }
+        if (t === '3' || t === 'C' || t.indexOf('3') !== -1 || t.indexOf('C') !== -1) {
+            return 23 * 60; // Turno 3 (arranca 23:00 = 1380 min y cruza medianoche)
+        }
+        return null;
+    }
+
     function ordenarRegistrosCestas() {
-        // El orden de la tabla y del Excel sigue la hora editada, no el orden de creación.
-        registrosCestas.sort((a,b) => String(a.hora || '').localeCompare(String(b.hora || ''), 'es', {numeric:true}));
-        registrosCestas.forEach((r,i) => { r.item = i + 1; });
+        var minInicio = obtenerMinutosInicioTurnoParaOrden();
+        registrosCestas.sort(function(a, b) {
+            var partesA = String(a.hora || '00:00').split(':');
+            var minA = ((parseInt(partesA[0], 10) || 0) * 60) + (parseInt(partesA[1], 10) || 0);
+            var partesB = String(b.hora || '00:00').split(':');
+            var minB = ((parseInt(partesB[0], 10) || 0) * 60) + (parseInt(partesB[1], 10) || 0);
+
+            if (minInicio !== null) {
+                // Minutos transcurridos desde el inicio del turno respetando cruce de medianoche:
+                var offA = (minA - minInicio + 1440) % 1440;
+                var offB = (minB - minInicio + 1440) % 1440;
+                return offA - offB;
+            } else {
+                return minA - minB;
+            }
+        });
+        registrosCestas.forEach(function(r, i) { r.item = i + 1; });
     }
 
     function abrirMenuOpcionesFilaCestas(index) {
@@ -4382,26 +4601,55 @@
         const campo = (id, etiqueta, valor, tipo='number', extra='') =>
             '<div class="cestas-edit-field"><label for="'+id+'">'+etiqueta+'</label>' +
             '<input id="'+id+'" type="'+tipo+'" '+extra+' value="'+_esc(String(valor ?? ''))+'"></div>';
+        
+        // Campo de hora accesible 100% táctil (type="text" inputmode="numeric") sin bloqueo de TimePicker nativo en overlay
         var htmlCont = '<div class="cestas-edit-grid">' +
-            campo('edit-c-hora','Hora',r.hora,'time','required') +
+            '<div class="cestas-edit-field"><label for="edit-c-hora">Hora (HH:MM)</label>' +
+            '<input id="edit-c-hora" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM" value="'+_esc(String(r.hora ?? ''))+'" style="font-weight:bold; font-size:1.05rem; letter-spacing:1px; text-align:center;"></div>' +
             campo('edit-c-rev','Revisadas',r.revisadas,'number','min="0" step="1" inputmode="numeric"') +
             campo('edit-c-rech','Rechazadas',r.rechazadas,'number','min="0" step="1" inputmode="numeric"') +
             campo('edit-c-suc','Sucias',r.sucias,'number','min="0" step="1" inputmode="numeric"') +
             campo('edit-c-que','Quebradas',r.quebradas,'number','min="0" step="1" inputmode="numeric"') +
             '<div class="cestas-edit-field full"><label for="edit-c-obs">Observaciones</label><input id="edit-c-obs" type="text" value="'+_esc(String(r.obs ?? ''))+'"></div></div>';
+            
         Swal.fire({ title: 'Modificar Cestas', html: htmlCont, width: 'min(95vw, 470px)',
             showCancelButton: true, showDenyButton: true, denyButtonText: '🗑️ Borrar',
             confirmButtonText: 'Guardar', cancelButtonText:'Cancelar',
+            focusConfirm: false,
+            didOpen: () => {
+                const elHora = document.getElementById('edit-c-hora');
+                if (elHora) {
+                    elHora.addEventListener('input', function() {
+                        let val = this.value.replace(/[^0-9]/g, '');
+                        if (val.length > 4) val = val.slice(0, 4);
+                        if (val.length >= 3) {
+                            this.value = val.slice(0, 2) + ':' + val.slice(2);
+                        } else {
+                            this.value = val;
+                        }
+                    });
+                    elHora.addEventListener('blur', function() {
+                        let v = this.value.trim();
+                        if (/^\d:[0-5]\d$/.test(v)) this.value = '0' + v;
+                        else if (/^\d{1,2}$/.test(v)) this.value = v.padStart(2, '0') + ':00';
+                    });
+                }
+            },
             preConfirm: () => {
                 const valor = id => document.getElementById(id).value;
-                const hora = valor('edit-c-hora');
+                let hora = valor('edit-c-hora').trim();
+                if (/^\d:[0-5]\d$/.test(hora)) hora = '0' + hora;
+                else if (/^\d{1,2}$/.test(hora)) hora = hora.padStart(2, '0') + ':00';
+
                 const ids = ['edit-c-rev','edit-c-rech','edit-c-suc','edit-c-que'];
                 const numeros = ids.map(id => Number(valor(id)));
                 if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora) || numeros.some(n => !Number.isInteger(n) || n < 0)) {
-                    Swal.showValidationMessage('Introduce una hora válida y cantidades enteras no negativas.'); return false;
+                    Swal.showValidationMessage('Introduce una hora válida en formato HH:MM (00:00 a 23:59) y cantidades enteras no negativas.');
+                    return false;
                 }
                 if (numeros[2] + numeros[3] !== numeros[1] || numeros[1] > numeros[0]) {
-                    Swal.showValidationMessage('Rechazadas debe ser igual a Sucias + Quebradas y no superar Revisadas.'); return false;
+                    Swal.showValidationMessage('Rechazadas debe ser igual a Sucias + Quebradas y no superar Revisadas.');
+                    return false;
                 }
                 return {hora, revisadas:numeros[0], rechazadas:numeros[1], sucias:numeros[2], quebradas:numeros[3], obs:valor('edit-c-obs')};
             }
@@ -4409,11 +4657,13 @@
             if (res.isConfirmed && res.value) {
                 Object.assign(r, res.value);
                 guardarCestas();
-                Swal.fire('Guardado', 'El corte se reordenó según su hora.', 'success');
+                actualizarPantallaCestas();
+                Swal.fire({ icon: 'success', title: 'Guardado', text: 'El corte se reordenó según su hora y turno.', timer: 2000, toast: true, position: 'top-end', showConfirmButton: false });
             } else if (res.isDenied) {
                 registrosCestas.splice(index, 1);
                 guardarCestas();
-                Swal.fire('Eliminado', '', 'success');
+                actualizarPantallaCestas();
+                Swal.fire({ icon: 'success', title: 'Eliminado', text: 'Corte eliminado.', timer: 1800, toast: true, position: 'top-end', showConfirmButton: false });
             }
         });
     }
@@ -4859,7 +5109,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.30";
+    var APP_VERSION = "4.0.31";
 
     function mostrarAppPrincipal() {
         try {

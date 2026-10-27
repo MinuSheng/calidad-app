@@ -107,7 +107,7 @@ class BubbleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createNotificationChannel()
             startForegroundServiceWithNotification()
-            AppLogManager.log("SERVICE", "BubbleService creado (v4.0.30)")
+            AppLogManager.log("SERVICE", "BubbleService creado (v4.0.31)")
             setupProgrammaticViews()
             showBubbleHead()
 
@@ -197,7 +197,7 @@ class BubbleService : Service() {
 
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Burbuja de Calidad Activa")
-                .setContentText("Toca para abrir la aplicación de calidad (v4.0.30)")
+                .setContentText("Toca para abrir la aplicación de calidad (v4.0.31)")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
@@ -335,7 +335,7 @@ class BubbleService : Service() {
 
             val tvTitle = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = "⚡ Calidad App v4.0.30"
+                text = "⚡ Calidad App v4.0.31"
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.DEFAULT_BOLD
