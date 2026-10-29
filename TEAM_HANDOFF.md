@@ -1,3 +1,28 @@
+## Despacho Multifile v4.0.32 - Puente Nativo Gmail Don Milton, Generador In-Memory & Escudo Anti-Olvidos
+- **Fecha y Hora:** 2026-10-29 12:10:00
+- **Versión:** v4.0.32 (versionCode 8)
+- **Problemas Resueltos y Solución Implementada:**
+  1. **Configuración de FileProvider y Visibilidad de Paquete (`android-bubble-app/`):**
+     * En `AndroidManifest.xml` se configuró `<queries>` permitiendo visibilidad para `com.google.android.gm` y la acción `Intent.ACTION_SEND_MULTIPLE`.
+     * Se aseguró el FileProvider con `android:authorities="${applicationId}.fileprovider"` apuntando a `@xml/file_paths`.
+     * En `res/xml/file_paths.xml` se habilitó `<cache-path name="shared_reports" path="." />`, `<external-path name="external_files" path="." />` y `<files-path name="files" path="." />`.
+  2. **Puente Nativo Kotlin Gmail en `BubbleService.kt`:**
+     * Implementación del método `@JavascriptInterface fun enviarReporteGmail(jsonPayload: String)` dentro de `AndroidBridge`.
+     * Decodificación de Base64 de cada adjunto (`filename`, `base64`, `mimeType`) en `cacheDir`, generación de URIs protegidas mediante `FileProvider.getUriForFile` y asignación de `ClipData` y permisos `FLAG_GRANT_READ_URI_PERMISSION`.
+     * Despacho prioritario directo a Gmail (`com.google.android.gm`) con fallback a `Intent.createChooser`, colapsando de forma reactiva la burbuja flotante (`collapseToBubble()`) para despejar la vista.
+  3. **Generador Multifile en Memoria y Botón Neón en `index.html`:**
+     * Integración en "Historial Oficial" del botón Neón Esmeralda-Cian `✉️ Enviar a Don Milton` y botón `⚙️` para persistir `lala_email_jefe`.
+     * Funciones asíncronas de generación en memoria (`generarExcelYogurtEnMemoria`, `generarCapturaReporteEnMemoria`, `generarExcelCestasEnMemoria`) sin descargas sueltas en pantalla.
+     * Saludo dinámico según horario, armado de asunto y cuerpo formal con detalle de fecha, turno, operador y cestas.
+     * Ruteo inteligente: AndroidBridge nativo -> Web Share API con Files -> Descarga + enlace Gmail Web.
+  4. **Escudo Anti-Olvidos en Ciclo de Turno:**
+     * Reseteo de `lala_correo_enviado_turno = 'false'` en `inicializarNuevoTurnoOficial()`.
+     * Alerta preventiva en `limpiarTodoHistorialManual()` si el turno tiene datos y no se ha enviado el reporte por correo a Don Milton.
+     * Preservación de `lala_email_jefe` en `LLAVES_PERMANENTES` ante cierres de turno.
+  5. **Preservación de Keystore Fija y Bump de Versión:**
+     * Conservación de `calidad.keystore` en `build.gradle`, elevando a `versionCode 8` y `versionName "4.0.32"`.
+     * Actualización de `APP_VERSION = "4.0.32"` y sincronización completa en `android-bubble-app/app/src/main/assets/`.
+
 ## Corrección Maestra v4.0.31 - Horas Editables, Recálculo en Paros y Orden Cronológico de Turno en Cestas
 - **Fecha y Hora:** 2026-10-27 13:45:00
 - **Versión:** v4.0.31 (versionCode 7)

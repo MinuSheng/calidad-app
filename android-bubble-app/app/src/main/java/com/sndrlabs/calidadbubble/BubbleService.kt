@@ -53,6 +53,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
+import org.json.JSONObject
+import android.content.ActivityNotFoundException
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Calendar
@@ -107,7 +109,7 @@ class BubbleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             createNotificationChannel()
             startForegroundServiceWithNotification()
-            AppLogManager.log("SERVICE", "BubbleService creado (v4.0.31)")
+            AppLogManager.log("SERVICE", "BubbleService creado (v4.0.32)")
             setupProgrammaticViews()
             showBubbleHead()
 
@@ -197,7 +199,7 @@ class BubbleService : Service() {
 
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Burbuja de Calidad Activa")
-                .setContentText("Toca para abrir la aplicación de calidad (v4.0.31)")
+                .setContentText("Toca para abrir la aplicación de calidad (v4.0.32)")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
@@ -335,7 +337,7 @@ class BubbleService : Service() {
 
             val tvTitle = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = "⚡ Calidad App v4.0.31"
+                text = "⚡ Calidad App v4.0.32"
                 setTextColor(Color.WHITE)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 typeface = Typeface.DEFAULT_BOLD
@@ -711,7 +713,7 @@ class BubbleService : Service() {
         }
     }
 
-    private fun collapseToBubble() {
+    fun collapseToBubble() {
         try {
             if (isPanelAttached && bubblePanelView != null) {
                 windowManager.removeView(bubblePanelView)
@@ -895,6 +897,111 @@ class BubbleService : Service() {
 
     // Puente de Comunicación Nativa hacia JavaScript
     class AndroidBridge(private val service: BubbleService) {
+        @JavascriptInterface
+        fun enviarReporteGmail(jsonPayload: String) {
+            try {
+                val json = JSONObject(jsonPayload)
+                val emailTo = json.optString("emailTo", "").trim()
+                val subject = json.optString("subject", "")
+                val body = json.optString("body", "")
+                val attachmentsArr = json.optJSONArray("attachments")
+
+                val uriList = ArrayList<Uri>()
+                val context = service.applicationContext
+
+                if (attachmentsArr != null) {
+                    for (i in 0 until attachmentsArr.length()) {
+                        val item = attachmentsArr.getJSONObject(i)
+                        val filename = item.optString("filename", "reporte_$i")
+                        var base64 = item.optString("base64", "")
+                        if (base64.contains(",")) {
+                            base64 = base64.substringAfter(",")
+                        }
+                        val fileBytes = Base64.decode(base64, Base64.DEFAULT)
+                        val file = File(context.cacheDir, filename)
+                        FileOutputStream(file).use { fos ->
+                            fos.write(fileBytes)
+                            fos.flush()
+                        }
+                        val fileUri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        uriList.add(fileUri)
+                    }
+                }
+
+                AppLogManager.log("SERVICE", "Reporte Gmail preparado con ${uriList.size} adjuntos")
+
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        service.collapseToBubble()
+
+                        val emailArray = if (emailTo.isNotBlank()) arrayOf(emailTo) else emptyArray()
+
+                        val directGmailIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                            type = "*/*"
+                            if (emailArray.isNotEmpty()) {
+                                putExtra(Intent.EXTRA_EMAIL, emailArray)
+                            }
+                            putExtra(Intent.EXTRA_SUBJECT, subject)
+                            putExtra(Intent.EXTRA_TEXT, body)
+                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uriList)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            if (uriList.isNotEmpty()) {
+                                val clipData = android.content.ClipData.newRawUri("Reportes", uriList[0])
+                                for (k in 1 until uriList.size) {
+                                    clipData.addItem(android.content.ClipData.Item(uriList[k]))
+                                }
+                                this.clipData = clipData
+                            }
+                            setPackage("com.google.android.gm")
+                        }
+
+                        for (uri in uriList) {
+                            try {
+                                context.grantUriPermission("com.google.android.gm", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (_: Throwable) {}
+                        }
+
+                        try {
+                            service.startActivity(directGmailIntent)
+                        } catch (e: ActivityNotFoundException) {
+                            AppLogManager.log("WARN", "Gmail no encontrado, usando selector genérico: ${e.message}")
+                            val chooserBase = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                                type = "*/*"
+                                if (emailArray.isNotEmpty()) {
+                                    putExtra(Intent.EXTRA_EMAIL, emailArray)
+                                }
+                                putExtra(Intent.EXTRA_SUBJECT, subject)
+                                putExtra(Intent.EXTRA_TEXT, body)
+                                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uriList)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                if (uriList.isNotEmpty()) {
+                                    val clipData = android.content.ClipData.newRawUri("Reportes", uriList[0])
+                                    for (k in 1 until uriList.size) {
+                                        clipData.addItem(android.content.ClipData.Item(uriList[k]))
+                                    }
+                                    this.clipData = clipData
+                                }
+                            }
+                            val chooser = Intent.createChooser(chooserBase, "Enviar reporte por correo...").apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            service.startActivity(chooser)
+                        } catch (t2: Throwable) {
+                            AppLogManager.log("ERROR", "Error al abrir app de correo: ${t2.message}")
+                            service.showToast("No se pudo abrir correo: ${t2.message}")
+                        }
+                    } catch (tInner: Throwable) {
+                        AppLogManager.log("ERROR", "Error en UI al despachar reporte Gmail: ${tInner.message}")
+                    }
+                }
+            } catch (t: Throwable) {
+                AppLogManager.log("ERROR", "Error en enviarReporteGmail: ${t.message}")
+            }
+        }
         @JavascriptInterface
         fun vibrateAlert() {
             service.ejecutarVibracionPackNativa()

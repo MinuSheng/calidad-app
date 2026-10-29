@@ -20,6 +20,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Queries para visibilidad de Gmail y envío múltiple en Android 11+ -->
+    <queries>
+        <package android:name="com.google.android.gm" />
+        <intent>
+            <action android:name="android.intent.action.SEND_MULTIPLE" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -49,7 +58,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.sndrlabs.calidadbubble.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

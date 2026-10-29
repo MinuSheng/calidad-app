@@ -683,6 +683,10 @@
                 <h2 style="margin: 0; border: none;">📋 Historial Oficial</h2>
                 <div class="btn-group-actions">
                     <!-- BOTÓN CAPTURA DE REPORTE -->
+                    <!-- BOTONES ENVIAR A DON MILTON Y CONFIGURACIÓN -->
+                    <button class="btn-action btn-enviar-milton" style="width: auto; padding: 6px 12px; font-size: 0.8rem; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #ffffff; font-weight: bold; border: none; box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);" onclick="enviarReporteDonMilton()">✉️ Enviar a Don Milton</button>
+                    <button class="btn-action" style="width: auto; padding: 6px 9px; font-size: 0.8rem; background: #334155; color: #ffffff; border: 1px solid #475569;" onclick="configurarEmailJefe()" title="Configurar correo de Don Milton">⚙️</button>
+                    <!-- BOTÓN CAPTURA DE REPORTE -->
                     <button class="btn-action btn-photo" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="descargarImagenReporte()">Captura Reporte 📸</button>
                     <button class="btn-action btn-excel" style="width: auto; padding: 6px 12px; font-size: 0.8rem; background-color: #198754;" onclick="descargarExcelDirecto()">Descargar Excel Oficial 📊</button>
                 </div>
@@ -1446,7 +1450,7 @@
         Swal.fire({
             title: 'Historial de Versiones',
             html: '<div style="text-align:left; max-height: 350px; overflow-y: auto; font-size: 0.85rem; padding-right: 10px;">' +
-                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.31 (Actual) - Edición completa de horarios en Paros y Cestas, reordenamiento cronológico inteligente por turno y persistencia optimizada</h4><p>Campos de hora accesibles y táctiles en ventanas flotantes (eliminando bloqueos por diálogos nativos del sistema), cálculo automático de minutos en tiempo real en la bitácora de paros, visualización del total acumulado de tiempo muerto y reordenamiento cronológico preciso según el turno activo (Turno 1: 07:00, Turno 2: 15:00, Turno 3: 23:00 con cruce de medianoche).</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.30 - Selector táctil acordeón in-flow para modales (Paros, Compañeros, Máquinas), erradicación de colisiones de botones y fijación de scroll</h4><p>Transformación del menú a un acordeón integrado en el flujo natural del DOM (position: relative) que empuja hacia abajo los botones de acción (.swal2-actions) evitando superposiciones, con borde cian neón, búsqueda rápida (>4 opciones) y control estricto del scroll de fondo.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.29 - Motor de selectores adheridos in-place y preservación de keystore fija</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
+                  '<h4 style="margin-bottom:4px;color:var(--info);">v4.0.32 (Actual) - Envío nativo de reportes a Don Milton por Gmail, generador multifile en memoria y confirmación anti-olvidos</h4><p>Envío en un solo toque del Excel de Yogurt, Captura de Reporte y Excel de Cestas adjuntos directamente a la app de Gmail del operador mediante FileProvider nativo seguro; soporte Web con Web Share API multifile y Gmail Web; y recordatorio inteligente para evitar cerrar el turno sin enviar los reportes oficiales.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.31 - Edición completa de horarios en Paros y Cestas, reordenamiento cronológico inteligente por turno y persistencia optimizada</h4><p>Campos de hora accesibles y táctiles en ventanas flotantes (eliminando bloqueos por diálogos nativos del sistema), cálculo automático de minutos en tiempo real en la bitácora de paros, visualización del total acumulado de tiempo muerto y reordenamiento cronológico preciso según el turno activo (Turno 1: 07:00, Turno 2: 15:00, Turno 3: 23:00 con cruce de medianoche).</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.30 - Selector táctil acordeón in-flow para modales (Paros, Compañeros, Máquinas), erradicación de colisiones de botones y fijación de scroll</h4><p>Transformación del menú a un acordeón integrado en el flujo natural del DOM (position: relative) que empuja hacia abajo los botones de acción (.swal2-actions) evitando superposiciones, con borde cian neón, búsqueda rápida (>4 opciones) y control estricto del scroll de fondo.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.29 - Motor de selectores adheridos in-place y preservación de keystore fija</h4><p>Sustitución de la hoja inferior externa por selectores táctiles nativos embebidos directamente en el DOM de cada modal/formulario con filtrado en vivo, prevención de cierre accidental en SweetAlert2 y bloqueo estricto del scroll de página durante la selección.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.28 - Keystore de actualización fija, descarga nativa en segundo plano y alertas horarias en Kotlin</h4><p>Firma SHA-256 permanente para actualización de APK sin perder datos, puente nativo MediaStore.Downloads con notificaciones táctiles, selector modal Dark Slate / Neón para menús desplegables en burbuja flotante y monitor nativo de Production Pack en Kotlin.</p><h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.27 - Registro nativo de diagnóstico de logs, blindaje del selector de archivos en HyperOS/Android y persistencia optimizada</h4>' +
                   '<p>Módulo de auditoría nativa en tiempo real en MainActivity, captura de consola Web, resolución a prueba de congelamiento en el selector de respaldos y permisos de URI content:// en Xiaomi/HyperOS.</p>' +
                   '<h4 style="margin-bottom:4px;color:var(--text-color);">v4.0.26 - Editor y orden cronológico de Cestas</h4>' +
                   '<p>Campos compactos con etiquetas visibles, validación de cantidades y orden automático de cortes al modificar la hora.</p>' +
@@ -2953,6 +2957,7 @@
                 contadoresActuales = { malSellado: 0, sobrellenado: 0, volumenBajo: 0 };
                 modoLavadoActivo = false;
                 turnoActivo = document.getElementById('select-turno').value;
+                localStorage.setItem('lala_correo_enviado_turno', 'false');
                 fechaInicioTurno = obtenerFechaOperativaTurno(turnoActivo, new Date());
                 parosRegistrados = [];
                 guardarParosEnMemoria();
@@ -4409,9 +4414,10 @@
             return Swal.fire('Nada que guardar', 'No has iniciado un Turno Oficial, así que no hay nada que cerrar ni guardar.', 'info');
         }
 
-        Swal.fire({
-            title: '¿Cerrar Turno por Completo?', text: "Se guardará un respaldo de Yogurt y Cestas, y se limpiará la pantalla.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar y guardar', cancelButtonText: 'Cancelar'
-        }).then(function(res) {
+        function _procederCierreTurnoDefinitivo() {
+            Swal.fire({
+                title: '¿Cerrar Turno por Completo?', text: "Se guardará un respaldo de Yogurt y Cestas, y se limpiará la pantalla.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, cerrar y guardar', cancelButtonText: 'Cancelar'
+            }).then(function(res) {
             if (res.isConfirmed) {
                 guardarTurnoPasado();
                 // Se conservan TODAS las llaves que no son del turno. Antes solo se
@@ -4422,7 +4428,7 @@
                 //    varias veces en el mismo mes.
                 //  - lala_ultima_version_vista -> el historial de versiones volvía a
                 //    saltar en cada cierre de turno.
-                var LLAVES_PERMANENTES = ['lala_device_id', 'lala_seguridad', 'lala_turnos_pasados', 'lala_dark_mode', 'lala_emergencia_activa', 'lala_emergencia_usada', 'lala_ultima_version_vista'];
+                var LLAVES_PERMANENTES = ['lala_device_id', 'lala_seguridad', 'lala_turnos_pasados', 'lala_dark_mode', 'lala_emergencia_activa', 'lala_emergencia_usada', 'lala_ultima_version_vista', 'lala_email_jefe'];
                 var respaldoLlaves = {};
                 LLAVES_PERMANENTES.forEach(function(k) { var v = localStorage.getItem(k); if (v !== null) respaldoLlaves[k] = v; });
                 try { localStorage.clear(); } catch(e){}
@@ -4449,9 +4455,36 @@
                 registrosCestas = []; contadoresCestas = { bloques: 0, sueltas: 0, sucias: 0, quebradas: 0 }; ultimoCorteCestas = "";
                 actualizarPantallaCestas(); renderizarTablaCestas();
 
+                localStorage.setItem('lala_correo_enviado_turno', 'false');
                 Swal.fire('Turno Finalizado', 'Respaldo doble guardado en el Menú y pantallas limpias.', 'success');
             }
         });
+        }
+
+        // Validación preventiva anti-olvidos de envío de correo a Don Milton
+        if (localStorage.getItem('lala_correo_enviado_turno') !== 'true' && registros.length > 0) {
+            Swal.fire({
+                title: '¿Enviar Reporte a Don Milton?',
+                text: 'Aún no has enviado el reporte de este turno por correo a Don Milton. ¿Deseas enviarlo ahora antes de cerrar?',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonColor: '#10b981',
+                denyButtonColor: '#dc3545',
+                confirmButtonText: '✉️ Enviar a Don Milton',
+                denyButtonText: 'Cerrar sin enviar',
+                cancelButtonText: 'Cancelar'
+            }).then(function(opcion) {
+                if (opcion.isConfirmed) {
+                    enviarReporteDonMilton();
+                } else if (opcion.isDenied) {
+                    _procederCierreTurnoDefinitivo();
+                }
+            });
+            return;
+        }
+
+        _procederCierreTurnoDefinitivo();
     }
 
 
@@ -4770,6 +4803,486 @@
     // =========================================================
     // SISTEMA MAESTRO DE GITHUB E INICIALIZACIÓN
     // =========================================================
+    
+    // =========================================================
+    // SISTEMA DE ENVÍO DE REPORTES A DON MILTON (v4.0.32)
+    // =========================================================
+    function configurarEmailJefe() {
+        var emailActual = localStorage.getItem('lala_email_jefe') || '';
+        Swal.fire({
+            title: 'Correo de Don Milton',
+            text: 'Ingresa o actualiza el correo donde se enviarán los reportes oficiales:',
+            input: 'email',
+            inputValue: emailActual,
+            inputPlaceholder: 'correo@ejemplo.com',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(res) {
+            if (res.isConfirmed && res.value) {
+                var emailLimpio = res.value.trim();
+                localStorage.setItem('lala_email_jefe', emailLimpio);
+                Swal.fire('Guardado', 'El correo de Don Milton se guardó correctamente: ' + emailLimpio, 'success');
+            }
+        });
+    }
+
+    function generarCapturaReporteEnMemoria() {
+        return new Promise(function(resolve, reject) {
+            if (!registros || registros.length === 0) {
+                return reject(new Error('No hay registros en el turno para capturar.'));
+            }
+            var tablaOriginal = document.querySelector('#contenedor-tabla-registros table');
+            if (!tablaOriginal) {
+                return reject(new Error('No se encontró la tabla de registros en pantalla.'));
+            }
+
+            var container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '-9999px';
+            container.style.left = '0';
+            container.style.width = '900px';
+            container.style.backgroundColor = esTemaOscuro() ? '#000000' : '#ffffff';
+            container.style.color = esTemaOscuro() ? '#ffffff' : '#000000';
+            container.style.padding = '40px';
+            container.style.boxSizing = 'border-box';
+            container.style.zIndex = '-1';
+            container.style.fontFamily = 'Arial, sans-serif';
+
+            var watermark = document.createElement('div');
+            watermark.style.position = 'absolute';
+            watermark.style.top = '50%';
+            watermark.style.left = '50%';
+            watermark.style.transform = 'translate(-50%, -50%) rotate(-30deg)';
+            watermark.style.fontSize = '120px';
+            watermark.style.fontWeight = '900';
+            watermark.style.color = esTemaOscuro() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+            watermark.style.whiteSpace = 'nowrap';
+            watermark.style.pointerEvents = 'none';
+            watermark.style.zIndex = '0';
+            watermark.innerText = 'SNDR LABS';
+            container.appendChild(watermark);
+
+            var titleBlock = document.createElement('div');
+            titleBlock.style.textAlign = 'center';
+            titleBlock.style.borderBottom = '3px solid #0d6efd';
+            titleBlock.style.paddingBottom = '15px';
+            titleBlock.style.marginBottom = '20px';
+            titleBlock.style.position = 'relative';
+            titleBlock.style.zIndex = '1';
+
+            var dateStr = fechaInicioTurno ? fechaInicioTurno.toLocaleDateString('es-NI') : new Date().toLocaleDateString('es-NI');
+            var tValue = document.getElementById('select-turno') ? document.getElementById('select-turno').value : (turnoActivo || 'A');
+            titleBlock.innerHTML = '<h2 style="margin:0; font-size:24px;">REPORTE DE CALIDAD YOGURT</h2><p style="margin:5px 0 0 0; color:#6c757d;">Turno ' + tValue + ' - Fecha: ' + dateStr + '</p>';
+            container.appendChild(titleBlock);
+
+            var tablaClon = tablaOriginal.cloneNode(true);
+            tablaClon.style.width = '100%';
+            tablaClon.style.borderCollapse = 'collapse';
+            tablaClon.style.position = 'relative';
+            tablaClon.style.zIndex = '1';
+
+            var celdas = tablaClon.querySelectorAll('th, td');
+            celdas.forEach(function(c) {
+                c.style.border = '1px solid ' + (esTemaOscuro() ? '#333333' : '#dee2e6');
+                c.style.padding = '12px 8px';
+                c.style.textAlign = 'center';
+                c.style.fontSize = '14px';
+            });
+
+            var ths = tablaClon.querySelectorAll('th');
+            ths.forEach(function(th) {
+                th.style.backgroundColor = esTemaOscuro() ? '#1a1a1a' : '#f1f3f5';
+            });
+
+            container.appendChild(tablaClon);
+
+            var footer = document.createElement('div');
+            footer.style.textAlign = 'center';
+            footer.style.marginTop = '20px';
+            footer.style.fontSize = '12px';
+            footer.style.color = '#6c757d';
+            footer.innerText = '© 2026 SNDR LABS - Generado automáticamente';
+            container.appendChild(footer);
+
+            document.body.appendChild(container);
+
+            setTimeout(function() {
+                html2canvas(container, {
+                    backgroundColor: esTemaOscuro() ? '#000000' : '#ffffff',
+                    scale: 2
+                }).then(function(canvas) {
+                    if (container.parentNode) document.body.removeChild(container);
+                    var nombreImagen = 'Reporte_Yogurt_Turno' + tValue + '_' + dateStr.replace(/\//g, '-') + '.png';
+                    var dataUrl = canvas.toDataURL('image/png');
+                    var base64 = dataUrl.indexOf(',') !== -1 ? dataUrl.split(',')[1] : dataUrl;
+
+                    if (canvas.toBlob) {
+                        canvas.toBlob(function(blob) {
+                            if (!blob) {
+                                blob = _dataUrlABlob(dataUrl);
+                            }
+                            resolve({ blob: blob, base64: base64, filename: nombreImagen, mimeType: 'image/png' });
+                        }, 'image/png');
+                    } else {
+                        var blob = _dataUrlABlob(dataUrl);
+                        resolve({ blob: blob, base64: base64, filename: nombreImagen, mimeType: 'image/png' });
+                    }
+                }).catch(function(err) {
+                    if (container.parentNode) document.body.removeChild(container);
+                    reject(err);
+                });
+            }, 300);
+        });
+    }
+
+    function generarExcelYogurtEnMemoria(idRespaldo) {
+        return new Promise(function(resolve, reject) {
+            var rTarget = registros;
+            var tTarget = turnoActivo || "A";
+            var vTarget = document.getElementById('verificador') ? (document.getElementById('verificador').value || "Sin Nombre") : "Sin Nombre";
+            var fStrTarget = "";
+
+            if(idRespaldo) {
+                var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+                var turnoObj = null;
+                for(var x=0; x<turnosGuardados.length; x++) { if(turnosGuardados[x].id === idRespaldo) { turnoObj = turnosGuardados[x]; break; } }
+                if(!turnoObj) return reject(new Error('No se encontró el respaldo.'));
+
+                rTarget = turnoObj.registros;
+                tTarget = turnoObj.turno;
+                vTarget = turnoObj.verificador;
+                fStrTarget = turnoObj.fecha;
+            }
+
+            if(!rTarget || rTarget.length === 0) return reject(new Error('No hay registros para exportar.'));
+
+            fetch('./plantilla.xlsx').then(function(respuesta) {
+                if (!respuesta.ok) throw new Error("No se encontró 'plantilla.xlsx'");
+                return respuesta.arrayBuffer();
+            }).then(function(arrayBuffer) {
+                var workbook = new ExcelJS.Workbook();
+                return workbook.xlsx.load(arrayBuffer).then(function() {
+                    var worksheet = workbook.worksheets[0];
+                    var filaActual = 3;
+
+                    if(!fStrTarget) {
+                        var dateObj = fechaInicioTurno ? new Date(fechaInicioTurno) : new Date();
+                        var dd = String(dateObj.getDate()).padStart(2, '0');
+                        var mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        var yy = String(dateObj.getFullYear()).slice(-2);
+                        fStrTarget = dd + "-" + mm + "-" + yy;
+                    }
+
+                    var lastSignature = ""; var totalPack = 0; var totalMal = 0; var totalSobre = 0; var totalBajo = 0;
+                    var baseFont = { name: 'Aptos Narrow', size: 12, color: { argb: 'FF000000' } };
+                    var boldFont = { name: 'Aptos Narrow', size: 12, bold: true, color: { argb: 'FF000000' } };
+                    var borderThin = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+
+                    for (var i = 0; i < rTarget.length; i++) {
+                        var r = rTarget[i];
+                        if (r.tipoEspecial === 'MERMA_DIRECTA') continue;
+                        var currentSignature = (r.tipoEspecial && r.tipoEspecial !== 'CAMBIO_DATOS')
+                            ? ("LAVADO|" + r.lote)
+                            : (r.producto + "|" + r.etiqueta + "|" + r.lote);
+                        var fechaCelda = ""; var prodCelda = "";
+
+                        if (currentSignature !== lastSignature) {
+                            if (i !== 0) filaActual++;
+                            fechaCelda = fStrTarget;
+                            if (!r.tipoEspecial || r.tipoEspecial === 'CAMBIO_DATOS') prodCelda = "Yogurt bebible " + r.producto + " " + r.etiqueta;
+                            lastSignature = currentSignature;
+                        }
+                        var filaExcel = worksheet.getRow(filaActual);
+
+                        if (r.tipoEspecial === 'CAMBIO_DATOS') {
+                            filaExcel.getCell(1).value = fechaCelda;
+                            filaExcel.getCell(2).value = "Yogurt bebible " + r.producto + " " + r.etiqueta;
+                            filaExcel.getCell(3).value = r.lote;
+                            filaExcel.getCell(4).value = r.hora;
+                            filaExcel.getCell(5).value = "—";
+                            filaExcel.getCell(6).value = "—";
+                            filaExcel.getCell(7).value = "—";
+                            filaExcel.getCell(8).value = "—";
+                            filaExcel.getCell(9).value = "-";
+                            filaExcel.getCell(10).value = vTarget;
+                            filaExcel.getCell(11).value = tTarget;
+
+                            for(var cc=1; cc<=11; cc++) {
+                                var cellCambio = filaExcel.getCell(cc);
+                                cellCambio.border = borderThin;
+                                cellCambio.font = baseFont;
+                                cellCambio.alignment = { vertical: 'middle', horizontal: 'center' };
+                            }
+                            filaExcel.getCell(2).font = boldFont;
+                            filaExcel.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
+                            filaExcel.getCell(4).font = boldFont;
+                        } else if (r.tipoEspecial) {
+                            filaExcel.getCell(1).value = fechaCelda; filaExcel.getCell(2).value = "";  filaExcel.getCell(3).value = r.lote; filaExcel.getCell(4).value = r.hora; filaExcel.getCell(5).value = r.textoEspecial;
+                            worksheet.mergeCells(filaActual, 5, filaActual, 8);
+                            for(var c=1; c<=11; c++) { var cell = filaExcel.getCell(c); cell.border = borderThin; cell.font = baseFont; cell.alignment = { vertical: 'middle', horizontal: 'center' }; }
+                            filaExcel.getCell(4).font = boldFont;
+                            if (r.textoEspecial.toUpperCase().includes("LAVADO")) { filaExcel.getCell(5).font = { name: 'Aptos Narrow', size: 12, bold: true, color: { argb: 'FF000000' } }; } else { filaExcel.getCell(5).font = boldFont; }
+                        } else {
+                            var isPackNumber = (r.pack !== "-" && r.pack !== "—" && r.pack !== "");
+                            var pVal = isPackNumber ? Math.round(Number(r.pack)) : "—";
+                            if(isPackNumber) totalPack += pVal;
+                            if(!r.almuerzo) { totalMal += Math.round(Number(r.malSellado)); totalSobre += Math.round(Number(r.sobrellenado)); totalBajo += Math.round(Number(r.volumenBajo)); }
+
+                            filaExcel.getCell(1).value = fechaCelda; filaExcel.getCell(2).value = prodCelda; filaExcel.getCell(3).value = r.lote; filaExcel.getCell(4).value = r.hora; filaExcel.getCell(5).value = pVal;
+                            filaExcel.getCell(6).value = r.almuerzo ? "COMIDA" : Math.round(Number(r.malSellado)); filaExcel.getCell(7).value = r.almuerzo ? "—" : Math.round(Number(r.sobrellenado)); filaExcel.getCell(8).value = r.almuerzo ? "COMIDA" : Math.round(Number(r.volumenBajo));
+                            filaExcel.getCell(9).value = "-"; filaExcel.getCell(10).value = vTarget; filaExcel.getCell(11).value = tTarget;
+
+                            for(var k=1; k<=11; k++) {
+                                var cell2 = filaExcel.getCell(k); cell2.border = borderThin; cell2.font = baseFont; cell2.alignment = { vertical: 'middle', horizontal: 'center' }; cell2.numFmt = '0';
+                                if([4, 5, 6, 7, 8].includes(k)) cell2.font = boldFont;
+                                if(r.almuerzo) { cell2.font = { name: 'Aptos Narrow', size: 12, italic: true, bold: [4,5,6,7,8].includes(k), color: { argb: 'FF000000' } }; }
+                            }
+                            if(prodCelda !== "") filaExcel.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
+                        }
+                        filaExcel.commit(); filaActual++;
+                    }
+
+                    filaActual++;
+                    var fTotales1 = worksheet.getRow(filaActual);
+                    fTotales1.getCell(1).value = "-"; fTotales1.getCell(2).value = "-"; fTotales1.getCell(3).value = "-"; fTotales1.getCell(4).value = "-"; fTotales1.getCell(5).value = "PRODUCCION"; fTotales1.getCell(6).value = "DEFECTOS"; worksheet.mergeCells(filaActual, 6, filaActual, 8); fTotales1.getCell(9).value = "-"; fTotales1.getCell(10).value = vTarget; fTotales1.getCell(11).value = tTarget;
+                    for(var x=1; x<=11; x++) { var cell3 = fTotales1.getCell(x); cell3.font = boldFont; cell3.alignment = { vertical: 'middle', horizontal: 'center' }; cell3.border = borderThin; }
+                    fTotales1.commit(); filaActual++;
+
+                    var fTotales2 = worksheet.getRow(filaActual);
+                    fTotales2.getCell(1).value = "-"; fTotales2.getCell(2).value = "-"; fTotales2.getCell(3).value = "-"; fTotales2.getCell(4).value = "-"; fTotales2.getCell(5).value = totalPack; fTotales2.getCell(6).value = totalMal; fTotales2.getCell(7).value = totalSobre; fTotales2.getCell(8).value = totalBajo; fTotales2.getCell(9).value = "-"; fTotales2.getCell(10).value = vTarget; fTotales2.getCell(11).value = tTarget;
+                    for(var y=1; y<=11; y++) { var cell4 = fTotales2.getCell(y); cell4.font = boldFont; cell4.alignment = { vertical: 'middle', horizontal: 'center' }; cell4.numFmt = '0'; }
+                    fTotales2.commit();
+
+                    return workbook.xlsx.writeBuffer().then(function(bufferSalida) {
+                        var nombreArchivo = 'Reporte_' + fStrTarget + '_Turno' + tTarget + '_' + vTarget + '.xlsx';
+                        var archivoBase64 = arrayBufferToBase64(bufferSalida);
+                        var blob = new Blob([bufferSalida], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                        resolve({
+                            blob: blob,
+                            base64: archivoBase64,
+                            filename: nombreArchivo,
+                            mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        });
+                    });
+                });
+            }).catch(reject);
+        });
+    }
+
+    function generarExcelCestasEnMemoria(idRespaldo) {
+        return new Promise(function(resolve, reject) {
+            var rTarget = registrosCestas;
+            var tTarget = turnoActivo || "A";
+            var vTarget = document.getElementById('verificador') ? (document.getElementById('verificador').value || "Snayder") : "Snayder";
+            var fStrTarget = "";
+
+            if(idRespaldo) {
+                var turnosGuardados = JSON.parse(localStorage.getItem('lala_turnos_pasados') || '[]');
+                var turnoObj = turnosGuardados.find(function(t) { return t.id === idRespaldo; });
+                if(!turnoObj) return reject(new Error('No se encontró el respaldo de cestas.'));
+                rTarget = turnoObj.registrosCestas || [];
+                tTarget = turnoObj.turno;
+                vTarget = turnoObj.verificador;
+                var fechaYogurt = turnoObj.registros && turnoObj.registros.length > 0 ? turnoObj.fecha : null;
+                fStrTarget = fechaYogurt || turnoObj.fecha;
+            }
+
+            if(!rTarget || rTarget.length === 0) return reject(new Error('No hay registros de cestas.'));
+
+            fetch('./plantilla_cestas.xlsx').then(function(res) {
+                if (!res.ok) throw new Error("No se encontró 'plantilla_cestas.xlsx' en el repositorio.");
+                return res.arrayBuffer();
+            }).then(function(buffer) {
+                var workbook = new ExcelJS.Workbook();
+                return workbook.xlsx.load(buffer).then(function() {
+                    var worksheet = workbook.worksheets[0];
+                    worksheet.getCell('C6').value = "Planta San Benito";
+                    if(!fStrTarget) {
+                        var dateObj = fechaInicioTurno ? new Date(fechaInicioTurno) : new Date();
+                        fStrTarget = String(dateObj.getDate()).padStart(2, '0') + "-" + String(dateObj.getMonth()+1).padStart(2, '0') + "-" + String(dateObj.getFullYear()).slice(-2);
+                    }
+                    worksheet.getCell('G6').value = fStrTarget;
+                    var tRev = 0, tRech = 0, tSuc = 0, tQue = 0; var f = 10;
+
+                    for (var i = 0; i < rTarget.length; i++) {
+                        var r = rTarget[i];
+                        tRev += r.revisadas; tRech += r.rechazadas; tSuc += r.sucias; tQue += r.quebradas;
+                        if (f <= 21) {
+                            worksheet.getCell('A'+f).value = r.item; worksheet.getCell('B'+f).value = r.hora; worksheet.getCell('C'+f).value = "Embalaje"; worksheet.getCell('D'+f).value = r.revisadas; worksheet.getCell('E'+f).value = r.rechazadas; worksheet.getCell('F'+f).value = r.sucias; worksheet.getCell('G'+f).value = r.quebradas; worksheet.getCell('H'+f).value = r.obs; worksheet.getCell('I'+f).value = vTarget;
+                        }
+                        f++;
+                    }
+
+                    worksheet.getCell('D22').value = tRev; worksheet.getCell('E22').value = tRech; worksheet.getCell('F22').value = tSuc; worksheet.getCell('G22').value = tQue;
+
+                    var filasQueNoCaben = Math.max(0, rTarget.length - 12);
+                    if (filasQueNoCaben > 0) {
+                        var avisoCestas = worksheet.addRow(['⚠️ ' + filasQueNoCaben + ' revisión(es) no caben en esta plantilla (12 por hoja). Los totales sí las incluyen; el detalle completo está en la app.']);
+                        avisoCestas.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FFDC3545' } };
+                    }
+
+                    return workbook.xlsx.writeBuffer().then(function(buf) {
+                        var nombreArchivo = 'Cestas_' + fStrTarget + '_Turno' + tTarget + '_' + vTarget + '.xlsx';
+                        var archivoBase64 = arrayBufferToBase64(buf);
+                        var blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                        resolve({
+                            blob: blob,
+                            base64: archivoBase64,
+                            filename: nombreArchivo,
+                            mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        });
+                    });
+                });
+            }).catch(reject);
+        });
+    }
+
+    async function enviarReporteDonMilton() {
+        if (!registros || registros.length === 0) {
+            return Swal.fire('Historial Vacío', 'No hay registros en el turno actual para generar el reporte.', 'info');
+        }
+
+        var emailTo = localStorage.getItem('lala_email_jefe');
+        if (!emailTo || !emailTo.trim()) {
+            var resEmail = await Swal.fire({
+                title: 'Correo de Don Milton',
+                text: 'Ingresa el correo del destinatario para enviar los reportes oficiales:',
+                input: 'email',
+                inputPlaceholder: 'correo@ejemplo.com',
+                showCancelButton: true,
+                confirmButtonText: 'Guardar y Continuar',
+                cancelButtonText: 'Cancelar'
+            });
+            if (!resEmail.isConfirmed || !resEmail.value || !resEmail.value.trim()) {
+                return;
+            }
+            emailTo = resEmail.value.trim();
+            localStorage.setItem('lala_email_jefe', emailTo);
+        }
+
+        Swal.fire({
+            title: 'Generando Reporte Multifile...',
+            text: 'Generando Excel y Captura del turno...',
+            allowOutsideClick: false,
+            didOpen: function() {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            var horaActual = new Date().getHours();
+            var saludo = horaActual < 12 ? 'Buenos días' : (horaActual < 19 ? 'Buenas tardes' : 'Buenas noches');
+
+            var fechaObj = fechaInicioTurno ? new Date(fechaInicioTurno) : new Date();
+            var dia = String(fechaObj.getDate()).padStart(2, '0');
+            var mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+            var anio = fechaObj.getFullYear();
+            var fecha = dia + '/' + mes + '/' + anio;
+
+            var turno = turnoActivo || (document.getElementById('select-turno') ? document.getElementById('select-turno').value : 'A') || 'A';
+            var verificador = (document.getElementById('verificador') && document.getElementById('verificador').value) ? document.getElementById('verificador').value : 'Operador';
+
+            var hayCestas = (typeof registrosCestas !== 'undefined' && Array.isArray(registrosCestas) && registrosCestas.length > 0);
+
+            var subject = 'Reporte Muestreo Yogurt 200g' + (hayCestas ? ' y Cestas' : '') + ' - ' + fecha + ' - ' + verificador;
+            var body = saludo + ' Don Milton,\n\nLe adjunto el Excel de muestreo de yogures de 200 g y la captura del reporte correspondientes al día ' + fecha + (hayCestas ? ', así como el reporte de control de cestas' : '') + '.\n\nTurno: ' + turno + '\nVerificador: ' + verificador + '\n\nSaludos cordiales.';
+
+            var excelYogurt = await generarExcelYogurtEnMemoria();
+            var captura = await generarCapturaReporteEnMemoria();
+            var excelCestas = hayCestas ? await generarExcelCestasEnMemoria() : null;
+
+            var attachments = [
+                {
+                    filename: excelYogurt.filename,
+                    base64: excelYogurt.base64,
+                    mimeType: excelYogurt.mimeType
+                },
+                {
+                    filename: captura.filename,
+                    base64: captura.base64,
+                    mimeType: captura.mimeType
+                }
+            ];
+
+            if (excelCestas) {
+                attachments.push({
+                    filename: excelCestas.filename,
+                    base64: excelCestas.base64,
+                    mimeType: excelCestas.mimeType
+                });
+            }
+
+            // 1. Puente nativo Kotlin AndroidBridge
+            if (window.AndroidBridge && typeof window.AndroidBridge.enviarReporteGmail === 'function') {
+                var payload = {
+                    emailTo: emailTo,
+                    subject: subject,
+                    body: body,
+                    attachments: attachments
+                };
+                window.AndroidBridge.enviarReporteGmail(JSON.stringify(payload));
+                localStorage.setItem('lala_correo_enviado_turno', 'true');
+                Swal.close();
+                return;
+            }
+
+            // 2. Web Share API con archivos (Móvil)
+            var fileObjects = [];
+            try {
+                fileObjects.push(new File([excelYogurt.blob], excelYogurt.filename, { type: excelYogurt.mimeType }));
+                fileObjects.push(new File([captura.blob], captura.filename, { type: captura.mimeType }));
+                if (excelCestas) {
+                    fileObjects.push(new File([excelCestas.blob], excelCestas.filename, { type: excelCestas.mimeType }));
+                }
+            } catch (eF) {
+                fileObjects = [];
+            }
+
+            if (fileObjects.length > 0 && navigator.canShare && navigator.share && navigator.canShare({ files: fileObjects })) {
+                Swal.close();
+                try {
+                    await navigator.share({
+                        title: subject,
+                        text: body,
+                        files: fileObjects
+                    });
+                    localStorage.setItem('lala_correo_enviado_turno', 'true');
+                    return;
+                } catch (eShare) {
+                    if (eShare.name !== 'AbortError') {
+                        console.warn('Share cancelado o falló, usando fallback:', eShare);
+                    } else {
+                        return;
+                    }
+                }
+            }
+
+            // 3. Fallback Web Desktop
+            _descargarBlob(excelYogurt.blob, excelYogurt.filename);
+            _descargarBlob(captura.blob, captura.filename);
+            if (excelCestas) {
+                _descargarBlob(excelCestas.blob, excelCestas.filename);
+            }
+
+            var mailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
+                '&to=' + encodeURIComponent(emailTo) +
+                '&su=' + encodeURIComponent(subject) +
+                '&body=' + encodeURIComponent(body);
+
+            window.open(mailUrl, '_blank');
+            localStorage.setItem('lala_correo_enviado_turno', 'true');
+            Swal.fire({
+                title: 'Archivos Descargados',
+                text: 'Se han descargado los reportes en tu equipo y se abrió la redacción de Gmail Web. Adjunta los archivos descargados para completar el envío.',
+                icon: 'success'
+            });
+        } catch (err) {
+            console.error('Error generando reporte Don Milton:', err);
+            Swal.fire('Error', 'No se pudo generar el reporte: ' + err.message, 'error');
+        }
+    }
+
     function verificarInterruptorMaestro() {
         if (!navigator.onLine) {
             bloquearAppTotalmente("Es obligatorio tener Internet.");
@@ -5109,7 +5622,7 @@
         Swal.fire({ title: '⚙️ Ajustes', html: html, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'Cerrar' });
     }
 
-    var APP_VERSION = "4.0.31";
+    var APP_VERSION = "4.0.32";
 
     function mostrarAppPrincipal() {
         try {
